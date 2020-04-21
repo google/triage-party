@@ -27,7 +27,7 @@ import (
 )
 
 // closedIssueDays is how old of a closed issue to consider
-const closedIssueDays = 30
+const closedIssueDays = 14
 
 type IssueCommentCache struct {
 	Time    time.Time

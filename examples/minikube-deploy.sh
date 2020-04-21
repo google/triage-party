@@ -14,7 +14,7 @@
 # limitations under the License.
 
 export PROJECT=k8s-minikube
-export IMAGE=gcr.io/k8s-minikube/teaparty
+export IMAGE=gcr.io/k8s-minikube/tparty
 # You need to set this.
 # export GITHUB_TOKEN=
 export SERVICE_NAME=teaparty

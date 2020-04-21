@@ -26,8 +26,8 @@ import (
 	"strings"
 	"time"
 
-	"teaparty/pkg/hubbub"
-	"teaparty/pkg/updater"
+	"github.com/google/triage-party/pkg/hubbub"
+	"github.com/google/triage-party/pkg/updater"
 
 	"github.com/dustin/go-humanize"
 	"github.com/google/go-github/v24/github"

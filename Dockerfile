@@ -21,7 +21,7 @@ ARG CFG
 ARG TOKEN
 
 # Set an env var that matches your github repo name, replace treeder/dockergo here with your repo name
-ENV SRC_DIR=/src/teaparty
+ENV SRC_DIR=/src/tparty
 ENV GO111MODULE=on
 
 RUN mkdir -p ${SRC_DIR}/cmd ${SRC_DIR}/third_party ${SRC_DIR}/pkg ${SRC_DIR}/site /app/third_party /app/site

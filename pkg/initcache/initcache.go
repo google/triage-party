@@ -30,7 +30,7 @@ import (
 	"golang.org/x/xerrors"
 	"k8s.io/klog"
 
-	"teaparty/pkg/hubbub"
+	"github.com/google/triage-party/pkg/hubbub"
 )
 
 const (

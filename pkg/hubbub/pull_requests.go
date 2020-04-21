@@ -24,7 +24,7 @@ import (
 )
 
 // closedPRDays is how old of a closed PR to consider
-const closedPRDays = 30
+const closedPRDays = 14
 
 type PRCommentCache struct {
 	Time    time.Time

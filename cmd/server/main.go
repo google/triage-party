@@ -28,10 +28,10 @@ import (
 	"golang.org/x/oauth2"
 	"k8s.io/klog"
 
-	"teaparty/pkg/hubbub"
-	"teaparty/pkg/initcache"
-	"teaparty/pkg/site"
-	"teaparty/pkg/updater"
+	"github.com/google/triage-party/pkg/hubbub"
+	"github.com/google/triage-party/pkg/initcache"
+	"github.com/google/triage-party/pkg/site"
+	"github.com/google/triage-party/pkg/updater"
 )
 
 var (
@@ -91,7 +91,7 @@ func main() {
 
 	cachePath := *cacheFlag
 	if cachePath == "" {
-		cachePath = filepath.Join(fmt.Sprintf("/var/tmp/teaparty_%s.cache", filepath.Base(*configPath)))
+		cachePath = filepath.Join(fmt.Sprintf("/var/tmp/tparty_%s.cache", filepath.Base(*configPath)))
 	}
 	klog.Infof("cache path: %s", cachePath)
 

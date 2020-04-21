@@ -23,8 +23,8 @@ import (
 	"strings"
 	"time"
 
-	"teaparty/pkg/hubbub"
-	"teaparty/pkg/initcache"
+	"github.com/google/triage-party/pkg/hubbub"
+	"github.com/google/triage-party/pkg/initcache"
 
 	"github.com/google/go-github/v24/github"
 	"golang.org/x/oauth2"
@@ -35,7 +35,7 @@ var (
 	tokenFlag    = flag.String("token", "", "github token (also settable via TOKEN environment variable)")
 	configFlag   = flag.String("config", "", "configuration path")
 	strategyFlag = flag.String("strategy", "", "strategy")
-	cacheFlag    = flag.String("init_cache", "/var/tmp/teaparty_tester.cache", "Where to load cache from")
+	cacheFlag    = flag.String("init_cache", "/var/tmp/tparty_tester.cache", "Where to load cache from")
 	repoFlag     = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
 	numFlag      = flag.Int("num", 0, "only display results for this number")
 )
