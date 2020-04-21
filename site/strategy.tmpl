@@ -71,7 +71,7 @@
       }
       </script>
       <div class="box outcome">
-      <div class="box-header">
+      <div class="box-header collapsible">
         <div class="box-head-left">
           <h3 title="{{ .Tactic | toYAML }}">{{ .Tactic.Name }} ({{ len .Items }})<div class="tab-link"><a href="#" title="open in new tabs" onclick="{{ .Tactic.ID | toJSfunc }}tabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div></h3>
           <h4 class="subtitle">Resolution: {{ .Tactic.Resolution }}</h4>
@@ -178,6 +178,21 @@
     });
     {{ end }}
   {{ end }}
+</script>
+<script>
+  var cols = document.getElementsByClassName("collapsible");
+  var i;
+  for (i = 0; i < cols.length; i++) {
+      cols[i].addEventListener("click", function () {
+          this.classList.toggle("active");
+          var content = this.nextElementSibling;
+          if (content.style.display === "block") {
+              content.style.display = "none";
+          } else {
+              content.style.display = "block";
+          }
+      });
+  }
 </script>
 
 {{ end }}
