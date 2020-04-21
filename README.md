@@ -1,4 +1,4 @@
-# Triage Party (UNDER CONSTRUCTION) 🎉
+# Triage Party 🎉
 `NOTE: This is not an officially supported Google product`
 
 Triage Party is a tool for triaging incoming GitHub issues for large open-source projects, built with the GitHub API. 
