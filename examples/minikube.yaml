@@ -23,14 +23,10 @@ strategies:
     name: Daily Triage
     dedup: true
     description: >
-      Triage-oncall zeroes out this queue once a day.
+      triage-onduty zeroes out this queue once a day. Prioritize:
 
-      The priorities for this page are:
-
-       * SLO compliance
-       * Reviewing open PR's
-       * Initial issue prioritization and communication
-       * Raising the priority for hot issues        
+       * Keeping an open dialog with our users
+       * Initial prioritization (does not have to be perfect)
     tactics:
       # SLO violations
       - issue-needs-priority-slo
@@ -54,14 +50,10 @@ strategies:
     name: Weekly Triage
     dedup: true
     description: >
-      Once a week, we meet up to find loose threads and reprioritize issues. The
-      outcome should be an emptied list.
+      Once a week, we meet up to address loose ends. Prioritize:
 
-      The priorities for this page are:
-
-       * SLO compliance
+       * Keeping an open dialog with our users
        * Raising the priority for hot issues        
-       * Resolving loose ends     
     tactics:
       # SLO
       - issue-near-soon-slo
@@ -85,13 +77,11 @@ strategies:
     name: Bi-Monthly Scrub
     dedup: true
     description: >
-      Once every two months, we look for stale issues and de-duplicate
+      Once every two months, we look for stale issues and de-duplicate. Prioritize:
 
-      The priorities for this page are:
-
-      * De-duplication
-      * Keeping the bug queue relevant
-      * Making tough decisions about long-standing requests
+       * De-duplication
+       * Keeping the bug queue relevant
+       * Making tough decisions about long-standing requests
     tactics:
       - lifecycle-stale
       - features-recv
