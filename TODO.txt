@@ -1,0 +1,9 @@
+Sharding:
+- alternative strategies
+
+Tuesday:
+- filter for draft PR's
+
+Later:
+- expand issue to see body
+

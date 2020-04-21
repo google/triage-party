@@ -1,0 +1,183 @@
+{{ define "title" }}
+  {{ .SiteName }} {{ .Title }}
+{{ end }}
+
+{{ define "style" }}
+  <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
+  <link rel="stylesheet" href="/third_party/datatables-bulma/dataTables.bulma.css" />
+{{ end }}
+
+{{define "subnav"}}
+<nav class="navbar secondary" role="navigation" aria-label="secondary navigation">
+  <div class="navbar-secondary-brand">
+  </div>
+  <div id="navbarBasicExample" class="navbar-menu">
+    <div class="navbar-center">
+          <div class="right-item">
+          <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
+          {{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }}, 
+          Avg age: {{ .Result.AvgAge | toDays }}, 
+          Avg response delay: {{ .Result.AvgDelay | toDays }}</div>
+          <script>
+          function openAllTabs() {
+              {{ range .UniqueItems}}window.open("{{ .URL | toJS }}", "_tab{{ .ID }}");
+              {{ end }}
+          }
+          </script>
+
+    </div>
+  </div>
+    <div class="navbar-right">
+      <div class="navbar-form">
+          <div class="buttons">
+            <form style="display: inline-block;" action="/s/{{ .ID }}" method="get">
+              {{ if gt .Players 1 }}
+                <select onchange="this.form.submit();" name="player">
+                  {{ range $i, $name := .PlayerChoices }}
+                    <option value="{{ $i }}" {{ if eq $.Player $i}}selected{{ end }}>{{ $name }}</option>
+                  {{ end }}
+                </select>
+                of
+              {{ end }}
+              <select onchange="this.form.submit();" name="players">
+                <option value="1" {{ if eq .Players 1}}selected{{ end }}>Solo</option>
+                <option value="2" {{ if eq .Players 2}}selected{{ end }}>2 Players</option>
+                <option value="3" {{ if eq .Players 3}}selected{{ end }}>3 Players</option>
+                <option value="4" {{ if eq .Players 4}}selected{{ end }}>4 Players</option>
+                <option value="5" {{ if eq .Players 5}}selected{{ end }}>5 Players</option>
+                <option value="6" {{ if eq .Players 6}}selected{{ end }}>6 Players</option>                
+              </select>
+            </form>
+          </div>
+      </div>
+    </div>
+</nav>
+{{ end }}
+
+{{define "content"}}
+
+  <div class="box description">
+  <pre>{{ .Strategy.Description }}</pre>
+  </div>
+
+  {{ range .Result.Outcomes }}
+    {{ if eq (len .Items) 0 }}
+      <div class="no-matches" title="{{ .Tactic | toYAML }}"><strong>{{ .Tactic.Name }}</strong>: No matching items</div>
+    {{ else }}
+      <script>
+      function {{ .Tactic.ID | toJSfunc }}tabs() {
+          {{ range .Items}}window.open("{{ .URL | toJS }}", "_tab{{ .ID }}");
+          {{ end }}
+      }
+      </script>
+      <div class="box outcome">
+      <div class="box-header">
+        <div class="box-head-left">
+          <h3 title="{{ .Tactic | toYAML }}">{{ .Tactic.Name }} ({{ len .Items }})<div class="tab-link"><a href="#" title="open in new tabs" onclick="{{ .Tactic.ID | toJSfunc }}tabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div></h3>
+          <h4 class="subtitle">Resolution: {{ .Tactic.Resolution }}</h4>
+          <h5 class="stats">Average age: {{ .AvgAge | toDays }}, Avg latest response delay: {{ .AvgDelay | toDays }}</h5>
+        </div>
+        <div class="box-head-right">
+        <!--  just save the space -->
+        </div>
+      </div>
+      <table id="{{ .Tactic.ID | toJSfunc  }}" class="compact is-size-6">
+      <thead>
+        <tr>
+          <td class="col-id">ID</td>
+          <td class="col-author" title="Author">Aut</td>
+          <td class="col-desc" title="Description">Desc</td>
+          <td class="col-reactions" title="Reactions">Reac</td>
+          <td class="col-create" title="When issue was created">Cr</td>
+          <td class="col-update" title="When issue was last updated">Up</td>
+          <td class="col-response" title="When issue was last responded to">Re</td>
+          <td class="col-assignee" title="Assignee">Asi</td>
+          <td class="col-comments" title="Commenters">Cmntrs</td>
+          <td class="col-labels">Labels</td>
+          <td class="col-tags">Tags</td>
+        </tr>
+      </thead>
+      <tbody>
+        {{ $dupes := .Duplicates }}
+        {{ range .Items }}
+        {{ if or (lt $dupes 3) (not .Hidden) }}
+          <tr>
+            <td class="cell-id"><a href="{{ .URL }}">{{ .ID }}</a></td>
+            <td class="cell-author" data-order="{{ .Author.GetLogin }}">{{ .Author | Avatar }}</td>
+            <td class="cell-desc">
+              <a href="{{ .URL }}" title="{{ .LastCommentBody }}"><strong>{{ .Title }}</strong></a>
+              {{ if .Similar }}<div class="similar"><ul>
+              {{ range .Similar }}
+                <li><a href="{{ .URL }}" title="Issue title is similar to #{{ .ID }}">#{{ .ID }} &mdash; {{ .Title }}</a></li>
+              {{ end }}
+              </div>
+              {{ end }}
+            </td>
+            <td class="cell-reactions" data-order="{{ .ReactionsTotal }}">
+            {{ range $value, $count := .Reactions }}
+              {{ if gt $count 1 }}
+                <div class="reaction-{{ $value }}">{{ $count }}</div>
+              {{ end }}
+            {{ end }}   
+            </td>
+            <td class="cell-create" data-order="{{ .Created | UnixNano }}">{{ .Created | HumanTime }}</td>
+            <td class="cell-update" data-order="{{ .Updated | UnixNano }}">{{ .Updated | HumanTime }}</td>
+            <td class="cell-response" data-order="{{ .LatestMemberResponse | UnixNano }}">{{ .LatestMemberResponse | HumanTime }}</td>
+            <td class="cell-assignee" data-order="{{ range .Assignees }}{{ .GetLogin }}{{ end }}">{{ range .Assignees }}{{ . |  Avatar}}{{ end }}
+            <td class="cell-comments" data-order="{{ .CommentersTotal }}">{{ range .Commenters }}{{ . |  Avatar}}{{ end }}</td>
+            <td class="cell-labels">
+              {{ range .Labels }}
+                <div class="gh-label" style="background-color: #{{ .Color }}"><span class="gh-label-text">{{ .Name }}</span></div>
+              {{ end }}
+            </td>
+            <td class="cell-tags">
+              {{ range .Tags }}<div class="gh-tag tag-{{ . }}">{{ . }}</div> {{ end }}
+            </td>
+          </tr>
+          {{ end }}
+        {{ end }}
+        {{ if gt .Duplicates 2 }}
+          <tr class="dupes"><td colspan="12">{{ .Duplicates }} previously listed 
+          {{ if eq .Duplicates 1 }}item{{ else }}items{{ end }} are hidden from this table:
+          {{ range .Items }}
+            {{ if .Hidden }}
+              <a href="{{ .URL }}" title="{{ .Title }}">#{{ .ID }}</a>
+            {{ end }}
+          {{ end }}
+          </td></tr>
+        {{ end }}
+      </tbody>
+      </table>
+      </div>
+    {{ end }}
+  {{ end }}
+
+
+  {{ if eq .Total 0 }}
+  <div class="celebrate">
+    <h1>🎉</h1>
+    <h2>Zarro Boogs Found!</h2>
+    <p>You did it! You have fought valiantly for the user, and saved the day.</p>
+  </div>
+
+  {{ end }} 
+
+{{ end }} 
+
+{{ define "js" }}
+<script src="/third_party/jquery/jquery-3.3.1.min.js"></script>
+<script src="/third_party/datatables/jquery.dataTables.min.js"></script>
+<script src="/third_party/datatables-bulma/dataTables.bulma.js"></script>
+<script>
+  {{ range .Result.Outcomes }}
+    {{ if .Items }}
+   $('#{{ .Tactic.ID | toJSfunc }}').DataTable( {
+        "order": [[ 3, "desc" ]],
+        "paging": false,
+        "info": false,
+    });
+    {{ end }}
+  {{ end }}
+</script>
+
+{{ end }}

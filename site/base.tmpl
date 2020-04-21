@@ -1,0 +1,65 @@
+{{ define "base" }}
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16x16.png">
+    <link rel="manifest" href="/static/img/site.webmanifest">
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ block "title" .}} {{end}} :: Triage Party</title>
+    <link rel="stylesheet" href="/third_party/bulma/bulma.min.css">
+    <link rel="stylesheet" href="/third_party/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/teaparty.css?{{.Version}}">
+    <script type="text/javascript" src="/third_party/moment/moment-with-locales.min.js"></script>
+    {{ block "style" .}} {{end}}
+  </head>
+<body>
+<nav class="navbar" role="navigation" aria-label="main navigation">
+  <div class="navbar-brand">
+    <a class="navbar-item" href="/"><strong>{{ .SiteName }}</strong><img src="/static/img/favicon-32x32.png" alt="logo"></a>
+  </div>
+  <div id="navbarBasicExample" class="navbar-menu">
+    <div class="navbar-start">
+      {{ range .Strategies }}
+        {{ if not .Hidden }}
+          <a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/s/{{ .ID }}">{{ .Name }}</a>
+        {{ end }}
+      {{ end }}
+    </div>
+    <div class="navbar-end">
+      <div class="buttons">
+      {{ if .Stats }}
+        <a class="button is-white" title="Total PRs" href="/s/{{ .StatsID }}">{{ .Stats.TotalPullRequests }} PRs</a>
+        <a class="button is-white" title="Total Issues" href="/s/{{ .StatsID }}">{{ .Stats.TotalIssues }} issues</a>
+        <a class="button is-white" title="Average time latest response took on each issue" href="/s/{{ .StatsID }}">{{ .Stats.AvgDelay | toDays }} response</a>
+      {{ end }}
+      </div>
+    </div>
+  </div>
+</nav>
+{{template "subnav" . }}
+  <section class="section">
+    <div class="tp-container">
+    {{ if ne .Warning "" }}
+    <div class="notification is-warning">
+      <button class="delete"></button>
+      {{ .Warning }}
+    </div>
+    {{ end }}
+      {{template "content" .}}
+    </div>
+  </section>
+
+  <section>
+  <div class="content has-text-right">
+  Triage Party {{.Version}}</a>
+  </div>
+  </section>
+
+  </body>
+  {{block "js" .}}{{end}}
+</html>
+{{ end }}

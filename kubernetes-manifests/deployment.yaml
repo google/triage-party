@@ -1,0 +1,41 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This Deployment manifest defines:
+# - single-replica deployment of the container image, with label "app: triage-party"
+# - Pod exposes port 8080
+# - specify PORT environment variable to the container process
+# Syntax reference https://kubernetes.io/docs/concepts/configuration/overview/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triage-party
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: triage-party
+  template:
+    metadata:
+      labels:
+        app: triage-party
+    spec:
+      containers:
+      - name: server
+        image: gcr.io/tstromberg-test/tparty
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT 
+          value: "8080"

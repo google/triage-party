@@ -1,0 +1,611 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+settings:
+  name: skaffold
+  min_similarity: 0.65
+  repos:
+    -  https://github.com/GoogleContainerTools/skaffold
+
+strategies:
+  - id: daily
+    name: Daily Triage
+    dedup: false
+    description: >
+      Triage-oncall zeroes out this queue once a day. The priorities are:
+
+       * Keeping an open dialog with our users
+       * Initial prioritization (does not have to be perfect)
+       * SLO compliance
+    tactics:
+      # SLO violations
+      - issue-needs-priority-slo
+      - issue-needs-comment-slo
+      - issue-p0-fix-slo
+      - issue-p0-followup-slo
+      - issue-p1-fix-slo
+      - issue-p2-fix-slo
+      # Don't leave code reviews hanging
+      - pr-reviewable
+      # missing initial feedback
+      - issue-needs-kind
+      - issue-needs-priority
+      - issue-needs-comment
+      # reprioritize
+      - issue-new-with-reactions
+      - issue-new-with-many-commenters
+      # Don't forget our users
+      - issue-updated-needs-info
+      - issue-updated-has-question
+
+  - id: weekly
+    name: Weekly Triage
+    dedup: true
+    description: >
+      Once a week, we meet up to address loose ends. The priorities are:
+
+       * Keeping an open dialog with our users
+       * Finding misprioritized issues
+       * SLO compliance
+    tactics:
+      - discuss
+      # Issues needing reprioritization
+      - many-reactions
+      - many-commenters-awaiting-evidence
+      - many-commenters
+      # SLO
+      - issue-near-p0-fix-slo
+      - issue-near-p0-followup-slo
+      - issue-near-p1-fix-slo
+      - issue-near-p2-fix-slo
+      # Issues needing reprioritization
+      - issue-zombies
+      # Issues needing closure
+      - issue-stale-needs-info
+      - issue-stale-support
+      # PR's needing closure
+      - pr-approved-stale
+      - pr-unapproved-stale
+      # People with questions
+      - issue-has-question
+      - issue-updated-kind-question
+
+  - id: quarterly
+    name: Quarterly Scrub
+    dedup: true
+    description: >
+      Once every quarter, we look for stale issues and de-duplicate
+
+      The priorities for this page are:
+
+       * De-duplication
+       * Keeping the bug queue relevant
+       * Making tough decisions about long-standing requests
+
+    tactics:
+      - birthday
+      - lifecycle-rotten
+      - features-recv
+      - features-old
+      - bugs-recv
+      - bugs-old
+      - other-recv
+      - other-old
+
+  - id: p0
+    name: P0
+    description: All hands on deck!
+    tactics:
+      - p0-prs
+      - p0-features
+      - p0-bugs
+      - p0-other
+
+  - id: p1
+    name: P1
+    description: To be resolved within 6 weeks
+    tactics:
+      - p1-prs
+      - p1-features
+      - p1-bugs
+      - p1-other
+
+  - id: open
+    name: All open PR's and Issues that should be considered for repository stats (hidden)
+    used_for_statistics: true
+    hidden: true
+    tactics:
+      - open-prs
+      - open-issues
+
+  - id: zombies
+    name: All open PR's and Issues that should be considered for repository stats (hidden)
+    used_for_statistics: true
+    hidden: true
+    tactics:
+      - issue-zombies
+
+tactics:
+  ### Daily Triage ####
+  # SLO violations
+  issue-needs-priority-slo:
+    name: "Unprioritized bugs/features older than 7 days (SLO violation)"
+    resolution: "Add a priority/ label"
+    type: issue
+    filters:
+      - label: "!priority/.*"
+      # Open question: should this include all bugs?
+      - label: "kind/(bug|feature-request)"
+      - created: +7d
+      - responded: +1d
+
+  issue-needs-comment-slo:
+    name: "Unresponded, older than 7 days (SLO violation)"
+    resolution: "Respond to the issue"
+    type: issue
+    filters:
+      - tag: "!commented"
+      - tag: "recv"
+      - created: +7d
+
+  issue-p0-followup-slo:
+    name: "p0 bug, no comments in 3 days (SLO violation)"
+    resolution: "Downgrade to p1"
+    type: issue
+    filters:
+      - label: "priority/p0"
+      - tag: recv
+      - responded: +3d
+      - label: "kind/bug"
+
+  issue-p0-fix-slo:
+    name: "p0 bug, older than a week (SLO violation)"
+    resolution: "Downgrade to p1"
+    type: issue
+    filters:
+      - label: "priority/p0"
+      - created: +1w
+      - responded: +1d
+      - label: "kind/bug"
+
+  issue-p1-fix-slo:
+    name: "p1 bug, older than 6 weeks (SLO violation)"
+    resolution: "Downgrade to p2"
+    type: issue
+    filters:
+      - label: "priority/p1"
+      - responded: +1d
+      - created: +6w
+      - label: "kind/bug"
+
+  issue-p2-fix-slo:
+    name: "p2 bug, older than 1 quarter (SLO violation)"
+    resolution: "Downgrade to p3"
+    type: issue
+    filters:
+      - label: "priority/p2"
+      - created: +12w
+      - responded: +1d
+      - label: "kind/bug"
+
+  # Don't leave code reviews hanging
+  pr-reviewable:
+    name: "Pull Requests: Review Ready"
+    resolution: "Review requests or mark them as do-not-merge/work-in-progress"
+    type: pull_request
+    filters:
+      - label: "!do-not-merge.*"
+      - label: "!needs-rebase"
+      - label: "!.*wip"
+      - label: "!cncf-cla: no"
+      - tag: "!requested-changes"
+      - tag: "!send"
+      - tag: "!commented"
+      
+      # Temporarily workaround inability to track PR eligibility
+      - updated: +1d
+
+  # Issues missing initial feedback
+  issue-needs-kind:
+    name: "Unkinded Issues"
+    resolution: "Add a kind/ label"
+    type: issue
+    filters:
+      - label: "!kind/.*"
+      - label: "!kind/question"
+
+  issue-needs-area:
+    name: "Uncategorized Issues"
+    resolution: "Add an area/ label"
+    type: issue
+    filters:
+      - label: "!area/.*"
+      - label: "!meta/.*"
+      # Open question: should this exclude questions?
+      # - label: "!kind/question"      
+
+  issue-needs-priority:
+    name: "Unprioritized bugs or features"
+    resolution: "Add a priority/ or triage/ label"
+    type: issue
+    filters:
+      - label: "!priority/.*"
+      # Open question: should this include all bugs?
+      - label: "kind/(bug|feature-request)"
+      - created: -7d
+
+  issue-needs-comment:
+    name: "Uncommented Issues within SLO"
+    resolution: "Add a comment"
+    type: issue
+    filters:
+      - tag: "!commented"
+      - tag: "recv"
+      - created: -5d
+
+  # Issues that may need reprioritized
+  issue-new-with-reactions:
+    name: "New, has multiple reactions, but not p0"
+    resolution: "Check if issue should be prioritized as p0"
+    type: issue
+    filters:
+      - reactions: ">2"
+      - created: -10d
+      - tag: "!send"
+      - label: "!priority/p0"
+
+  issue-new-with-many-commenters:
+    name: "New, has multiple commenters, but not p0"
+    resolution: "Check if issue should be prioritized as p0"
+    type: issue
+    filters:
+      - commenters: ">3"
+      - created: -10d
+      - tag: "!send"
+      - label: "!priority/p0"
+
+  # Don't forget our users
+  issue-updated-needs-info:
+    name: "needs-reproduction, has update"
+    resolution: "Comment and remove needs-reproduction tag"
+    type: issue
+    filters:
+      - label: needs-reproduction
+      - tag: recv
+
+  issue-updated-has-question:
+      name: "Recently updated issue has open question"
+      resolution: "Add an answer"
+      type: issue
+      filters:
+        - tag: recv-q
+        - tag: "!member-last"
+        - tag: "!contributor-last"
+        - responded: +3d
+        - updated: -7d
+
+  ####### Weekly Triage #########
+  discuss:
+    name: "Items for discussion"
+    resolution: "Discuss and remove label"
+    filters:
+      - label: triage/discuss
+      - state: "all"
+
+  # SLO nearing
+  issue-near-p0-followup-slo:
+    name: "p0 bug, no comments in 3 days (SLO violation)"
+    resolution: "Downgrade to p1"
+    type: issue
+    filters:
+      - label: "priority/p0"
+      - tag: recv
+      - responded: +3d
+      - label: "kind/bug"
+
+  issue-near-p0-fix-slo:
+    name: "p0 bug, older than 5d (near SLO boundary)"
+    resolution: "Downgrade to p1"
+    type: issue
+    filters:
+      - label: "priority/p0"
+      - created: +5d
+      - created: -7d
+      - responded: +1d
+      - label: "kind/bug"
+
+  issue-near-p1-fix-slo:
+    name: "p1 bug, older than 5 weeks (near SLO boundary)"
+    resolution: "Downgrade to p2"
+    type: issue
+    filters:
+      - label: "priority/p1"
+      - created: +5w
+      - created: -6w
+      - label: "kind/bug"
+      - responded: +1w
+
+  issue-near-p2-fix-slo:
+    name: "p2 bug, older than 10 weeks (near SLO boundary)"
+    resolution: "Downgrade to p3"
+    type: issue
+    filters:
+      - label: "priority/p2"
+      - created: +10w
+      - created: -12w
+      - label: "kind/bug"
+      - responded: +1w
+
+  # issues needing reprioritization
+  many-reactions:
+    name: "many reactions, low priority, no recent comment"
+    resolution: "Bump the priority, add a comment"
+    filters:
+      - reactions: ">3"
+      - reactions-per-month: ">1"
+      - label: "!priority/p0"
+      - label: "!priority/p1"
+      - responded: +60d
+
+  many-commenters:
+    name: "many commenters, low priority, no recent comment"
+    resolution: "Consider increasing priority"
+    type: issue
+    filters:
+      - commenters: ">3"
+      - commenters-per-month: ">1.9"
+      - created: "+30d"
+      - label: "!priority/p0"
+      - label: "!priority/p1"
+      - tag: "!member-last"
+      - responded: "+60d"
+
+  many-commenters-awaiting-evidence:
+    name: "many commenters, awaiting evidence"
+    resolution: "Consider increasing priority"
+    type: issue
+    filters:
+      - commenters: ">3"
+      - commenters-per-month: ">0.25"
+      - created: "+14d"
+      - label: "priority/awaiting-evidence"
+      - tag: "!member-last"
+      - responded: "+7d"
+
+  issue-zombies:
+    name: "Screaming into the void"
+    resolution: "Reopen, or ask folks to open a new issue"
+    type: issue
+    filters:
+      - state: closed
+      - comments-while-closed: ">1"
+      - updated: "-14d"
+      - tag: "!member-last"
+
+  # Issues needing closure
+  issue-stale-needs-info:
+    name: "Needs reproduction for over 3 weeks"
+    resolution: "Close or remove needs-reproduction label"
+    type: issue
+    filters:
+      - label: needs-reproduction
+      - responded: +1w      
+      - updated: +21d
+
+  issue-stale-support:
+    name: "kind/question over 30 days old"
+    resolution: "Close, or add to kind/documentation"
+    type: issue
+    filters:
+      - label: kind/question
+      - updated: +30d
+      - responded: +7d
+
+  lifecycle-rotten:
+    name: "P2+ over 180 days old without a recent response"
+    resolution: "Close or prioritize as priority/awiting-more-evidence or priority/p3"
+    filters:
+      - created: +180d
+      - responded: +90d
+      - label: "!priority/p3"
+      - label: "!priority/awaiting-more-evidence"
+
+  birthday:
+    name: "Forgotten Birthdays - over a year old, no response in 6 months"
+    resolution: "Close or comment on what it would take to address this issue"
+    filters:
+      - created: +365d
+      - responded: +180d
+
+  # PR's needing closure
+  pr-approved-stale:
+    name: "Pull requests: Approved and getting old"
+    type: pull_request
+    filters:
+      - label: "!do-not-merge.*"
+      - label: "!needs-rebase"
+      - label: "approved"
+      - updated: +5d
+      - responded: +2d
+
+  pr-unapproved-stale:
+    name: "Pull Requests: Stale"
+    resolution: "Add comment and/or close PR"
+    type: pull_request
+    filters:
+      - created: +20d
+      - updated: +5d
+      - responded: +2d
+  
+  # People with questions
+  issue-has-question:
+    name: "Reporter asked a question over a week ago"
+    resolution: "Add an answer"
+    type: issue
+    filters:
+      - tag: recv-q
+      - tag: "!member-last"
+      - tag: "!contributor-last"
+      - responded: +7d
+
+  issue-updated-kind-question:
+    name: "kind/question issue not responded to for over a week"
+    resolution: "Move out of kind/question, or add a comment"
+    type: issue
+    filters:
+      - tag: recv
+      - label: "kind/question"
+      - tag: "!member-last"
+      - tag: "!contributor-last"
+      - responded: +8d
+
+  ## Bug Scrub ##
+  bugs-recv:
+    name: "Bugs that deserve a follow-up comment"
+    resolution: "Comment or close the issue"
+    type: issue
+    filters:
+      - tag: recv
+      - responded: +45d
+      - created: +45d
+      - label: "kind/bug"
+
+  features-recv:
+    name: "Features that deserve a follow-up comment"
+    resolution: "Comment or close the issue"
+    type: issue
+    filters:
+      - tag: recv
+      - responded: +60d
+      - created: +30d
+      - label: "kind/feature-request"
+
+  other-recv:
+    name: "Items that deserve a follow-up comment"
+    resolution: "Comment or close the issue"
+    type: issue
+    filters:
+      - tag: recv
+      - responded: +30d
+      - label: "!kind/feature"
+      - label: "!kind/bug"
+      - label: "!kind/question"
+
+  features-old:
+    name: "Features that have not been commented on within 90 days"
+    resolution: "Comment or close the issue"
+    type: issue
+    filters:
+      - responded: +90d
+      - created: +90d
+      - label: "kind/feature-request"
+
+  bugs-old:
+    name: "Bugs that have not been commented on within 60 days"
+    resolution: "Comment or close the issue"
+    type: issue
+    filters:
+      - label: "kind/bug"
+      - responded: +60d
+      - created: +60d
+      - label: "!priority/awaiting-evidence"
+
+  other-old:
+    name: "Items that have not been commented on within 60 days"
+    resolution: "Comment or close the issue"
+    type: issue
+    filters:
+      - responded: +60d
+      - created: +60d
+      - label: "!kind/feature"
+      - label: "!kind/bug"
+      - label: "!kind/question"
+      - label: "!priority/awaiting-evidence"
+
+  # P0
+  p0-features:
+    name: "p0 Bugs"
+    type: issue
+    resolution: Close or deprioritize
+    filters:
+      - label: "priority/p0"
+      - label: "kind/bug"
+
+  p0-bugs:
+    name: "p0 Features"
+    type: issue
+    resolution: Close or deprioritize
+    filters:
+      - label: "priority/p0"
+      - label: "kind/feature-request"
+
+  p0-other:
+    name: "p0 Other"
+    type: issue
+    resolution: Close or deprioritize
+    filters:
+      - label: "priority/p0"
+      - label: "!kind/feature-request"
+      - label: "!kind/bug"
+
+  p0-prs:
+    name: "p0 Pull Requests"
+    type: pull_request
+    resolution: Merge em
+    filters:
+      - label: "priority/p0"
+
+  # P1
+  p1-bugs:
+    name: "p1 Bugs"
+    type: issue
+    resolution: Close or deprioritize
+    filters:
+      - label: "priority/p1"
+      - label: "kind/bug"
+
+  p1-features:
+    name: "p1 Features"
+    type: issue
+    resolution: Close or deprioritize
+    filters:
+      - label: "priority/p1"
+      - label: "kind/feature-request"
+
+  p1-other:
+    name: "p1 Other"
+    type: issue
+    resolution: Close or deprioritize
+    filters:
+      - label: "priority/p1"
+      - label: "!kind/feature-request"
+      - label: "!kind/bug"
+
+  p1-prs:
+    name: "p1 Pull Requests"
+    type: pull_request
+    resolution: Merge em
+    filters:
+      - label: "priority/p1"
+
+  # for stastistics generation
+  open-issues:
+    name: "Open Issues"
+    type: issue
+    state: open
+
+  open-prs:
+    name: "Open PRs"
+    type: pull_request
+    state: open
