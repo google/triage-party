@@ -2,7 +2,11 @@
 
 Triage Party is a tool for triaging incoming GitHub issues, built with the GitHub API. 
 
-Triage Party was crafted based on our experience triaging issues for Container DevEx OSS projects (minikube, skaffold), with the goal of increasing engineer efficiency and reducing customer response latency. It is a tag-less Go web application, optimized for Google Cloud Run deployments, and designed to be accessible to outside contributors on our projects.
+Triage Party was crafted based on our experience triaging issues for open-source projects, such as minikube, kaniko, and skaffold. The focus of the tool is to reduce customer response latency, while increasing engineer efficiency.
+
+It is a simple stateless Go web application, optimized for Google Cloud Run deployments, but deployable anywhere. 
+
+Configuration is via YAML.
 
 Novel features:
 * Shareable bookmarked GitHub queries
@@ -27,13 +31,6 @@ Production example: http://tinyurl.com/mk-tparty
 
 - [GitHub API token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
 - Go v1.12 or higher
-
-## Checking out the code
-
-```
-glogin || prodaccess
-git clone git clone sso://user/tstromberg/teaparty
-```
 
 ## Configuration
 
@@ -83,35 +80,14 @@ This will use minikube's configuration as a starting point. The first time you r
 ## Running in Docker
 
 ```
-docker build --tag=teaparty --build-arg CFG=examples/minikube.yaml --build-arg TOKEN=$GITHUB_TOKEN .
-docker run -p 8080:8080 teaparty
+docker build --tag=tp --build-arg CFG=examples/minikube.yaml --build-arg TOKEN=$GITHUB_TOKEN 
+docker run -p 8080:8080 tp
 ```
 
 ## Cloud Run Build & Deploy
 
-An example workflow for Cloud Run builds:
+See `examples/gcloud-deploy.sh`
 
-```
-export PROJECT=<insert GCP project ID>
-export IMAGE=<GCR image, e.g. gcr.io/$PROJECT/myimagename>
-export GITHUB_TOKEN=<github access token>
-export SERVICE_NAME=<service name>
-export CONFIG_FILE=<path to config yaml, e.g. examples/skaffold.yaml>
-
-docker build -t $IMAGE \
-            --build-arg CFG=$CONFIG_FILE \
-            --build-arg TOKEN=$GITHUB_TOKEN . 
-            
-docker push $IMAGE
-
-gcloud beta run deploy $SERVICE_NAME --project $PROJECT \
-                        --image $IMAGE \
-                        --set-env-vars=TOKEN=$GITHUB_TOKEN \
-                        --allow-unauthenticated \
-                        --region us-central1 \
-                        --platform managed
-```
-
-Once this project is on GitHub, this button will  work:
+Or use the easy button:
 
 [![Run on Google Cloud](https://storage.googleapis.com/cloudrun/button.svg)](https://console.cloud.google.com/cloudshell/editor?shellonly=true&cloudshell_image=gcr.io/cloudrun/button&cloudshell_git_repo=http://github.com/google/triage-party)
