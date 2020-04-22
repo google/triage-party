@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -70,7 +71,16 @@ func main() {
 		klog.Exitf("open %s: %v", *configFlag, err)
 	}
 
-	c, err := initcache.Load(*cacheFlag)
+	cachePath := *cacheFlag
+	if cachePath == "" {
+		name := filepath.Base(*configFlag)
+		if *repoFlag != "" {
+			name = name + "_" + filepath.Base(*repoFlag)
+		}
+		cachePath = filepath.Join(fmt.Sprintf("/var/tmp/tparty_%s_%s.cache", name))
+	}
+
+	c, err := initcache.Load(cachePath)
 	if err != nil {
 		klog.Exitf("initcache load to %s: %v", *cacheFlag, err)
 	}
