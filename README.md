@@ -145,8 +145,8 @@ docker run -p 8080:8080 tp
 
 Cloud Run:
 
-See [minikube's Cloud Run deployment script](examples/minikube-deploy.sh)
+See [examples/minikube-deploy.sh](examples/minikube-deploy.sh)
 
 Kubernetes:
 
-See [kubernetes-manifests/](examples/kubernetes-manifests)
+See [examples/kubernetes-manifests](examples/kubernetes-manifests)
