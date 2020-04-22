@@ -95,7 +95,7 @@ func main() {
 		if *repos != "" {
 			name = name + "_" + filepath.Base(*repos)
 		}
-		cachePath = filepath.Join(fmt.Sprintf("/var/tmp/tparty_%s_%s.cache", name))
+		cachePath = filepath.Join(fmt.Sprintf("/var/tmp/tparty_%s.cache", name))
 	}
 	klog.Infof("cache path: %s", cachePath)
 

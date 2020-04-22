@@ -77,7 +77,7 @@ func main() {
 		if *repoFlag != "" {
 			name = name + "_" + filepath.Base(*repoFlag)
 		}
-		cachePath = filepath.Join(fmt.Sprintf("/var/tmp/tparty_%s_%s.cache", name))
+		cachePath = filepath.Join(fmt.Sprintf("/var/tmp/tparty_%s.cache", name))
 	}
 
 	c, err := initcache.Load(cachePath)
