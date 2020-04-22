@@ -110,7 +110,7 @@ This will use minikube's configuration as a starting point. The first time you r
 ## Running in Docker
 
 ```
-docker build --tag=tp --build-arg CFG=examples/minikube.yaml --build-arg TOKEN=$GITHUB_TOKEN 
+docker build --tag=tp --build-arg CFG=examples/minikube.yaml --build-arg TOKEN=$GITHUB_TOKEN .
 docker run -p 8080:8080 tp
 ```
 
@@ -120,4 +120,4 @@ See `examples/gcloud-deploy.sh`
 
 Or use the easy button:
 
-[![Run on Google Cloud](https://storage.googleapis.com/cloudrun/button.svg)](https://console.cloud.google.com/cloudshell/editor?shellonly=true&cloudshell_image=gcr.io/cloudrun/button&cloudshell_git_repo=http://github.com/google/triage-party)
+[![Run on Google Cloud](https://storage.googleapis.com/cloudrun/button.svg)](https://console.cloud.google.com/cloudshell/editor?shellonly=true&cloudshell_image=gcr.io/cloudrun/button&cloudshell_git_repo=https://github.com/google/triage-party)
