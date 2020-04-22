@@ -9,7 +9,8 @@ Triage focuses on reducing response latency for incoming GitHub issues and PR's,
 
 Triage Party is a stateless Go web application, configured via YAML. While it has been optimized for Google Cloud Run deployments, it's deployable anywhere due to it's low memory footprint: even on a Raspberry Pi.
 
-Novel features:
+## Features
+
 * Queries across multiple repositories
 * Queries that are not possible on GitHub:
   * conversation direction (`tag: recv`)
@@ -29,13 +30,15 @@ Novel features:
 
 ## See it in production!
 
-See how Triage Party is used in production for [kubernetes/minikube](https://github.com/kubernetes/minikube)
+Triage Party is used in production for [kubernetes/minikube](https://github.com/kubernetes/minikube):
 
 * [Triage Party dashboard](http://tinyurl.com/mk-tparty)
 * [configuration file](examples/minikube.yaml)
-* [deployment script](examples/minikube-deploy.sh)
+* [Cloud Run deployment script](examples/minikube-deploy.sh)
 
-Alternatively, see the [GoogleContainerTools/skaffold Triage Party](https://skaffold-triage-party-eyodkz2nea-uc.a.run.app/)
+Other examples:
+
+* [GoogleContainerTools/skaffold Triage Party](https://skaffold-triage-party-eyodkz2nea-uc.a.run.app/)
 
 ## Try it locally!
 
@@ -46,7 +49,9 @@ cd cmd/server
 go run . --token $GITHUB_TOKEN --config ../../examples/generic-kubernetes.yaml --repos kubernetes/sig-release
 ```
 
-The first time you run Triage Party against a new repository, there will be a long delay as it will download and cache every issue and PR. This data will be cached for subsequent runs. We're working to improve this latency.
+Then visit http://localhost:8080/
+
+The first time you run Triage Party against a new repository, there will be a long delay as it will download and cache every open issue and PR. This data will be cached for subsequent runs. We're working to improve this latency.
 
 ## Configuration
 
@@ -81,8 +86,8 @@ tactics:
 
 For example configurations, see `examples/*.yaml`. There are two that are particularly useful to get started:
 
-* `generic-project.yaml`: uses common GitHub labels
-* `generic-kubernetes.yaml`: projects that use Kubernetes-style labels, particularly for prioritization
+* [generic-project](examples/generic-project.yaml): uses label regular expressions that work for most GitHub projects
+* [generic-kubernetes](examples/generic-project.yaml): for projects that use Kubernetes-style labels, particularly  prioritization
 
 ## Filter language
 
@@ -90,40 +95,58 @@ For example configurations, see `examples/*.yaml`. There are two that are partic
 # issue state (default is "open")
 - state:(open|closed|all)
 
+# GitHub label
 - label: [!]regex
+
+# Internal tagging: particularly useful tags are:
+# - recv: updated by author more recently than a project member
+# - recv-q: updated by author with a question
+# - send: updated by a project member more recently than the author
 - tag: [!]regex
 
+# GitHub milestone
 - milestone: string
 
-- created: [-+]duration
-- updated: [-+]duration
+# Duration since item was created
+- created: [-+]duration   # example: +30d
+# Duration since item was updated
+- updated: [-+]duration 
+# Duration since item was responded to by a project member
 - responded: [-+]duration
 
-- reactions: [><=]int
+# Number of reactions this item has received
+- reactions: [><=]int  # example: +5
+# Number of reactions per month on average
 - reactions-per-month: [><=]float
 
+# Number of comments this item has received
 - comments: [><=]int
+# Number of comments per month on average
 - comments-per-month: [><=]int
+# Number of comments this item has received while closed!
 - comments-while-closed: [><=]int
 
+# Number of commenters on this item
 - commenters: [><=]int
+# Number of commenters who have interactive with this item while closed
 - commenters-while-closed: [><=]int
+# Number of commenters tthis item has had per month on average
 - commenters-per-month: [><=]float
 ```
 
+## How to deploy
 
-
-## Running in Docker
+Docker:
 
 ```
-docker build --tag=tp --build-arg CFG=examples/minikube.yaml --build-arg TOKEN=$GITHUB_TOKEN .
+docker build --tag=tp --build-arg CFG=examples/generic-project.yaml --build-arg TOKEN=$GITHUB_TOKEN .
 docker run -p 8080:8080 tp
 ```
 
-## Cloud Run Build & Deploy
+Cloud Run:
 
-See `examples/gcloud-deploy.sh`
+See [minikube's Cloud Run deployment script](examples/minikube-deploy.sh)
 
-Or use the easy button:
+Kubernetes:
 
-[![Run on Google Cloud](https://storage.googleapis.com/cloudrun/button.svg)](https://console.cloud.google.com/cloudshell/editor?shellonly=true&cloudshell_image=gcr.io/cloudrun/button&cloudshell_git_repo=https://github.com/google/triage-party)
+See [kubernetes-manifests/](examples/kubernetes-manifests)
