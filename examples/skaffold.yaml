@@ -121,6 +121,15 @@ strategies:
       - p1-bugs
       - p1-other
 
+  - id: fixit
+    name: Fix-it
+    description: Candidates for the Skaffold Fix-It
+    tactics:
+      - fixit-prs
+      - fixit-features
+      - fixit-bugs
+      - fixit-other
+
   - id: open
     name: All open PR's and Issues that should be considered for repository stats (hidden)
     used_for_statistics: true
@@ -407,23 +416,26 @@ tactics:
 
   lifecycle-rotten:
     name: "P2+ over 180 days old without a recent response"
-    resolution: "Close or prioritize as priority/awiting-more-evidence or priority/p3"
+    resolution: "Close, decrease priority, or add discuss label"
     filters:
       - created: +180d
       - responded: +90d
       - label: "!priority/p3"
       - label: "!priority/awaiting-more-evidence"
+      - label: "!triage/discuss"
 
   birthday:
     name: "Forgotten Birthdays - over a year old, no response in 6 months"
-    resolution: "Close or comment on what it would take to address this issue"
+    resolution: "Close, comment, or add discuss label"
     filters:
       - created: +365d
       - responded: +180d
+      - label: "!triage/discuss"
 
   # PR's needing closure
   pr-approved-stale:
     name: "Pull requests: Approved and getting old"
+    resolution: "Close, comment, or add discuss label"
     type: pull_request
     filters:
       - label: "!do-not-merge.*"
@@ -431,62 +443,68 @@ tactics:
       - label: "approved"
       - updated: +5d
       - responded: +2d
+      - label: "!triage/discuss"
 
   pr-unapproved-stale:
     name: "Pull Requests: Stale"
-    resolution: "Add comment and/or close PR"
+    resolution: "Close, comment, or add discuss label"
     type: pull_request
     filters:
       - created: +20d
       - updated: +5d
       - responded: +2d
+      - label: "!triage/discuss"
   
   # People with questions
   issue-has-question:
     name: "Reporter asked a question over a week ago"
-    resolution: "Add an answer"
+    resolution: "Add an answer or discuss label"
     type: issue
     filters:
       - tag: recv-q
       - tag: "!member-last"
       - tag: "!contributor-last"
       - responded: +7d
+      - label: "!triage/discuss"
 
   issue-updated-kind-question:
     name: "kind/question issue not responded to for over a week"
-    resolution: "Move out of kind/question, or add a comment"
+    resolution: "Move out of kind/question, add comment or discuss label"
     type: issue
     filters:
       - tag: recv
       - label: "kind/question"
       - tag: "!member-last"
       - tag: "!contributor-last"
+      - label: "!triage/discuss"
       - responded: +8d
 
   ## Bug Scrub ##
   bugs-recv:
     name: "Bugs that deserve a follow-up comment"
-    resolution: "Comment or close the issue"
+    resolution: "Comment, close, or add discuss label"
     type: issue
     filters:
       - tag: recv
       - responded: +45d
       - created: +45d
       - label: "kind/bug"
+      - label: "!triage/discuss"
 
   features-recv:
     name: "Features that deserve a follow-up comment"
-    resolution: "Comment or close the issue"
+    resolution: "Comment, close, or add discuss label"
     type: issue
     filters:
       - tag: recv
       - responded: +60d
       - created: +30d
+      - label: "!triage/discuss"
       - label: "kind/feature-request"
 
   other-recv:
     name: "Items that deserve a follow-up comment"
-    resolution: "Comment or close the issue"
+    resolution: "Comment, close, or add discuss label"
     type: issue
     filters:
       - tag: recv
@@ -494,29 +512,32 @@ tactics:
       - label: "!kind/feature"
       - label: "!kind/bug"
       - label: "!kind/question"
+      - label: "!triage/discuss"
 
   features-old:
     name: "Features that have not been commented on within 90 days"
-    resolution: "Comment or close the issue"
+    resolution: "Comment, close, or add discuss label"
     type: issue
     filters:
       - responded: +90d
       - created: +90d
       - label: "kind/feature-request"
+      - label: "!triage/discuss"
 
   bugs-old:
     name: "Bugs that have not been commented on within 60 days"
-    resolution: "Comment or close the issue"
+    resolution: "Comment, close, or add discuss label"
     type: issue
     filters:
       - label: "kind/bug"
       - responded: +60d
       - created: +60d
       - label: "!priority/awaiting-evidence"
+      - label: "!triage/discuss"
 
   other-old:
     name: "Items that have not been commented on within 60 days"
-    resolution: "Comment or close the issue"
+    resolution: "Comment, close, or add discuss label"
     type: issue
     filters:
       - responded: +60d
@@ -525,6 +546,7 @@ tactics:
       - label: "!kind/bug"
       - label: "!kind/question"
       - label: "!priority/awaiting-evidence"
+      - label: "!triage/discuss"
 
   # P0
   p0-features:
@@ -591,6 +613,39 @@ tactics:
     resolution: Merge em
     filters:
       - label: "priority/p1"
+
+  # Fix-It
+  fixit-bugs:
+    name: "Fix-it bugs"
+    type: issue
+    resolution: Close or remove fixit label
+    filters:
+      - label: "fixit"
+      - label: "kind/bug"
+
+  fixit-features:
+    name: "Fix-it features"
+    type: issue
+    resolution: Close or remove fix-it label
+    filters:
+      - label: "fixit"
+      - label: "kind/feature-request"
+
+  fixit-other:
+    name: "fixit other"
+    type: issue
+    resolution: Close or remove fixit label
+    filters:
+      - label: "fixit"
+      - label: "!kind/feature-request"
+      - label: "!kind/bug"
+
+  fixit-prs:
+    resolution: Close or remove fixit label
+    type: pull_request
+    resolution: Merge em
+    filters:
+      - label: "fixit"
 
   # for stastistics generation
   open-issues:
