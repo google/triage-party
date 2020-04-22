@@ -79,6 +79,11 @@ tactics:
       - responded: +60d
 ```
 
+For example configurations, see `examples/*.yaml`. There are two that are particularly useful to get started:
+
+* `generic-project.yaml`: uses common GitHub labels
+* `generic-kubernetes.yaml`: projects that use Kubernetes-style labels, particularly for prioritization
+
 ## Filter language
 
 ```yaml
