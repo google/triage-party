@@ -19,7 +19,7 @@ settings:
     - https://github.com/kubernetes/community
 
 strategies:
-  - id: daily-triage
+  - id: daily
     name: Daily Triage
     dedup: true
     description: >
@@ -80,16 +80,16 @@ strategies:
       - other-old
 
   - id: recv
-      name: "Receive queue"
-      description: >
-        Issues that may be waiting for our response
-    
-        NOTE: for this to work properly, GitHub token must have read access to read organization members
-      tactics:
-        - question-recv
-        - bugs-recv
-        - enhancement-recv
-        - other-recv
+    name: "Receive queue"
+    description: >
+      Issues that may be waiting for our response
+  
+      NOTE: for this to work properly, GitHub token must have read access to read organization members
+    tactics:
+      - question-recv
+      - bugs-recv
+      - enhancement-recv
+      - other-recv
 
   - id: urgent
     name: Urgent
@@ -470,7 +470,7 @@ tactics:
 
   # Soon
   soon-bugs:
-    name: "important-soon Bugs"
+    name: "bugs labelled important/soon"
     type: issue
     resolution: Close or deprioritize
     filters:
@@ -478,7 +478,7 @@ tactics:
       - label: "kind/bug"
 
   soon-features:
-    name: "important-soon Features"
+    name: "features labelled important/soon"
     type: issue
     resolution: Close or deprioritize
     filters:
@@ -486,7 +486,7 @@ tactics:
       - label: "kind/feature-request"
 
   soon-other:
-    name: "important-soon Other"
+    name: "other issues labelled important-soon"
     type: issue
     resolution: Close or deprioritize
     filters:
@@ -495,7 +495,7 @@ tactics:
       - label: "!kind/bug"
 
   soon-prs:
-    name: "important-soon Pull Requests"
+    name: "PR's labelled important-soon"
     type: pull_request
     resolution: Merge em
     filters:
