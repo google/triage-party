@@ -43,4 +43,4 @@ COPY $CFG /app/config.yaml
 RUN env TOKEN=$TOKEN /app/main --config /app/config.yaml --site_dir /app/site --dry_run
 
 # Run the server with tighter cache guarantees
-CMD ["/app/main", "--max_list_age=15s", "--max_refresh_age=10m", "--config=/app/config.yaml", "--site_dir=/app/site", "--3p_dir=/app/third_party"]
+CMD ["/app/main", "--max_list_age=60s", "--max_refresh_age=15m", "--config=/app/config.yaml", "--site_dir=/app/site", "--3p_dir=/app/third_party"]
