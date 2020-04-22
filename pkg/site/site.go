@@ -36,7 +36,7 @@ import (
 	"k8s.io/klog"
 )
 
-const VERSION = "20200421-00"
+const VERSION = "2020-04-22.00"
 
 var (
 	nonWordRe = regexp.MustCompile(`\W`)
