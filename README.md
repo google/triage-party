@@ -42,16 +42,18 @@ Other examples:
 
 ## Try it locally!
 
-This will run minikube's configuration against a smaller repository for quick testing:
+See what Triage Party would look like for an arbitrary repository:
 
 ```
-cd cmd/server
-go run . --token $GITHUB_TOKEN --config ../../examples/generic-kubernetes.yaml --repos kubernetes/sig-release
+go run cmd/server/main.go \
+  --token $GITHUB_TOKEN \
+  --config examples/generic-kubernetes.yaml \
+  --repos kubernetes/sig-release
 ```
 
 Then visit http://localhost:8080/
 
-The first time you run Triage Party against a new repository, there will be a long delay as it will download and cache every open issue and PR. This data will be cached for subsequent runs. We're working to improve this latency.
+The first time you run Triage Party against a new repository, there will be a long delay as it will download data from GitHub. This data will be cached for subsequent runs. We're working to improve this latency.
 
 ## Configuration
 

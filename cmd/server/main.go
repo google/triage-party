@@ -36,8 +36,8 @@ import (
 
 var (
 	configPath    = flag.String("config", "", "configuration path")
-	siteDir       = flag.String("site_dir", "../../site", "path to site files")
-	thirdPartyDir = flag.String("3p_dir", "../../third_party", "path to 3rd party files")
+	siteDir       = flag.String("site_dir", "site/", "path to site files")
+	thirdPartyDir = flag.String("3p_dir", "third_party/", "path to 3rd party files")
 	maxListAge    = flag.Duration("max_list_age", 12*time.Hour, "maximum time to cache GitHub searches (prod recommendation: 15s)")
 	maxRefreshAge = flag.Duration("max_refresh_age", 15*time.Minute, "Maximum time between strategy runs")
 	minRefreshAge = flag.Duration("min_refresh_age", 15*time.Second, "Minimum time between strategy runs")
@@ -84,7 +84,7 @@ func main() {
 	tc := oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token}))
 	client := github.NewClient(tc)
 
-	f, err := os.Open(*configPath)
+	f, err := os.Open(findPath(*configPath))
 	if err != nil {
 		klog.Exitf("open %s: %v", *configPath, err)
 	}
@@ -156,15 +156,15 @@ func main() {
 	go u.Loop(ctx)
 
 	s := site.New(&site.Config{
-		BaseDirectory: *siteDir,
+		BaseDirectory: findPath(*siteDir),
 		Updater:       u,
 		HubBub:        h,
 		WarnAge:       *warnAge,
 		Name:          sn,
 	})
 
-	http.Handle("/third_party/", http.StripPrefix("/third_party/", http.FileServer(http.Dir(*thirdPartyDir))))
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(*siteDir, "static")))))
+	http.Handle("/third_party/", http.StripPrefix("/third_party/", http.FileServer(http.Dir(findPath(*thirdPartyDir)))))
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(findPath(*siteDir), "static")))))
 	http.HandleFunc("/s/", s.Strategy())
 	http.HandleFunc("/", s.Root())
 
@@ -195,4 +195,26 @@ func calculateSiteName(ts []hubbub.Tactic) string {
 		names = append(names, n)
 	}
 	return strings.Join(names, " + ")
+}
+
+// findPath tries to find the right place for a file
+func findPath(p string) string {
+	// Running from triage-party/
+	if _, err := os.Stat(p); err == nil {
+		return p
+	}
+
+	// Running from triage-party/cmd/server
+	wd, err := os.Getwd()
+	if err != nil {
+		klog.Errorf("crazy: %v", err)
+		return p
+	}
+	if filepath.Base(wd) == "server" {
+		tp := "../../" + p
+		if _, err := os.Stat(tp); err == nil {
+			return tp
+		}
+	}
+	return p
 }

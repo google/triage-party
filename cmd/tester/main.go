@@ -36,7 +36,7 @@ var (
 	tokenFlag    = flag.String("token", "", "github token (also settable via TOKEN environment variable)")
 	configFlag   = flag.String("config", "", "configuration path")
 	strategyFlag = flag.String("strategy", "", "strategy")
-	cacheFlag    = flag.String("init_cache", "/var/tmp/tparty_tester.cache", "Where to load cache from")
+	cacheFlag    = flag.String("init_cache", "", "Where to load cache from")
 	repoFlag     = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
 	numFlag      = flag.Int("num", 0, "only display results for this number")
 )
