@@ -87,6 +87,8 @@ func Load(path string) (*cache.Cache, error) {
 	if len(decoded) == 0 {
 		return nil, fmt.Errorf("no items loaded from disk: %v", decoded)
 	}
+
+	klog.Infof("%d items loaded from disk", len(decoded))
 	return cache.NewFrom(ExpireInterval, CleanupInterval, decoded), nil
 }
 
