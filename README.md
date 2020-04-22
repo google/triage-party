@@ -22,18 +22,31 @@ Novel features:
 * Button to open issue groups as browser tabs (pop-ups must be disabled)
 * "Shift-Reload" for live data pull
 
-## See it in production!
-
-Here is how Triage Party is used for [kubernetes/minikube](https://github.com/kubernetes/minikube)
-
-* [Triage Party dashboard](http://tinyurl.com/mk-tparty) - if you see a rate error, refresh
-* [configuration](examples/minikube.yaml)
-* [deployment script](examples/minikube-deploy.sh)
-
 ## Requirements
 
 - [GitHub API token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
-- Go v1.12 or higher
+- Go v1.14 or higher
+
+## See it in production!
+
+See how Triage Party is used in production for [kubernetes/minikube](https://github.com/kubernetes/minikube)
+
+* [Triage Party dashboard](http://tinyurl.com/mk-tparty)
+* [configuration file](examples/minikube.yaml)
+* [deployment script](examples/minikube-deploy.sh)
+
+Alternatively, see the [GoogleContainerTools/skaffold Triage Party](https://skaffold-triage-party-eyodkz2nea-uc.a.run.app/)
+
+## Try it locally!
+
+This will run minikube's configuration against a smaller repository for quick testing:
+
+```
+cd cmd/server
+go run . --token $GITHUB_TOKEN --config ../../examples/generic-kubernetes.yaml --repos kubernetes/sig-release
+```
+
+The first time you run Triage Party against a new repository, there will be a long delay as it will download and cache every issue and PR. This data will be cached for subsequent runs. We're working to improve this latency.
 
 ## Configuration
 
@@ -93,19 +106,7 @@ tactics:
 - commenters-per-month: [><=]float
 ```
 
-## Running locally
 
-Start the webserver:
-
-```
-export GO111MODULE=on
-cd cmd/server
-go run main.go \
-  --token $GITHUB_TOKEN \
-  --config ../../examples/minikube.yaml
-```
-
-This will use minikube's configuration as a starting point. The first time you run Triage Party against a new repository, there will be a long delay as it will download and cache every issue and PR. This data will be cached for subsequent runs.
 
 ## Running in Docker
 

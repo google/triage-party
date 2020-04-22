@@ -23,16 +23,13 @@ strategies:
     name: Daily Triage
     dedup: true
     description: >
-      triage-onduty zeroes out this queue once a day. Prioritize:
-
-       * Keeping an open dialog with our users
-       * Initial prioritization (does not have to be perfect)
+      queue to be emptied once a day
     tactics:
       # SLO violations
-      - issue-needs-priority-slo
-      - issue-needs-comment-slo
-      - issue-soon-slo
-      - issue-longterm-slo
+      - issue-needs-priority-overdue
+      - issue-needs-comment-overdue
+      - issue-soon-overdue
+      - issue-longterm-overdue
       # Don't leave code reviews hanging
       - pr-reviewable
       # missing initial feedback
@@ -50,14 +47,11 @@ strategies:
     name: Weekly Triage
     dedup: true
     description: >
-      Once a week, we meet up to address loose ends. Prioritize:
-
-       * Keeping an open dialog with our users
-       * Raising the priority for hot issues        
+      queue to be emptied once a week in a team triage meeting
     tactics:
       # SLO
-      - issue-near-soon-slo
-      - issue-near-longterm-slo
+      - issue-near-soon-overdue
+      - issue-near-longterm-overdue
       # Issues needing reprioritization
       - many-reactions
       - many-commenters
@@ -74,14 +68,9 @@ strategies:
       - issue-updated-support
 
   - id: scrub
-    name: Bi-Monthly Scrub
+    name: Quarterly Scrub
     dedup: true
-    description: >
-      Once every two months, we look for stale issues and de-duplicate. Prioritize:
-
-       * De-duplication
-       * Keeping the bug queue relevant
-       * Making tough decisions about long-standing requests
+    description: Once every quarter, look for stale issues, reprioritize, and de-duplicate.
     tactics:
       - lifecycle-stale
       - features-recv
@@ -91,23 +80,28 @@ strategies:
       - other-recv
       - other-old
 
-  - id: milestone
-    name: Next Milestone
-    description: Items on the next milestone
-    tactics:
-      - milestone-prs
-      - milestone-features
-      - milestone-bugs
-      - milestone-other
-
   - id: tests
-    name: Broken tests
-    description: Failing tests, flaky tests, and other improvements
+    name: Testing
     tactics:
       - failing-tests
       - flaky-tests
       - other-testing
 
+  - id: urgent
+    name: Urgent
+    description: All hands on deck!
+    tactics:
+      - urgent-prs
+      - urgent-issues
+
+  - id: soon
+    name: Important Soon
+    tactics:
+      - soon-prs
+      - soon-features
+      - soon-bugs
+      - soon-other
+  
   - id: open
     name: All open PR's and Issues that should be considered for repository stats (hidden)
     used_for_statistics: true
@@ -119,40 +113,39 @@ strategies:
 
 tactics:
   ### Daily Triage ####
-  # SLO violations
-  issue-needs-priority-slo:
-    name: "Unprioritized issues older than 5 days"
+  issue-needs-priority-overdue:
+    name: "Unprioritized issues older than 7 days"
     resolution: "Add a priority/ or triage/ label"
     type: issue
     filters:
       - label: "!priority/.*"
       - label: "!triage/.*"
-      - created: +5d
+      - created: +7d
 
-  issue-needs-comment-slo:
-    name: "Uncommented older than 5 days"
+  issue-needs-comment-overdue:
+    name: "Uncommented older than 7 days"
     resolution: "Add a priority/ or triage/ label"
     type: issue
     filters:
       - tag: "!commented"
       - tag: "recv"
-      - created: +5d
+      - created: +7d
 
-  issue-soon-slo:
-    name: "Important soon, but no updates in 60 days (SLO violation)"
+  issue-soon-overdue:
+    name: "Important soon, but no updates in 90 days"
     resolution: "Downgrade to important-longterm"
     type: issue
     filters:
       - label: "priority/important-soon"
-      - updated: +60d
+      - updated: +90d
 
-  issue-longterm-slo:
-    name: "Important longterm, but no updates in 120 days (SLO violation)"
+  issue-longterm-overdue:
+    name: "Important longterm, but no updates in 180 days"
     resolution: "Downgrade to backlog"
     type: issue
     filters:
       - label: "priority/important-longterm"
-      - updated: +120d
+      - updated: +180d
 
   # Don't leave code reviews hanging
   pr-reviewable:
@@ -178,24 +171,21 @@ tactics:
       - label: "!triage/support"
 
   issue-needs-priority:
-    name: "Unprioritized Issues witihn SLO"
+    name: "Unprioritized Recent Issues"
     resolution: "Add a priority/ or triage/ label"
     type: issue
     filters:
       - label: "!priority/.*"
       - label: "!triage/.*"
-      # avoid duplicating unkinded issues
-      - label: "triage|kind"
-      - created: -5d
 
   issue-needs-comment:
-    name: "Uncommented Issues within SLO"
+    name: "Uncommented Recent Issues"
     resolution: "Add a comment"
     type: issue
     filters:
       - tag: "!commented"
       - tag: "recv"
-      - created: -5d
+      - created: -7d
 
   # Issues that may need reprioritized
   issue-new-with-reactions:
@@ -241,21 +231,21 @@ tactics:
 
   ####### Weekly Triage #########
   # SLO nearing
-  issue-near-soon-slo:
-    name: "Important soon, but no updates in 40 days (nearing SLO)"
+  issue-near-soon-overdue:
+    name: "Important soon, but no updates in 60 days"
     resolution: "Downgrade to important-longterm"
     type: issue
     filters:
       - label: "priority/important-soon"
-      - updated: +40d
+      - updated: +60d
 
-  issue-near-longterm-slo:
-    name: "Important longterm, but no updates in 110 days (nearing SLO)"
+  issue-near-longterm-overdue:
+    name: "Important longterm, but no updates in 120 days"
     resolution: "Downgrade to backlog"
     type: issue
     filters:
       - label: "priority/important-longterm"
-      - updated: +110d
+      - updated: +120d
 
   # issues needing reprioritization
   many-reactions:
@@ -330,7 +320,7 @@ tactics:
     filters:
       - created: +20d
       - updated: +5d
-  
+
   # People with questions
   issue-has-question:
     name: "Overdue answers for a question"
@@ -361,8 +351,8 @@ tactics:
     type: issue
     filters:
       - tag: recv
-      - responded: +45d
-      - created: +45d
+      - responded: +60d
+      - created: +60d
       - label: "kind/bug"
 
   features-recv:
@@ -371,7 +361,7 @@ tactics:
     type: issue
     filters:
       - tag: recv
-      - responded: +60d
+      - responded: +90d
       - created: +30d
       - label: "kind/feature"
 
@@ -381,7 +371,7 @@ tactics:
     type: issue
     filters:
       - tag: recv
-      - responded: +30d
+      - responded: +60d
       - label: "!kind/feature"
       - label: "!kind/bug"
       - label: "!triage/support"
@@ -410,8 +400,8 @@ tactics:
     resolution: "Comment or close the issue"
     type: issue
     filters:
-      - responded: +60d
-      - created: +60d
+      - responded: +90d
+      - created: +90d
       - label: "!kind/feature"
       - label: "!kind/bug"
       - label: "!triage/support"
@@ -422,39 +412,6 @@ tactics:
     resolution: "Close or label as frozen"
     filters:
       - label: lifecycle/stale
-
-  # Milestone
-  milestone-features:
-    name: "v1.10.0 Features"
-    type: issue
-    resolution: Close em
-    filters:
-      - milestone: v1.10.0
-      - label: "kind/feature"
-
-  milestone-bugs:
-    name: "v1.10.0 Bugs"
-    type: issue
-    resolution: Close em
-    filters:
-      - milestone: v1.10.0
-      - label: kind/bug
-
-  milestone-other:
-    name: "v1.10.0 Other"
-    type: issue
-    resolution: Close em
-    filters:
-      - milestone: v1.10.0
-      - label: "!kind/feature"
-      - label: "!kind/bug"
-
-  milestone-prs:
-    name: "v1.10.0 Pull Requests"
-    type: pull_request
-    resolution: Close em
-    filters:
-      - milestone: v1.10.0
 
   ## Tests
   failing-tests:
@@ -480,6 +437,54 @@ tactics:
       - label: "area/testing"
       - label: "!kind/flake"
       - label: "!kind/failing"
+
+  # Urgent
+  urgent-prs:
+    name: "Urgent Pull Requests"
+    type: pull_request
+    resolution: Merge em
+    filters:
+      - label: "priority/critical-urgent"
+
+  urgent-issues:
+    name: "Urgent Issues"
+    type: issue
+    resolution: Close or deprioritize
+    filters:
+      - label: "priority/critical-urgent"
+
+  # Soon
+  soon-bugs:
+    name: "important-soon Bugs"
+    type: issue
+    resolution: Close or deprioritize
+    filters:
+      - label: "priority/important-soon"
+      - label: "kind/bug"
+
+  soon-features:
+    name: "important-soon Features"
+    type: issue
+    resolution: Close or deprioritize
+    filters:
+      - label: "priority/important-soon"
+      - label: "kind/feature-request"
+
+  soon-other:
+    name: "important-soon Other"
+    type: issue
+    resolution: Close or deprioritize
+    filters:
+      - label: "priority/important-soon"
+      - label: "!kind/feature-request"
+      - label: "!kind/bug"
+
+  soon-prs:
+    name: "important-soon Pull Requests"
+    type: pull_request
+    resolution: Merge em
+    filters:
+      - label: "priority/important-soon"
 
   # for stastistics generation
   open-issues:
