@@ -56,9 +56,11 @@
 
 {{define "content"}}
 
-  <div class="box description">
-  <pre>{{ .Strategy.Description }}</pre>
-  </div>
+  {{ if ne .Strategy.Description "" }}
+    <div class="box description">
+    <pre>{{ .Strategy.Description }}</pre>
+    </div>
+  {{ end }}
 
   {{ range .Result.Outcomes }}
     {{ if eq (len .Items) 0 }}
