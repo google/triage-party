@@ -91,7 +91,11 @@ func main() {
 
 	cachePath := *cacheFlag
 	if cachePath == "" {
-		cachePath = filepath.Join(fmt.Sprintf("/var/tmp/tparty_%s.cache", filepath.Base(*configPath)))
+		name := filepath.Base(*configPath)
+		if *repos != "" {
+			name = name + "_" + filepath.Base(*repos)
+		}
+		cachePath = filepath.Join(fmt.Sprintf("/var/tmp/tparty_%s_%s.cache", name))
 	}
 	klog.Infof("cache path: %s", cachePath)
 
@@ -148,6 +152,7 @@ func main() {
 		os.Exit(0)
 	}
 
+	klog.Infof("Starting update loop: %+v", u)
 	go u.Loop(ctx)
 
 	s := site.New(&site.Config{
@@ -168,7 +173,7 @@ func main() {
 		listenAddr = fmt.Sprintf(":%d", *port)
 	}
 
-	fmt.Printf("teaparty will listen at %s ...", listenAddr)
+	fmt.Printf("\n\n*** teaparty is listening at %s ... ***\n\n", listenAddr)
 	err = http.ListenAndServe(listenAddr, nil)
 	if err != nil {
 		panic(err)
