@@ -256,7 +256,7 @@ type CommentLike interface {
 	String() string
 }
 
-// Check if an item matches the filters, and return any comments downloaded
+// Check if an item matches the filters, pre-comment fetch
 func matchItem(i IssueLike, labels []*github.Label, fs []Filter) bool {
 	for _, f := range fs {
 		klog.V(2).Infof("%d: %+v", i.GetNumber(), toYAML(f))
@@ -271,6 +271,13 @@ func matchItem(i IssueLike, labels []*github.Label, fs []Filter) bool {
 		if f.Updated != "" {
 			if ok := matchDuration(i.GetUpdatedAt(), f.Updated); !ok {
 				klog.V(2).Infof("#%d update at %s does not meet %s", i.GetNumber(), i.GetUpdatedAt(), f.Updated)
+				return false
+			}
+		}
+
+		if f.Responded != "" {
+			if ok := matchDuration(i.GetUpdatedAt(), f.Responded); !ok {
+				klog.V(2).Infof("#%d update at %s does not meet responded %s", i.GetNumber(), i.GetUpdatedAt(), f.Responded)
 				return false
 			}
 		}
@@ -296,6 +303,8 @@ func matchItem(i IssueLike, labels []*github.Label, fs []Filter) bool {
 			}
 		}
 
+		// TODO: comment math
+
 		// This state can be performed without downloading comments
 		if f.TagRegex() != nil && f.TagRegex().String() == "assigned" {
 			// If assigned and no assignee, fail
@@ -307,6 +316,7 @@ func matchItem(i IssueLike, labels []*github.Label, fs []Filter) bool {
 				return false
 			}
 		}
+
 	}
 	return true
 }
