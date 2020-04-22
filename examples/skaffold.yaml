@@ -129,13 +129,6 @@ strategies:
       - open-prs
       - open-issues
 
-  - id: zombies
-    name: All open PR's and Issues that should be considered for repository stats (hidden)
-    used_for_statistics: true
-    hidden: true
-    tactics:
-      - issue-zombies
-
 tactics:
   ### Daily Triage ####
   # SLO violations
