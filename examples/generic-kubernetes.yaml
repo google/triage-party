@@ -13,10 +13,10 @@
 # limitations under the License.
 
 settings:
-  name: minikube
+  name: generic
   min_similarity: 0.65
   repos:
-    - https://github.com/kubernetes/minikube
+    - https://github.com/kubernetes/community
 
 strategies:
   - id: daily-triage
@@ -25,7 +25,6 @@ strategies:
     description: >
       queue to be emptied once a day
     tactics:
-      # SLO violations
       - issue-needs-priority-overdue
       - issue-needs-comment-overdue
       - issue-soon-overdue
@@ -80,12 +79,17 @@ strategies:
       - other-recv
       - other-old
 
-  - id: tests
-    name: Testing
-    tactics:
-      - failing-tests
-      - flaky-tests
-      - other-testing
+  - id: recv
+      name: "Receive queue"
+      description: >
+        Issues that may be waiting for our response
+    
+        NOTE: for this to work properly, GitHub token must have read access to read organization members
+      tactics:
+        - question-recv
+        - bugs-recv
+        - enhancement-recv
+        - other-recv
 
   - id: urgent
     name: Urgent
@@ -413,30 +417,41 @@ tactics:
     filters:
       - label: lifecycle/stale
 
-  ## Tests
-  failing-tests:
-    name: "Tests that fail 100% of the time"
-    resolution: "Research and resolve"
+  # Receive queue
+  question-recv:
+    name: "Questions awaiting follow-up"
+    resolution: "Comment or close the issue"
     type: issue
     filters:
-      - label: "kind/failing-test"
+      - tag: recv
+      - label: ".*question"
 
-  flaky-tests:
-    name: "Tests that fail some of the time"
-    resolution: "Research and resolve"
+  bugs-recv:
+    name: "Bugs awaiting follow-up"
+    resolution: "Comment or close the issue"
     type: issue
     filters:
-      - label: "kind/flake"
-      - label: "!kind/failing-test"
+      - tag: recv
+      - label: ".*bug"
 
-  other-testing:
-    name: "Other testing related issues"
-    resolution: "Research and resolve"
+  enhancement-recv:
+    name: "Features awaiting follow-up"
+    resolution: "Comment or close the issue"
     type: issue
     filters:
-      - label: "area/testing"
-      - label: "!kind/flake"
-      - label: "!kind/failing"
+      - tag: recv
+      - label: ".*(feature|enhancement|idea).*"
+
+  other-recv:
+    name: "Items that deserve a follow-up comment"
+    resolution: "Comment or close the issue"
+    type: issue
+    filters:
+      - tag: recv
+      - responded: +30d
+      - label: "!.*(feature|enhancement).*"
+      - label: "!.*bug"
+      - label: ".*question"
 
   # Urgent
   urgent-prs:
