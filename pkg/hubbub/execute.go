@@ -262,5 +262,14 @@ func parseRepo(rawURL string) (string, string, error) {
 		return "", "", err
 	}
 	parts := strings.Split(u.Path, "/")
-	return parts[1], parts[2], nil
+
+	// not a URL
+	if len(parts) == 2 {
+		return parts[0], parts[1], nil
+	}
+	// URL
+	if len(parts) == 3 {
+		return parts[1], parts[2], nil
+	}
+	return "", "", fmt.Errorf("expected 2 repository parts, got %d: %v", len(parts), parts)
 }
