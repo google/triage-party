@@ -1,11 +1,12 @@
 # Triage Party 🎉
+
 `NOTE: This is not an officially supported Google product`
 
-Triage Party is a tool for triaging incoming GitHub issues for large open-source projects, built with the GitHub API. 
+Triage Party is a tool for triaging incoming GitHub issues for large open-source projects, built with the GitHub API.
 
 ![screenshot](screenshot.png)
 
-Triage focuses on reducing response latency for incoming GitHub issues and PR's, and ensure that conversations are not lost in the ether. It was built from the [Google Container DevEx team](http://github.com/GoogleContainerTools)'s experience contributing to open-source projects, such as minikube, kaniko, and skaffold. 
+Triage focuses on reducing response latency for incoming GitHub issues and PR's, and ensure that conversations are not lost in the ether. It was built from the [Google Container DevEx team](http://github.com/GoogleContainerTools)'s experience contributing to open-source projects, such as minikube, kaniko, and skaffold.
 
 Triage Party is a stateless Go web application, configured via YAML. While it has been optimized for Google Cloud Run deployments, it's deployable anywhere due to it's low memory footprint: even on a Raspberry Pi.
 
@@ -25,10 +26,10 @@ Triage Party is a stateless Go web application, configured via YAML. While it ha
 
 ## Requirements
 
-- [GitHub API token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
-- Go v1.14 or higher
+* [GitHub API token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
+* Go v1.14 or higher
 
-## See it in production!
+## Triage Party in production
 
 Triage Party is used in production for [kubernetes/minikube](https://github.com/kubernetes/minikube):
 
@@ -40,18 +41,18 @@ Other examples:
 
 * [GoogleContainerTools/skaffold Triage Party](https://skaffold-triage-party-eyodkz2nea-uc.a.run.app/)
 
-## Try it locally!
+## Try it locally
 
 See what Triage Party would look like for an arbitrary repository:
 
-```
+```shell
 go run cmd/server/main.go \
-  --token $GITHUB_TOKEN \
+  --github-token-file=<path to a github token> \
   --config examples/generic-kubernetes.yaml \
   --repos kubernetes/sig-release
 ```
 
-Then visit http://localhost:8080/
+Then visit [http://localhost:8080/](http://localhost:8080/)
 
 The first time you run Triage Party against a new repository, there will be a long delay as it will download data from GitHub. This data will be cached for subsequent runs. We're working to improve this latency.
 
@@ -112,7 +113,7 @@ For example configurations, see `examples/*.yaml`. There are two that are partic
 # Duration since item was created
 - created: [-+]duration   # example: +30d
 # Duration since item was updated
-- updated: [-+]duration 
+- updated: [-+]duration
 # Duration since item was responded to by a project member
 - responded: [-+]duration
 
@@ -140,8 +141,13 @@ For example configurations, see `examples/*.yaml`. There are two that are partic
 
 Docker:
 
-```
-docker build --tag=tp --build-arg CFG=examples/generic-project.yaml --build-arg TOKEN=$GITHUB_TOKEN .
+```shell
+env DOCKER_BUILDKIT=1 \
+  GITHUB_TOKEN_PATH=<path to your github token> \
+  docker build --tag=tp \
+  --build-arg CFG=examples/generic-project.yaml \
+  --secret id=github,src=$GITHUB_TOKEN_PATH .
+
 docker run -p 8080:8080 tp
 ```
 

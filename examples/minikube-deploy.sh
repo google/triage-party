@@ -13,25 +13,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -eux
+
+# Export this environment variable before running this script
+echo "token path: ${GITHUB_TOKEN_PATH}"
+
 export PROJECT=k8s-minikube
-export IMAGE=gcr.io/k8s-minikube/tparty
-# You need to set this.
-# export GITHUB_TOKEN=
+export IMAGE=gcr.io/k8s-minikube/triage-party
 export SERVICE_NAME=teaparty
 export CONFIG_FILE=examples/minikube.yaml
 
+env DOCKER_BUILDKIT=1 docker build \
+  -t "${IMAGE}" \
+  --build-arg "CFG=${CONFIG_FILE}" \
+  --secret "id=github,src=${GITHUB_TOKEN_PATH}" .
 
-docker build -t $IMAGE \
-            --build-arg CFG=$CONFIG_FILE \
-            --build-arg TOKEN=$GITHUB_TOKEN . || exit 1
-docker push $IMAGE || exit 2
+docker push "${IMAGE}" || exit 2
 
-gcloud beta run deploy $SERVICE_NAME --project $PROJECT \
-                        --image $IMAGE \
-                        --set-env-vars=TOKEN=$GITHUB_TOKEN \
-                        --allow-unauthenticated \
-                        --region us-central1 \
-                        --max-instances 2 \
-                        --memory 384Mi \
-                        --platform managed
- 
+readonly token="$(cat ${GITHUB_TOKEN_PATH})"
+
+gcloud beta run deploy "${SERVICE_NAME}" \
+    --project "${PROJECT}" \
+    --image "${IMAGE}" \
+    --set-env-vars="GITHUB_TOKEN=${token}" \
+    --allow-unauthenticated \
+    --region us-central1 \
+    --max-instances 2 \
+    --memory 384Mi \
+    --platform managed

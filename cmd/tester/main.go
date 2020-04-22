@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,12 +34,12 @@ import (
 )
 
 var (
-	tokenFlag    = flag.String("token", "", "github token (also settable via TOKEN environment variable)")
-	configFlag   = flag.String("config", "", "configuration path")
-	strategyFlag = flag.String("strategy", "", "strategy")
-	cacheFlag    = flag.String("init_cache", "", "Where to load cache from")
-	repoFlag     = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
-	numFlag      = flag.Int("num", 0, "only display results for this number")
+	tokenFileFlag = flag.String("github-token-file", "", "github token secret file")
+	configFlag    = flag.String("config", "", "configuration path")
+	strategyFlag  = flag.String("strategy", "", "strategy")
+	cacheFlag     = flag.String("init_cache", "", "Where to load cache from")
+	repoFlag      = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
+	numFlag       = flag.Int("num", 0, "only display results for this number")
 )
 
 func main() {
@@ -50,10 +51,17 @@ func main() {
 	if *configFlag == "" {
 		klog.Exitf("--config is required")
 	}
-	token := os.Getenv("TOKEN")
-	if *tokenFlag != "" {
-		token = *tokenFlag
+
+	token := os.Getenv("GITHUB_TOKEN")
+	if *tokenFileFlag != "" {
+		t, err := ioutil.ReadFile(*tokenFileFlag)
+		if err != nil {
+			klog.Exitf("unable to read token file: %v", err)
+		}
+		token = strings.TrimSpace(string(t))
+		klog.Infof("loaded %d byte github token from %s", len(token), *tokenFileFlag)
 	}
+
 	if *strategyFlag == "" {
 		klog.Exitf("--strategy is required")
 	}

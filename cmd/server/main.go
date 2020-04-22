@@ -18,6 +18,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,12 +44,12 @@ var (
 	minRefreshAge = flag.Duration("min_refresh_age", 15*time.Second, "Minimum time between strategy runs")
 	warnAge       = flag.Duration("warn_age", 30*time.Minute, "Maximum time before warning about stale results. Recommended: 2*max_refresh_age")
 
-	dryRun    = flag.Bool("dry_run", false, "run queries, don't start a server")
-	port      = flag.Int("port", 8080, "port to run server at")
-	siteName  = flag.String("site_name", "", "override site name from config file")
-	cacheFlag = flag.String("init_cache", "", "Where to load cache from")
-	repos     = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
-	tokenFlag = flag.String("token", "", "github token")
+	dryRun        = flag.Bool("dry_run", false, "run queries, don't start a server")
+	port          = flag.Int("port", 8080, "port to run server at")
+	siteName      = flag.String("site_name", "", "override site name from config file")
+	cacheFlag     = flag.String("init_cache", "", "Where to load cache from")
+	repos         = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
+	tokenFileFlag = flag.String("github-token-file", "", "github token secret file")
 )
 
 func main() {
@@ -76,10 +77,20 @@ func main() {
 		klog.Exitf("--config is required")
 	}
 
-	token := os.Getenv("TOKEN")
-	if *tokenFlag != "" {
-		token = *tokenFlag
+	token := os.Getenv("GITHUB_TOKEN")
+	if *tokenFileFlag != "" {
+		t, err := ioutil.ReadFile(*tokenFileFlag)
+		if err != nil {
+			klog.Exitf("unable to read token file: %v", err)
+		}
+		token = strings.TrimSpace(string(t))
+		klog.Infof("loaded %d byte github token from %s", len(token), *tokenFileFlag)
 	}
+
+	if len(token) < 8 {
+		klog.Exitf("github token impossibly small: %q", token)
+	}
+
 	ctx := context.Background()
 	tc := oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token}))
 	client := github.NewClient(tc)

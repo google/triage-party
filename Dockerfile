@@ -1,3 +1,4 @@
+# syntax = docker/dockerfile:1.0-experimental
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,8 +18,6 @@ WORKDIR /app
 
 # CFG is the path to your configuration file
 ARG CFG
-# TOKEN is your GitHub developer token
-ARG TOKEN
 
 # Set an env var that matches your github repo name, replace treeder/dockergo here with your repo name
 ENV SRC_DIR=/src/tparty
@@ -39,8 +38,8 @@ COPY site /app/site/
 COPY third_party /app/third_party/
 COPY $CFG /app/config.yaml
 
-# Setup an initialization cache for warm start-up
-RUN env TOKEN=$TOKEN /app/main --config /app/config.yaml --site_dir /app/site --dry_run
+# Bad hack: pre-heat the cache in lieu of persistent storage
+RUN --mount=type=secret,id=github /app/main --github-token-file=/run/secrets/github --config /app/config.yaml --site_dir /app/site --dry_run
 
 # Run the server at a reasonable refresh rate
 CMD ["/app/main", "--max_list_age=120s", "--max_refresh_age=20m", "--config=/app/config.yaml", "--site_dir=/app/site", "--3p_dir=/app/third_party"]
