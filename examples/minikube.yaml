@@ -178,7 +178,7 @@ tactics:
       - label: "!triage/support"
 
   issue-needs-priority:
-    name: "Unprioritized Issues witihn SLO"
+    name: "Unprioritized Issues within SLO"
     resolution: "Add a priority/ or triage/ label"
     type: issue
     filters:
