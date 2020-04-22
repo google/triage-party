@@ -81,7 +81,7 @@ This will use minikube's configuration as a starting point. The first time you r
 ## Running in Docker
 
 ```
-docker build --tag=tp --build-arg CFG=examples/minikube.yaml --build-arg TOKEN=$GITHUB_TOKEN 
+docker build --tag=tp --build-arg CFG=examples/minikube.yaml --build-arg TOKEN=$GITHUB_TOKEN .
 docker run -p 8080:8080 tp
 ```
 
