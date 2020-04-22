@@ -10,23 +10,25 @@ Triage focuses on reducing response latency for incoming GitHub issues and PR's,
 Triage Party is a stateless Go web application, configured via YAML. While it has been optimized for Google Cloud Run deployments, it's deployable anywhere due to it's low memory footprint: even on a Raspberry Pi.
 
 Novel features:
-* Shareable bookmarked GitHub queries
-* Support for queries across multiple repositories
-* Supports queries that are not possible on GitHub:
-  * duration (`updated: +30d`)
+* Queries across multiple repositories
+* Queries that are not possible on GitHub:
   * conversation direction (`tag: recv`)
+  * duration (`updated: +30d`)
   * regexp (`label: priority/.*`)
   * reactions (`reactions: >=5`)
   * comment popularity (`comments-per-month: >0.9`)
   * ... and more!
 * Multi-player mode: for simultaneous group triage of a pool of issues
-* Button to open issue group as browser tabs
-* High performance through agressive intelligent caching
-* Supports "Shift-Reload" for live data pull
+* Button to open issue groups as browser tabs (pop-ups must be disabled)
+* "Shift-Reload" for live data pull
 
-Production example: http://tinyurl.com/mk-tparty
+## See it in production!
 
+Here is how Triage Party is used for [kubernetes/minikube](https://github.com/kubernetes/minikube)
 
+* [Triage Party dashboard](http://tinyurl.com/mk-tparty) - if you see a rate error, refresh
+* [configuration](examples/minikube.yaml)
+* [deployment script](examples/minikube-deploy.sh)
 
 ## Requirements
 
@@ -35,9 +37,36 @@ Production example: http://tinyurl.com/mk-tparty
 
 ## Configuration
 
-See `examples/minikube.yaml`
+Each page is configured with a `strategy` that references multiple queries (`tactics`). These tactics can be shared across pages:
 
-Supported filters:
+```yaml
+strategies:
+  - id: soup
+    name: I like soup!
+    tactics:
+      - discuss
+      - many-reactions
+
+tactics:
+  discuss:
+    name: "Items for discussion"
+    resolution: "Discuss and remove label"
+    filters:
+      - label: triage/discuss
+      - state: "all"
+
+  many-reactions:
+    name: "many reactions, low priority, no recent comment"
+    resolution: "Bump the priority, add a comment"
+    filters:
+      - reactions: ">3"
+      - reactions-per-month: ">1"
+      - label: "!priority/p0"
+      - label: "!priority/p1"
+      - responded: +60d
+```
+
+## Filter language
 
 ```yaml
 # issue state (default is "open")
@@ -76,7 +105,7 @@ go run main.go \
   --config ../../examples/minikube.yaml
 ```
 
-This will use minikube's configuration as a starting point. The first time you run Triage Party against a new repository, there will be a long delay as it will download and cache every issue and PR.
+This will use minikube's configuration as a starting point. The first time you run Triage Party against a new repository, there will be a long delay as it will download and cache every issue and PR. This data will be cached for subsequent runs.
 
 ## Running in Docker
 
