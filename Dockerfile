@@ -42,5 +42,5 @@ COPY $CFG /app/config.yaml
 # Setup an initialization cache for warm start-up
 RUN env TOKEN=$TOKEN /app/main --config /app/config.yaml --site_dir /app/site --dry_run
 
-# Run the server with tighter cache guarantees
-CMD ["/app/main", "--max_list_age=60s", "--max_refresh_age=15m", "--config=/app/config.yaml", "--site_dir=/app/site", "--3p_dir=/app/third_party"]
+# Run the server at a reasonable refresh rate
+CMD ["/app/main", "--max_list_age=120s", "--max_refresh_age=20m", "--config=/app/config.yaml", "--site_dir=/app/site", "--3p_dir=/app/third_party"]
