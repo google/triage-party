@@ -131,7 +131,7 @@ tactics:
 
   issue-needs-comment-slo:
     name: "Uncommented older than 5 days"
-    resolution: "Add a priority/ or triage/ label"
+    resolution: "Add a comment"
     type: issue
     filters:
       - tag: "!commented"
