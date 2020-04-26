@@ -58,17 +58,17 @@ The first time you run Triage Party against a new repository, there will be a lo
 
 ## Configuration
 
-Each page is configured with a `strategy` that references multiple queries (`tactics`). These tactics can be shared across pages:
+Each page is configured with a `collection` that references multiple queries (`rules`). These rules can be shared across pages:
 
 ```yaml
-strategies:
+collections:
   - id: soup
     name: I like soup!
-    tactics:
+    rules:
       - discuss
       - many-reactions
 
-tactics:
+rules:
   discuss:
     name: "Items for discussion"
     resolution: "Discuss and remove label"

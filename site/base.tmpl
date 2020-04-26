@@ -23,7 +23,7 @@
   </div>
   <div id="navbarBasicExample" class="navbar-menu">
     <div class="navbar-start">
-      {{ range .Strategies }}
+      {{ range .Collections }}
         {{ if not .Hidden }}
           <a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/s/{{ .ID }}">{{ .Name }}</a>
         {{ end }}

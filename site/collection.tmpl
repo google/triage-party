@@ -16,8 +16,8 @@
           <div class="right-item">
           <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
           {{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }}, 
-          Avg age: {{ .Result.AvgAge | toDays }}, 
-          Avg response delay: {{ .Result.AvgDelay | toDays }}</div>
+          Avg age: {{ .CollectionResult.AvgAge | toDays }}, 
+          Avg response delay: {{ .CollectionResult.AvgDelay | toDays }}</div>
           <script>
           function openAllTabs() {
               {{ range .UniqueItems}}window.open("{{ .URL | toJS }}", "_tab{{ .ID }}");
@@ -56,18 +56,18 @@
 
 {{define "content"}}
 
-  {{ if ne .Strategy.Description "" }}
+  {{ if ne .Collection.Description "" }}
     <div class="box description">
-    <pre>{{ .Strategy.Description }}</pre>
+    <pre>{{ .Collection.Description }}</pre>
     </div>
   {{ end }}
 
-  {{ range .Result.Outcomes }}
+  {{ range .CollectionResult.RuleResults }}
     {{ if eq (len .Items) 0 }}
-      <div class="no-matches" title="{{ .Tactic | toYAML }}"><strong>{{ .Tactic.Name }}</strong>: No matching items</div>
+      <div class="no-matches" title="{{ .Rule | toYAML }}"><strong>{{ .Rule.Name }}</strong>: No matching items</div>
     {{ else }}
       <script>
-      function {{ .Tactic.ID | toJSfunc }}tabs() {
+      function {{ .Rule.ID | toJSfunc }}tabs() {
           {{ range .Items}}window.open("{{ .URL | toJS }}", "_tab{{ .ID }}");
           {{ end }}
       }
@@ -75,15 +75,15 @@
       <div class="box outcome">
       <div class="box-header collapsible">
         <div class="box-head-left">
-          <h3 title="{{ .Tactic | toYAML }}">{{ .Tactic.Name }} ({{ len .Items }})<div class="tab-link"><a href="#" title="open in new tabs" onclick="{{ .Tactic.ID | toJSfunc }}tabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div></h3>
-          <h4 class="subtitle">Resolution: {{ .Tactic.Resolution }}</h4>
+          <h3 title="{{ .Rule | toYAML }}">{{ .Rule.Name }} ({{ len .Items }})<div class="tab-link"><a href="#" title="open in new tabs" onclick="{{ .Rule.ID | toJSfunc }}tabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div></h3>
+          <h4 class="subtitle">Resolution: {{ .Rule.Resolution }}</h4>
           <h5 class="stats">Average age: {{ .AvgAge | toDays }}, Avg latest response delay: {{ .AvgDelay | toDays }}</h5>
         </div>
         <div class="box-head-right">
         <!--  just save the space -->
         </div>
       </div>
-      <table id="{{ .Tactic.ID | toJSfunc  }}" class="compact is-size-6">
+      <table id="{{ .Rule.ID | toJSfunc  }}" class="compact is-size-6">
       <thead>
         <tr>
           <td class="col-id">ID</td>
@@ -171,9 +171,9 @@
 <script src="/third_party/datatables/jquery.dataTables.min.js"></script>
 <script src="/third_party/datatables-bulma/dataTables.bulma.js"></script>
 <script>
-  {{ range .Result.Outcomes }}
+  {{ range .CollectionResult.RuleResults }}
     {{ if .Items }}
-   $('#{{ .Tactic.ID | toJSfunc }}').DataTable( {
+   $('#{{ .Rule.ID | toJSfunc }}').DataTable( {
         "order": [[ 3, "desc" ]],
         "paging": false,
         "info": false,

@@ -18,13 +18,13 @@ settings:
   repos:
     - https://github.com/kubernetes/community
 
-strategies:
+collections:
   - id: daily
     name: Daily Triage
     dedup: true
     description: >
       queue to be emptied once a day
-    tactics:
+    rules:
       - issue-needs-priority-overdue
       - issue-needs-comment-overdue
       - issue-soon-overdue
@@ -47,7 +47,7 @@ strategies:
     dedup: true
     description: >
       queue to be emptied once a week in a team triage meeting
-    tactics:
+    rules:
       # SLO
       - issue-near-soon-overdue
       - issue-near-longterm-overdue
@@ -70,7 +70,7 @@ strategies:
     name: Quarterly Scrub
     dedup: true
     description: Once every quarter, look for stale issues, reprioritize, and de-duplicate.
-    tactics:
+    rules:
       - lifecycle-stale
       - features-recv
       - features-old
@@ -85,7 +85,7 @@ strategies:
       Issues that may be waiting for our response
   
       NOTE: for this to work properly, GitHub token must have read access to read organization members
-    tactics:
+    rules:
       - question-recv
       - bugs-recv
       - enhancement-recv
@@ -94,13 +94,13 @@ strategies:
   - id: urgent
     name: Urgent
     description: All hands on deck!
-    tactics:
+    rules:
       - urgent-prs
       - urgent-issues
 
   - id: soon
     name: Important Soon
-    tactics:
+    rules:
       - soon-prs
       - soon-features
       - soon-bugs
@@ -110,12 +110,12 @@ strategies:
     name: All open PR's and Issues that should be considered for repository stats (hidden)
     used_for_statistics: true
     hidden: true
-    tactics:
+    rules:
       - open-prs
       - open-issues
 
 
-tactics:
+rules:
   ### Daily Triage ####
   issue-needs-priority-overdue:
     name: "Unprioritized issues older than 7 days"

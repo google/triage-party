@@ -18,7 +18,7 @@ settings:
   repos:
     - https://github.com/kubernetes/minikube
 
-strategies:
+collections:
   - id: daily-triage
     name: Daily Triage
     dedup: true
@@ -27,7 +27,7 @@ strategies:
 
        * Keeping an open dialog with our users
        * Initial prioritization (does not have to be perfect)
-    tactics:
+    rules:
       # SLO violations
       - issue-needs-priority-slo
       - issue-needs-comment-slo
@@ -54,7 +54,7 @@ strategies:
 
        * Keeping an open dialog with our users
        * Raising the priority for hot issues        
-    tactics:
+    rules:
       # SLO
       - issue-near-soon-slo
       - issue-near-longterm-slo
@@ -82,7 +82,7 @@ strategies:
        * De-duplication
        * Keeping the bug queue relevant
        * Making tough decisions about long-standing requests
-    tactics:
+    rules:
       - lifecycle-stale
       - features-recv
       - features-old
@@ -94,7 +94,7 @@ strategies:
   - id: milestone
     name: Next Milestone
     description: Items on the next milestone
-    tactics:
+    rules:
       - milestone-prs
       - milestone-features
       - milestone-bugs
@@ -103,7 +103,7 @@ strategies:
   - id: tests
     name: Broken tests
     description: Failing tests, flaky tests, and other improvements
-    tactics:
+    rules:
       - failing-tests
       - flaky-tests
       - other-testing
@@ -112,12 +112,12 @@ strategies:
     name: All open PR's and Issues that should be considered for repository stats (hidden)
     used_for_statistics: true
     hidden: true
-    tactics:
+    rules:
       - open-prs
       - open-issues
 
 
-tactics:
+rules:
   ### Daily Triage ####
   # SLO violations
   issue-needs-priority-slo:

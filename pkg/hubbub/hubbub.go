@@ -52,24 +52,24 @@ type Settings struct {
 
 // diskConfig is the on-disk configuration
 type diskConfig struct {
-	Settings      Settings          `yaml:"settings"`
-	RawStrategies []Strategy        `yaml:"strategies"`
-	RawTactics    map[string]Tactic `yaml:"tactics"`
+	Settings       Settings        `yaml:"settings"`
+	RawCollections []Collection    `yaml:"collections"`
+	RawRules       map[string]Rule `yaml:"rules"`
 }
 
-// Strategy represents a fully loaded YAML configuration
-type Strategy struct {
+// Collection represents a fully loaded YAML configuration
+type Collection struct {
 	ID           string   `yaml:"id"`
 	Name         string   `yaml:"name"`
 	Description  string   `yaml:"description,omitempty"`
-	TacticIDs    []string `yaml:"tactics"`
+	RuleIDs      []string `yaml:"rules"`
 	Dedup        bool     `yaml:"dedup,omitempty"`
 	Hidden       bool     `yaml:"hidden,omitempty"`
 	UsedForStats bool     `yaml:"used_for_statistics,omitempty"`
 }
 
-// Tactic is a logical triage group
-type Tactic struct {
+// Rule is a logical triage group
+type Rule struct {
 	ID         string
 	Resolution string   `yaml:"resolution,omitempty"`
 	Name       string   `yaml:"name,omitempty"`
@@ -138,28 +138,28 @@ type HubBub struct {
 	maxListAge    time.Duration
 	maxEventAge   time.Duration
 	settings      Settings
-	strategies    []Strategy
+	collections   []Collection
 	seen          map[int]*Colloquy
 	seenTitles    map[string]int
-	tactics       map[string]Tactic
+	rules         map[string]Rule
 	reposOverride []string
 }
 
-// Return a fully resolved strategy
-func (h *HubBub) LookupStrategy(id string) (Strategy, error) {
-	for _, s := range h.strategies {
+// Return a fully resolved collection
+func (h *HubBub) LookupCollection(id string) (Collection, error) {
+	for _, s := range h.collections {
 		if s.ID == id {
 			return s, nil
 		}
 	}
-	return Strategy{}, fmt.Errorf("%q not found", id)
+	return Collection{}, fmt.Errorf("%q not found", id)
 }
 
-// Return a fully resolved tactic
-func (h *HubBub) LookupTactic(id string) (Tactic, error) {
-	t, ok := h.tactics[id]
+// Return a fully resolved rule
+func (h *HubBub) LookupRule(id string) (Rule, error) {
+	t, ok := h.rules[id]
 	if !ok {
-		return t, fmt.Errorf("tactic %q is undefined - typo?", id)
+		return t, fmt.Errorf("rule %q is undefined - typo?", id)
 	}
 	t.ID = id
 	if len(h.reposOverride) > 0 {
@@ -172,16 +172,16 @@ func (h *HubBub) LookupTactic(id string) (Tactic, error) {
 	return t, nil
 }
 
-// ListStrategies a fully resolved strategies
-func (h *HubBub) ListStrategies() ([]Strategy, error) {
-	return h.strategies, nil
+// ListCollections a fully resolved collections
+func (h *HubBub) ListCollections() ([]Collection, error) {
+	return h.collections, nil
 }
 
-// ListTactics fully resolved tactics
-func (h *HubBub) ListTactics() ([]Tactic, error) {
-	ts := []Tactic{}
-	for k := range h.tactics {
-		s, err := h.LookupTactic(k)
+// ListRules fully resolved rules
+func (h *HubBub) ListRules() ([]Rule, error) {
+	ts := []Rule{}
+	for k := range h.rules {
+		s, err := h.LookupRule(k)
 		if err != nil {
 			return ts, err
 		}
@@ -190,16 +190,16 @@ func (h *HubBub) ListTactics() ([]Tactic, error) {
 	return ts, nil
 }
 
-// Flush the search cache for a strategy
+// Flush the search cache for a collection
 func (h *HubBub) FlushSearchCache(id string, minAge time.Duration) error {
-	s, err := h.LookupStrategy(id)
+	s, err := h.LookupCollection(id)
 	if err != nil {
 		return err
 	}
 
 	flushed := map[string]bool{}
-	for _, tid := range s.TacticIDs {
-		t, err := h.LookupTactic(tid)
+	for _, tid := range s.RuleIDs {
+		t, err := h.LookupRule(tid)
 		if err != nil {
 			return err
 		}
@@ -234,14 +234,14 @@ func (h *HubBub) Load(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	if len(dc.RawStrategies) == 0 {
-		return fmt.Errorf("no strategies found")
+	if len(dc.RawCollections) == 0 {
+		return fmt.Errorf("no collections found")
 	}
-	if len(dc.RawTactics) == 0 {
-		return fmt.Errorf("no tactics found")
+	if len(dc.RawRules) == 0 {
+		return fmt.Errorf("no rules found")
 	}
 
-	for id, t := range dc.RawTactics {
+	for id, t := range dc.RawRules {
 		for i, f := range t.Filters {
 			if f.RawLabel != "" {
 				label, negateLabel := negativeMatch(f.RawLabel)
@@ -265,11 +265,11 @@ func (h *HubBub) Load(r io.Reader) error {
 		}
 	}
 
-	h.strategies = dc.RawStrategies
-	h.tactics = dc.RawTactics
+	h.collections = dc.RawCollections
+	h.rules = dc.RawRules
 	h.settings = dc.Settings
-	if _, err := h.ListStrategies(); err != nil {
-		return fmt.Errorf("unable to calculate strategies: %v", err)
+	if _, err := h.ListCollections(); err != nil {
+		return fmt.Errorf("unable to calculate collections: %v", err)
 	}
 	h.logLoaded()
 	return nil
@@ -282,17 +282,17 @@ func (h *HubBub) logLoaded() {
 	}
 	klog.Infof("Loaded Settings:\n%s", s)
 
-	s, err = yaml.Marshal(h.strategies)
+	s, err = yaml.Marshal(h.collections)
 	if err != nil {
-		klog.Errorf("marshal strategies: %v", err)
+		klog.Errorf("marshal collections: %v", err)
 	}
-	klog.V(2).Infof("Loaded Strategies:\n%s", s)
+	klog.V(2).Infof("Loaded Collections:\n%s", s)
 
-	s, err = yaml.Marshal(h.tactics)
+	s, err = yaml.Marshal(h.rules)
 	if err != nil {
-		klog.Errorf("marshal tactics: %v", err)
+		klog.Errorf("marshal rules: %v", err)
 	}
-	klog.V(2).Infof("Loaded Tactics:\n%s", s)
+	klog.V(2).Infof("Loaded Rules:\n%s", s)
 }
 
 // regex returns regexps matching a string.
