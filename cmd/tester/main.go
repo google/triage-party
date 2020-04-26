@@ -34,12 +34,12 @@ import (
 )
 
 var (
-	tokenFileFlag = flag.String("github-token-file", "", "github token secret file")
-	configFlag    = flag.String("config", "", "configuration path")
-	strategyFlag  = flag.String("strategy", "", "strategy")
-	cacheFlag     = flag.String("init_cache", "", "Where to load cache from")
-	repoFlag      = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
-	numFlag       = flag.Int("num", 0, "only display results for this number")
+	tokenFileFlag  = flag.String("github-token-file", "", "github token secret file")
+	configFlag     = flag.String("config", "", "configuration path")
+	collectionFlag = flag.String("collection", "", "collection")
+	cacheFlag      = flag.String("init_cache", "", "Where to load cache from")
+	repoFlag       = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
+	numFlag        = flag.Int("num", 0, "only display results for this number")
 )
 
 func main() {
@@ -62,8 +62,8 @@ func main() {
 		klog.Infof("loaded %d byte github token from %s", len(token), *tokenFileFlag)
 	}
 
-	if *strategyFlag == "" {
-		klog.Exitf("--strategy is required")
+	if *collectionFlag == "" {
+		klog.Exitf("--collection is required")
 	}
 
 	ctx := context.Background()
@@ -108,12 +108,12 @@ func main() {
 		klog.Exitf("load: %v", err)
 	}
 
-	s, err := h.LookupStrategy(*strategyFlag)
+	s, err := h.LookupCollection(*collectionFlag)
 	if err != nil {
-		klog.Exitf("strategy: %v", err)
+		klog.Exitf("collection: %v", err)
 	}
 
-	r, err := h.ExecuteStrategy(ctx, client, s)
+	r, err := h.ExecuteCollection(ctx, client, s)
 	if err != nil {
 		klog.Exitf("execute: %v", err)
 	}
@@ -121,8 +121,8 @@ func main() {
 		klog.Exitf("initcache save to %s: %v", *cacheFlag, err)
 	}
 
-	for _, o := range r.Outcomes {
-		fmt.Printf("## %s\n", o.Tactic.Name)
+	for _, o := range r.RuleResults {
+		fmt.Printf("## %s\n", o.Rule.Name)
 
 		for _, i := range o.Items {
 			if *numFlag != 0 && i.ID != *numFlag {

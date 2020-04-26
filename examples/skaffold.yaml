@@ -18,7 +18,7 @@ settings:
   repos:
     -  https://github.com/GoogleContainerTools/skaffold
 
-strategies:
+collections:
   - id: daily
     name: Daily Triage
     dedup: false
@@ -28,7 +28,7 @@ strategies:
        * Keeping an open dialog with our users
        * Initial prioritization (does not have to be perfect)
        * SLO compliance
-    tactics:
+    rules:
       # SLO violations
       - issue-needs-priority-slo
       - issue-needs-comment-slo
@@ -58,7 +58,7 @@ strategies:
        * Keeping an open dialog with our users
        * Finding misprioritized issues
        * SLO compliance
-    tactics:
+    rules:
       - discuss
       # Issues needing reprioritization
       - many-reactions
@@ -93,7 +93,7 @@ strategies:
        * Keeping the bug queue relevant
        * Making tough decisions about long-standing requests
 
-    tactics:
+    rules:
       - birthday
       - lifecycle-rotten
       - features-recv
@@ -106,7 +106,7 @@ strategies:
   - id: p0
     name: P0
     description: All hands on deck!
-    tactics:
+    rules:
       - p0-prs
       - p0-features
       - p0-bugs
@@ -115,7 +115,7 @@ strategies:
   - id: p1
     name: P1
     description: To be resolved within 6 weeks
-    tactics:
+    rules:
       - p1-prs
       - p1-features
       - p1-bugs
@@ -124,7 +124,7 @@ strategies:
   - id: fixit
     name: Fix-it
     description: Candidates for the Skaffold Fix-It
-    tactics:
+    rules:
       - fixit-prs
       - fixit-features
       - fixit-bugs
@@ -134,11 +134,11 @@ strategies:
     name: All open PR's and Issues that should be considered for repository stats (hidden)
     used_for_statistics: true
     hidden: true
-    tactics:
+    rules:
       - open-prs
       - open-issues
 
-tactics:
+rules:
   ### Daily Triage ####
   # SLO violations
   issue-needs-priority-slo:

@@ -18,12 +18,12 @@ settings:
   repos:
     -  https://github.com/photoprism/photoprism
 
-strategies:
+collections:
   - id: daily
     name: Daily Triage
     dedup: false
     description: To be emptied out daily
-    tactics:
+    rules:
       - issue-needs-comment
       - p0-fix-overdue
       - p0-followup-overdue
@@ -42,7 +42,7 @@ strategies:
     name: Weekly Triage
     dedup: true
     description: To be emptied out weekly
-    tactics:
+    rules:
       - discuss
       # Issues needing reprioritization
       - many-reactions
@@ -57,7 +57,7 @@ strategies:
   - id: quarterly
     name: Quarterly Scrub
     dedup: true
-    tactics:
+    rules:
       - question-old
       - bugs-old
       - enhancement-old
@@ -69,7 +69,7 @@ strategies:
       Issues that may be waiting for our response
   
       NOTE: for this to work properly, GitHub token must have read access to read organization members
-    tactics:
+    rules:
       - question-recv
       - bugs-recv
       - enhancement-recv
@@ -78,7 +78,7 @@ strategies:
   - id: p0
     name: P0
     description: All hands on deck!
-    tactics:
+    rules:
       - p0-prs
       - p0-features
       - p0-bugs
@@ -87,7 +87,7 @@ strategies:
   - id: p1
     name: P1
     description: To be resolved within 6 weeks
-    tactics:
+    rules:
       - p1-prs
       - p1-features
       - p1-bugs
@@ -97,11 +97,11 @@ strategies:
     name: All open PR's and Issues that should be considered for repository stats (hidden)
     used_for_statistics: true
     hidden: true
-    tactics:
+    rules:
       - open-prs
       - open-issues
 
-tactics:
+rules:
   ### Daily Triage ####
   issue-needs-comment:
     name: "Unresponded, older than 7 days"

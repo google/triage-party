@@ -40,8 +40,8 @@ var (
 	siteDir       = flag.String("site_dir", "site/", "path to site files")
 	thirdPartyDir = flag.String("3p_dir", "third_party/", "path to 3rd party files")
 	maxListAge    = flag.Duration("max_list_age", 12*time.Hour, "maximum time to cache GitHub searches (prod recommendation: 15s)")
-	maxRefreshAge = flag.Duration("max_refresh_age", 15*time.Minute, "Maximum time between strategy runs")
-	minRefreshAge = flag.Duration("min_refresh_age", 15*time.Second, "Minimum time between strategy runs")
+	maxRefreshAge = flag.Duration("max_refresh_age", 15*time.Minute, "Maximum time between collection runs")
+	minRefreshAge = flag.Duration("min_refresh_age", 15*time.Second, "Minimum time between collection runs")
 	warnAge       = flag.Duration("warn_age", 30*time.Minute, "Maximum time before warning about stale results. Recommended: 2*max_refresh_age")
 
 	dryRun        = flag.Bool("dry_run", false, "run queries, don't start a server")
@@ -130,11 +130,11 @@ func main() {
 		klog.Exitf("load %s: %v", *configPath, err)
 	}
 
-	ts, err := h.ListTactics()
+	ts, err := h.ListRules()
 	if err != nil {
-		klog.Exitf("list tactics: %v", err)
+		klog.Exitf("list rules: %v", err)
 	}
-	klog.Infof("Loaded %d tactics", len(ts))
+	klog.Infof("Loaded %d rules", len(ts))
 	sn := *siteName
 	if sn == "" {
 		sn = calculateSiteName(ts)
@@ -176,7 +176,7 @@ func main() {
 
 	http.Handle("/third_party/", http.StripPrefix("/third_party/", http.FileServer(http.Dir(findPath(*thirdPartyDir)))))
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(findPath(*siteDir), "static")))))
-	http.HandleFunc("/s/", s.Strategy())
+	http.HandleFunc("/s/", s.Collection())
 	http.HandleFunc("/", s.Root())
 
 	listenAddr := fmt.Sprintf(":%s", os.Getenv("PORT"))
@@ -192,7 +192,7 @@ func main() {
 }
 
 // calculates a user-friendly site name based on repositories
-func calculateSiteName(ts []hubbub.Tactic) string {
+func calculateSiteName(ts []hubbub.Rule) string {
 	seen := map[string]bool{}
 	for _, t := range ts {
 		for _, r := range t.Repos {

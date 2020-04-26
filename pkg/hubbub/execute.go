@@ -31,9 +31,9 @@ const PullRequest = "pull_request"
 const MinSeenForSimilarity = 5
 
 // The result of Execute
-type Result struct {
-	Time     time.Time
-	Outcomes []Outcome
+type CollectionResult struct {
+	Time        time.Time
+	RuleResults []RuleResult
 
 	Total             int
 	TotalPullRequests int
@@ -48,9 +48,9 @@ type Result struct {
 	TotalDelay time.Duration
 }
 
-type Outcome struct {
-	Tactic Tactic
-	Items  []*Colloquy
+type RuleResult struct {
+	Rule  Rule
+	Items []*Colloquy
 
 	AvgHold  time.Duration
 	AvgAge   time.Duration
@@ -63,41 +63,41 @@ type Outcome struct {
 	Duplicates int
 }
 
-// ExecuteStrategy executes a strategy.
-func (h *HubBub) ExecuteStrategy(ctx context.Context, client *github.Client, s Strategy) (*Result, error) {
-	klog.Infof("executing strategy %q", s.ID)
-	os := []Outcome{}
+// ExecuteCollection executes a collection.
+func (h *HubBub) ExecuteCollection(ctx context.Context, client *github.Client, s Collection) (*CollectionResult, error) {
+	klog.Infof("executing collection %q", s.ID)
+	os := []RuleResult{}
 	seen := map[int]bool{}
 
-	for _, tid := range s.TacticIDs {
-		t, err := h.LookupTactic(tid)
+	for _, tid := range s.RuleIDs {
+		t, err := h.LookupRule(tid)
 		if err != nil {
 			return nil, err
 		}
 
-		cs, err := h.ExecuteTactic(ctx, client, t)
+		cs, err := h.ExecuteRule(ctx, client, t)
 		if err != nil {
-			return nil, fmt.Errorf("tactic %q: %v", t.Name, err)
+			return nil, fmt.Errorf("rule %q: %v", t.Name, err)
 		}
-		os = append(os, SummarizeOutcome(t, cs, seen))
+		os = append(os, SummarizeRuleResult(t, cs, seen))
 	}
 
-	r := SummarizeResult(os)
+	r := SummarizeCollectionResult(os)
 	r.Time = time.Now()
 	return r, nil
 }
 
-// SummarizeResult adds together statistics about strategy results {
-func SummarizeResult(os []Outcome) *Result {
-	r := &Result{}
+// SummarizeCollectionResult adds together statistics about collection results {
+func SummarizeCollectionResult(os []RuleResult) *CollectionResult {
+	r := &CollectionResult{}
 	for _, oc := range os {
 		r.Total += len(oc.Items)
-		if oc.Tactic.Type == PullRequest {
+		if oc.Rule.Type == PullRequest {
 			r.TotalPullRequests += len(oc.Items)
 		} else {
 			r.TotalIssues += len(oc.Items)
 		}
-		r.Outcomes = append(r.Outcomes, oc)
+		r.RuleResults = append(r.RuleResults, oc)
 		r.TotalHold += oc.TotalHold
 		r.TotalAge += oc.TotalAge
 		r.TotalDelay += oc.TotalDelay
@@ -151,10 +151,10 @@ func (h *HubBub) similar(c *Colloquy) ([]int, error) {
 	return similar, nil
 }
 
-// SummarizeOutcome adds together statistics about a pool of conversations
-func SummarizeOutcome(t Tactic, cs []*Colloquy, dedup map[int]bool) Outcome {
-	r := Outcome{
-		Tactic:     t,
+// SummarizeRuleResult adds together statistics about a pool of conversations
+func SummarizeRuleResult(t Rule, cs []*Colloquy, dedup map[int]bool) RuleResult {
+	r := RuleResult{
+		Rule:       t,
 		Duplicates: 0,
 	}
 
@@ -188,9 +188,9 @@ func SummarizeOutcome(t Tactic, cs []*Colloquy, dedup map[int]bool) Outcome {
 	return r
 }
 
-// ExecuteTactic executes a tactic.
-func (h *HubBub) ExecuteTactic(ctx context.Context, client *github.Client, t Tactic) ([]*Colloquy, error) {
-	klog.Infof("executing tactic %q", t.ID)
+// ExecuteRule executes a rule.
+func (h *HubBub) ExecuteRule(ctx context.Context, client *github.Client, t Rule) ([]*Colloquy, error) {
+	klog.Infof("executing rule %q", t.ID)
 	result := []*Colloquy{}
 
 	for _, repo := range t.Repos {

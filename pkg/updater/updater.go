@@ -47,7 +47,7 @@ func New(cfg Config) *Updater {
 		client:        cfg.Client,
 		maxRefreshAge: cfg.MaxRefreshAge,
 		minRefreshAge: cfg.MinRefreshAge,
-		cache:         map[string]*hubbub.Result{},
+		cache:         map[string]*hubbub.CollectionResult{},
 		lastRequest:   sync.Map{},
 		loopEvery:     250 * time.Millisecond,
 		mutex:         &sync.Mutex{},
@@ -60,7 +60,7 @@ type Updater struct {
 	client        *github.Client
 	maxRefreshAge time.Duration
 	minRefreshAge time.Duration
-	cache         map[string]*hubbub.Result
+	cache         map[string]*hubbub.CollectionResult
 	lastRequest   sync.Map
 	lastSave      time.Time
 	loopEvery     time.Duration
@@ -69,7 +69,7 @@ type Updater struct {
 }
 
 // Lookup results for a given metric
-func (u *Updater) Lookup(ctx context.Context, id string, blocking bool) *hubbub.Result {
+func (u *Updater) Lookup(ctx context.Context, id string, blocking bool) *hubbub.CollectionResult {
 	defer u.lastRequest.Store(id, time.Now())
 	r := u.cache[id]
 	if r == nil {
@@ -86,7 +86,7 @@ func (u *Updater) Lookup(ctx context.Context, id string, blocking bool) *hubbub.
 	return r
 }
 
-func (u *Updater) ForceRefresh(ctx context.Context, id string) *hubbub.Result {
+func (u *Updater) ForceRefresh(ctx context.Context, id string) *hubbub.CollectionResult {
 	defer u.lastRequest.Store(id, time.Now())
 
 	_, ok := u.lastRequest.Load(id)
@@ -135,8 +135,8 @@ func (u *Updater) shouldUpdate(id string) bool {
 	return false
 }
 
-func (u *Updater) update(ctx context.Context, s hubbub.Strategy) error {
-	r, err := u.hubbub.ExecuteStrategy(ctx, u.client, s)
+func (u *Updater) update(ctx context.Context, s hubbub.Collection) error {
+	r, err := u.hubbub.ExecuteCollection(ctx, u.client, s)
 	if err != nil {
 		return err
 	}
@@ -144,14 +144,14 @@ func (u *Updater) update(ctx context.Context, s hubbub.Strategy) error {
 	return nil
 }
 
-// Run a single strategy, optionally forcing an update
+// Run a single collection, optionally forcing an update
 func (u *Updater) RunSingle(ctx context.Context, id string, force bool) (bool, error) {
 	updated := false
 	klog.V(3).Infof("RunSingle: %s (locking mutex)", id)
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
-	s, err := u.hubbub.LookupStrategy(id)
+	s, err := u.hubbub.LookupCollection(id)
 	if err != nil {
 		return updated, err
 	}
@@ -171,7 +171,7 @@ func (u *Updater) RunSingle(ctx context.Context, id string, force bool) (bool, e
 func (u *Updater) RunOnce(ctx context.Context, force bool) error {
 	updated := false
 	klog.V(3).Infof("RunOnce: force=%v", force)
-	sts, err := u.hubbub.ListStrategies()
+	sts, err := u.hubbub.ListCollections()
 	if err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) error {
 	}
 
 	if len(failed) > 0 {
-		return fmt.Errorf("strategies failed: %v", failed)
+		return fmt.Errorf("collections failed: %v", failed)
 	}
 	return nil
 }

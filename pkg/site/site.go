@@ -73,9 +73,9 @@ type Handlers struct {
 // Root redirects to leaderboard.
 func (h *Handlers) Root() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		sts, err := h.hubbub.ListStrategies()
+		sts, err := h.hubbub.ListCollections()
 		if err != nil {
-			klog.Errorf("strategies: %v", err)
+			klog.Errorf("collections: %v", err)
 			return
 		}
 		http.Redirect(w, r, fmt.Sprintf("/s/%s", sts[0].ID), http.StatusSeeOther)
@@ -106,12 +106,12 @@ type Page struct {
 	TotalPullRequests      int
 	TotalIssues            int
 
-	Strategy   hubbub.Strategy
-	Strategies []hubbub.Strategy
+	Collection  hubbub.Collection
+	Collections []hubbub.Collection
 
-	Result  *hubbub.Result
-	Stats   *hubbub.Result
-	StatsID string
+	CollectionResult *hubbub.CollectionResult
+	Stats            *hubbub.CollectionResult
+	StatsID          string
 }
 
 // is this request an HTTP refresh?
@@ -125,7 +125,7 @@ func isRefresh(r *http.Request) bool {
 }
 
 // Board shows a stratgy board
-func (h *Handlers) Strategy() http.HandlerFunc {
+func (h *Handlers) Collection() http.HandlerFunc {
 	fmap := template.FuncMap{
 		"toJS":          toJS,
 		"toYAML":        toYAML,
@@ -136,15 +136,15 @@ func (h *Handlers) Strategy() http.HandlerFunc {
 		"UnixNano":      unixNano,
 		"Avatar":        avatar,
 	}
-	t := template.Must(template.New("strategy").Funcs(fmap).ParseFiles(
-		filepath.Join(h.baseDir, "strategy.tmpl"),
+	t := template.Must(template.New("collection").Funcs(fmap).ParseFiles(
+		filepath.Join(h.baseDir, "collection.tmpl"),
 		filepath.Join(h.baseDir, "base.tmpl"),
 	))
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		defer func() {
-			klog.Infof("Strategy request complete in %s", time.Since(start))
+			klog.Infof("Collection request complete in %s", time.Since(start))
 		}()
 		id := strings.TrimPrefix(r.URL.Path, "/s/")
 		playerChoices := []string{"Select a player"}
@@ -158,36 +158,36 @@ func (h *Handlers) Strategy() http.HandlerFunc {
 		}
 
 		klog.Infof("GET %s (%q): %v", r.URL.Path, id, r.Header)
-		s, err := h.hubbub.LookupStrategy(id)
+		s, err := h.hubbub.LookupCollection(id)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("%q not found: old link or typo?", id), http.StatusNotFound)
-			klog.Errorf("strategy: %v", err)
+			klog.Errorf("collection: %v", err)
 			return
 		}
 
-		sts, err := h.hubbub.ListStrategies()
+		sts, err := h.hubbub.ListCollections()
 		if err != nil {
-			klog.Errorf("strategies: %v", err)
+			klog.Errorf("collections: %v", err)
 			http.Error(w, "list error", http.StatusInternalServerError)
 			return
 		}
 
-		var result *hubbub.Result
+		var result *hubbub.CollectionResult
 		if isRefresh(r) {
 			result = h.updater.ForceRefresh(r.Context(), id)
-			klog.Infof("refresh %q result: %d items", id, len(result.Outcomes))
+			klog.Infof("refresh %q result: %d items", id, len(result.RuleResults))
 		} else {
 			result = h.updater.Lookup(r.Context(), id, true)
 			if result == nil {
 				http.Error(w, fmt.Sprintf("%q no data", id), http.StatusNotFound)
 				return
 			}
-			if result.Outcomes == nil {
+			if result.RuleResults == nil {
 				http.Error(w, fmt.Sprintf("%q no outcomes", id), http.StatusNotFound)
 				return
 			}
 
-			klog.Infof("lookup %q result: %d items", id, len(result.Outcomes))
+			klog.Infof("lookup %q result: %d items", id, len(result.RuleResults))
 		}
 
 		warning := ""
@@ -196,13 +196,13 @@ func (h *Handlers) Strategy() http.HandlerFunc {
 		}
 
 		total := 0
-		for _, o := range result.Outcomes {
+		for _, o := range result.RuleResults {
 			total += len(o.Items)
 		}
 
 		unique := []*hubbub.Colloquy{}
 		seen := map[int]bool{}
-		for _, o := range result.Outcomes {
+		for _, o := range result.RuleResults {
 			for _, i := range o.Items {
 				if !seen[i.ID] {
 					unique = append(unique, i)
@@ -217,7 +217,7 @@ func (h *Handlers) Strategy() http.HandlerFunc {
 
 		uniqueFiltered := []*hubbub.Colloquy{}
 		seenFiltered := map[int]bool{}
-		for _, o := range result.Outcomes {
+		for _, o := range result.RuleResults {
 			for _, i := range o.Items {
 				if !seenFiltered[i.ID] {
 					uniqueFiltered = append(uniqueFiltered, i)
@@ -229,7 +229,7 @@ func (h *Handlers) Strategy() http.HandlerFunc {
 		embedURL := ""
 		if mode == 1 {
 			searchIndex := 0
-			for _, o := range result.Outcomes {
+			for _, o := range result.RuleResults {
 				for _, i := range o.Items {
 					searchIndex++
 					if searchIndex == index {
@@ -239,25 +239,25 @@ func (h *Handlers) Strategy() http.HandlerFunc {
 			}
 		}
 		p := &Page{
-			ID:            s.ID,
-			Version:       VERSION,
-			SiteName:      h.siteName,
-			Title:         s.Name,
-			Strategy:      s,
-			Strategies:    sts,
-			Description:   s.Description,
-			Result:        result,
-			Total:         len(unique),
-			TotalShown:    len(uniqueFiltered),
-			Types:         "Issues",
-			PlayerChoices: playerChoices,
-			Player:        player,
-			Players:       players,
-			Mode:          mode,
-			Index:         index,
-			EmbedURL:      embedURL,
-			Warning:       warning,
-			UniqueItems:   uniqueFiltered,
+			ID:               s.ID,
+			Version:          VERSION,
+			SiteName:         h.siteName,
+			Title:            s.Name,
+			Collection:       s,
+			Collections:      sts,
+			Description:      s.Description,
+			CollectionResult: result,
+			Total:            len(unique),
+			TotalShown:       len(uniqueFiltered),
+			Types:            "Issues",
+			PlayerChoices:    playerChoices,
+			Player:           player,
+			Players:          players,
+			Mode:             mode,
+			Index:            index,
+			EmbedURL:         embedURL,
+			Warning:          warning,
+			UniqueItems:      uniqueFiltered,
 		}
 
 		for _, s := range sts {
@@ -353,11 +353,11 @@ func avatar(u *github.User) template.HTML {
 }
 
 // playerFilter filters out results for a particular player
-func playerFilter(result *hubbub.Result, player int, players int) *hubbub.Result {
+func playerFilter(result *hubbub.CollectionResult, player int, players int) *hubbub.CollectionResult {
 	klog.Infof("Filtering for player %d of %d ...", player, players)
-	os := []hubbub.Outcome{}
+	os := []hubbub.RuleResult{}
 	seen := map[int]bool{}
-	for _, o := range result.Outcomes {
+	for _, o := range result.RuleResults {
 		cs := []*hubbub.Colloquy{}
 		for _, i := range o.Items {
 			if (i.ID % players) == (player - 1) {
@@ -365,7 +365,7 @@ func playerFilter(result *hubbub.Result, player int, players int) *hubbub.Result
 				cs = append(cs, i)
 			}
 		}
-		os = append(os, hubbub.SummarizeOutcome(o.Tactic, cs, seen))
+		os = append(os, hubbub.SummarizeRuleResult(o.Rule, cs, seen))
 	}
-	return hubbub.SummarizeResult(os)
+	return hubbub.SummarizeCollectionResult(os)
 }
