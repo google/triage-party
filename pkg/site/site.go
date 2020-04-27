@@ -40,7 +40,8 @@ import (
 const VERSION = "2020-04-22.01"
 
 var (
-	nonWordRe = regexp.MustCompile(`\W`)
+	nonWordRe  = regexp.MustCompile(`\W`)
+	MaxPlayers = 20
 )
 
 // Config is how external users interact with this package.
@@ -99,6 +100,7 @@ type Page struct {
 	Player        int
 	Players       int
 	PlayerChoices []string
+	PlayerNums    []int
 	Mode          int
 	Index         int
 	EmbedURL      string
@@ -113,6 +115,8 @@ type Page struct {
 	CollectionResult *triage.CollectionResult
 	Stats            *triage.CollectionResult
 	StatsID          string
+
+	GetVars string
 }
 
 // is this request an HTTP refresh?
@@ -156,6 +160,11 @@ func (h *Handlers) Collection() http.HandlerFunc {
 
 		for i := 0; i < players; i++ {
 			playerChoices = append(playerChoices, fmt.Sprintf("Player %d", i+1))
+		}
+
+		playerNums := []int{}
+		for i := 0; i < MaxPlayers; i++ {
+			playerNums = append(playerNums, i+1)
 		}
 
 		klog.Infof("GET %s (%q): %v", r.URL.Path, id, r.Header)
@@ -239,6 +248,12 @@ func (h *Handlers) Collection() http.HandlerFunc {
 				}
 			}
 		}
+
+		getVars := ""
+		if players > 0 {
+			getVars = fmt.Sprintf("?player=%d&players=%d", player, players)
+		}
+
 		p := &Page{
 			ID:               s.ID,
 			Version:          VERSION,
@@ -252,6 +267,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 			TotalShown:       len(uniqueFiltered),
 			Types:            "Issues",
 			PlayerChoices:    playerChoices,
+			PlayerNums:       playerNums,
 			Player:           player,
 			Players:          players,
 			Mode:             mode,
@@ -259,6 +275,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 			EmbedURL:         embedURL,
 			Warning:          warning,
 			UniqueItems:      uniqueFiltered,
+			GetVars:          getVars,
 		}
 
 		for _, s := range sts {
