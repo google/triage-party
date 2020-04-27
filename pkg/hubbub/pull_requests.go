@@ -144,6 +144,10 @@ func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComme
 		co.Tags = append(co.Tags, "reviewed")
 	}
 
+	if pr.GetDraft() {
+		co.Tags = append(co.Tags, "draft")
+	}
+
 	// Technically not the same thing, but close enough for me.
 	co.ClosedBy = pr.GetMergedBy()
 
