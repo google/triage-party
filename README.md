@@ -14,14 +14,15 @@ Triage Party is a stateless Go web application, configured via YAML. While it ha
 
 * Queries that are not possible on GitHub:
   * conversation state (`tag: recv`, `tag: send`)
+  * how long since a project member responded (`responded: +15d`)
   * duration (`updated: +30d`)
   * regexp (`label: priority/.*`)
   * reactions (`reactions: >=5`)
   * comment popularity (`comments-per-month: >0.9`)
   * ... and more!
-* Multi-player mode: for simultaneous group triage of a pool of issues
+* Multi-player mode: Supports up to 20 simultaneous players in group triage
+* Easily open groups of issues into browser tabs (must allow pop-ups)
 * Queries across multiple repositories
-* Button to open issue groups as browser tabs (pop-ups must be disabled)
 * "Shift-Reload" for live data pull
 
 ## Requirements
