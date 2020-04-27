@@ -103,7 +103,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 			labels = append(labels, l)
 		}
 
-		if !matchItem(i, labels, fs) {
+		if !preFetchMatch(i, labels, fs) {
 			klog.V(1).Infof("#%d - %q did not match item filter: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
 			continue
 		}
@@ -121,7 +121,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		co.Labels = labels
 		h.seen[co.URL] = co
 
-		if !matchConversation(co, fs) {
+		if !postFetchMatch(co, fs) {
 			klog.V(1).Infof("#%d - %q did not match conversation filter: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
 			continue
 		}
@@ -188,8 +188,8 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 
 	for _, pr := range prs {
 		klog.V(3).Infof("Found PR #%d with labels: %+v", pr.GetNumber(), pr.Labels)
-		if !matchItem(pr, pr.Labels, fs) {
-			klog.V(4).Infof("PR #%d did not pass matchItem :(", pr.GetNumber())
+		if !preFetchMatch(pr, pr.Labels, fs) {
+			klog.V(4).Infof("PR #%d did not pass preFetchMatch :(", pr.GetNumber())
 			continue
 		}
 
@@ -211,8 +211,8 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		co.Labels = pr.Labels
 		h.seen[co.URL] = co
 
-		if !matchConversation(co, fs) {
-			klog.V(4).Infof("PR #%d did not pass matchConversation with filter: %v", pr.GetNumber(), fs)
+		if !postFetchMatch(co, fs) {
+			klog.V(4).Infof("PR #%d did not pass postFetchMatch with filter: %v", pr.GetNumber(), fs)
 			continue
 		}
 

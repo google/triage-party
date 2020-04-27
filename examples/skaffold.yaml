@@ -211,6 +211,8 @@ rules:
       - label: "!needs-rebase"
       - label: "!.*wip"
       - label: "!cncf-cla: no"
+      - title: "!.*WIP.*"
+      - tag: "!draft"
       - tag: "!requested-changes"
       - tag: "!send"
       - tag: "!commented"
@@ -643,7 +645,6 @@ rules:
   fixit-prs:
     resolution: Close or remove fixit label
     type: pull_request
-    resolution: Merge em
     filters:
       - label: "fixit"
 
