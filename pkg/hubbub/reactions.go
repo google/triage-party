@@ -15,7 +15,7 @@
 package hubbub
 
 import (
-	"github.com/google/go-github/v24/github"
+	"github.com/google/go-github/v31/github"
 )
 
 const reactThumbsUp = "thumbs_up"

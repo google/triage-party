@@ -27,10 +27,11 @@ import (
 	"time"
 
 	"github.com/google/triage-party/pkg/hubbub"
+	"github.com/google/triage-party/pkg/triage"
 	"github.com/google/triage-party/pkg/updater"
 
 	"github.com/dustin/go-humanize"
-	"github.com/google/go-github/v24/github"
+	"github.com/google/go-github/v31/github"
 	"gopkg.in/yaml.v2"
 
 	"k8s.io/klog"
@@ -48,14 +49,14 @@ type Config struct {
 	Name          string
 	WarnAge       time.Duration
 	Updater       *updater.Updater
-	HubBub        *hubbub.HubBub
+	Party         *triage.Party
 }
 
 func New(c *Config) *Handlers {
 	return &Handlers{
 		baseDir:  c.BaseDirectory,
 		updater:  c.Updater,
-		hubbub:   c.HubBub,
+		party:    c.Party,
 		siteName: c.Name,
 		warnAge:  c.WarnAge,
 	}
@@ -65,7 +66,7 @@ func New(c *Config) *Handlers {
 type Handlers struct {
 	baseDir  string
 	updater  *updater.Updater
-	hubbub   *hubbub.HubBub
+	party    *triage.Party
 	siteName string
 	warnAge  time.Duration
 }
@@ -73,7 +74,7 @@ type Handlers struct {
 // Root redirects to leaderboard.
 func (h *Handlers) Root() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		sts, err := h.hubbub.ListCollections()
+		sts, err := h.party.ListCollections()
 		if err != nil {
 			klog.Errorf("collections: %v", err)
 			return
@@ -93,7 +94,7 @@ type Page struct {
 	Total       int
 	TotalShown  int
 	Types       string
-	UniqueItems []*hubbub.Colloquy
+	UniqueItems []*hubbub.Conversation
 
 	Player        int
 	Players       int
@@ -106,11 +107,11 @@ type Page struct {
 	TotalPullRequests      int
 	TotalIssues            int
 
-	Collection  hubbub.Collection
-	Collections []hubbub.Collection
+	Collection  triage.Collection
+	Collections []triage.Collection
 
-	CollectionResult *hubbub.CollectionResult
-	Stats            *hubbub.CollectionResult
+	CollectionResult *triage.CollectionResult
+	Stats            *triage.CollectionResult
 	StatsID          string
 }
 
@@ -158,21 +159,21 @@ func (h *Handlers) Collection() http.HandlerFunc {
 		}
 
 		klog.Infof("GET %s (%q): %v", r.URL.Path, id, r.Header)
-		s, err := h.hubbub.LookupCollection(id)
+		s, err := h.party.LookupCollection(id)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("%q not found: old link or typo?", id), http.StatusNotFound)
 			klog.Errorf("collection: %v", err)
 			return
 		}
 
-		sts, err := h.hubbub.ListCollections()
+		sts, err := h.party.ListCollections()
 		if err != nil {
 			klog.Errorf("collections: %v", err)
 			http.Error(w, "list error", http.StatusInternalServerError)
 			return
 		}
 
-		var result *hubbub.CollectionResult
+		var result *triage.CollectionResult
 		if isRefresh(r) {
 			result = h.updater.ForceRefresh(r.Context(), id)
 			klog.Infof("refresh %q result: %d items", id, len(result.RuleResults))
@@ -200,7 +201,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 			total += len(o.Items)
 		}
 
-		unique := []*hubbub.Colloquy{}
+		unique := []*hubbub.Conversation{}
 		seen := map[int]bool{}
 		for _, o := range result.RuleResults {
 			for _, i := range o.Items {
@@ -215,7 +216,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 			result = playerFilter(result, player, players)
 		}
 
-		uniqueFiltered := []*hubbub.Colloquy{}
+		uniqueFiltered := []*hubbub.Conversation{}
 		seenFiltered := map[int]bool{}
 		for _, o := range result.RuleResults {
 			for _, i := range o.Items {
@@ -353,19 +354,24 @@ func avatar(u *github.User) template.HTML {
 }
 
 // playerFilter filters out results for a particular player
-func playerFilter(result *hubbub.CollectionResult, player int, players int) *hubbub.CollectionResult {
+func playerFilter(result *triage.CollectionResult, player int, players int) *triage.CollectionResult {
 	klog.Infof("Filtering for player %d of %d ...", player, players)
-	os := []hubbub.RuleResult{}
-	seen := map[int]bool{}
+	os := []triage.RuleResult{}
+
+	seen := map[string]*triage.Rule{}
+
 	for _, o := range result.RuleResults {
-		cs := []*hubbub.Colloquy{}
+		cs := []*hubbub.Conversation{}
+
 		for _, i := range o.Items {
 			if (i.ID % players) == (player - 1) {
 				klog.Infof("%d belongs to player %d", i.ID, player)
 				cs = append(cs, i)
 			}
 		}
-		os = append(os, hubbub.SummarizeRuleResult(o.Rule, cs, seen))
+
+		os = append(os, triage.SummarizeRuleResult(o.Rule, cs, seen))
+
 	}
-	return hubbub.SummarizeCollectionResult(os)
+	return triage.SummarizeCollectionResult(os)
 }

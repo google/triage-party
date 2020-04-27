@@ -19,27 +19,29 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/initcache"
+	"github.com/google/triage-party/pkg/triage"
 
-	"github.com/google/go-github/v24/github"
+	"github.com/google/go-github/v31/github"
 	"golang.org/x/oauth2"
 	"k8s.io/klog"
 )
 
 var (
-	tokenFileFlag  = flag.String("github-token-file", "", "github token secret file")
-	configFlag     = flag.String("config", "", "configuration path")
-	collectionFlag = flag.String("collection", "", "collection")
-	cacheFlag      = flag.String("init_cache", "", "Where to load cache from")
-	repoFlag       = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
-	numFlag        = flag.Int("num", 0, "only display results for this number")
+	// shared with tester
+	configPath      = flag.String("config", "", "configuration path")
+	initCachePath   = flag.String("init_cache", "", "Where to load the initial cache from (optional)")
+	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
+	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via GITHUB_TOKEN")
+
+	// tester specific
+	collection = flag.String("collection", "", "collection")
+	rule       = flag.String("rule", "", "rule")
+	number     = flag.Int("num", 0, "only display results for this GitHub number")
 )
 
 func main() {
@@ -48,87 +50,78 @@ func main() {
 	flag.Set("alsologtostderr", "false")
 	flag.Parse()
 
-	if *configFlag == "" {
+	if *configPath == "" {
 		klog.Exitf("--config is required")
 	}
 
-	token := os.Getenv("GITHUB_TOKEN")
-	if *tokenFileFlag != "" {
-		t, err := ioutil.ReadFile(*tokenFileFlag)
-		if err != nil {
-			klog.Exitf("unable to read token file: %v", err)
-		}
-		token = strings.TrimSpace(string(t))
-		klog.Infof("loaded %d byte github token from %s", len(token), *tokenFileFlag)
-	}
-
-	if *collectionFlag == "" {
-		klog.Exitf("--collection is required")
+	if *collection == "" && *rule == "" {
+		klog.Exitf("--collection or --rule is required")
 	}
 
 	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
+	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: triage.MustReadToken(*githubTokenFile, "GITHUB_TOKEN")},
+	)))
 
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
-
-	f, err := os.Open(*configFlag)
+	f, err := os.Open(*configPath)
 	if err != nil {
-		klog.Exitf("open %s: %v", *configFlag, err)
+		klog.Exitf("open %s: %v", *configPath, err)
 	}
 
-	cachePath := *cacheFlag
+	cachePath := *initCachePath
 	if cachePath == "" {
-		name := filepath.Base(*configFlag)
-		if *repoFlag != "" {
-			name = name + "_" + filepath.Base(*repoFlag)
-		}
-		cachePath = filepath.Join(fmt.Sprintf("/var/tmp/tparty_%s.cache", name))
+		cachePath = initcache.DefaultDiskPath(*configPath, *reposOverride)
+
 	}
 
 	c, err := initcache.Load(cachePath)
 	if err != nil {
-		klog.Exitf("initcache load to %s: %v", *cacheFlag, err)
+		klog.Exitf("initcache load to %s: %v", cachePath, err)
 	}
 
-	cfg := hubbub.Config{
+	cfg := triage.Config{
 		Client:      client,
 		Cache:       c,
 		MaxListAge:  24 * time.Hour,
-		MaxEventAge: 7 * 24 * time.Hour,
-	}
-	if *repoFlag != "" {
-		cfg.Repos = strings.Split(*repoFlag, ",")
-	}
-	h := hubbub.New(cfg)
-
-	if err := h.Load(f); err != nil {
-		klog.Exitf("load: %v", err)
+		MaxEventAge: 90 * 24 * time.Hour,
+		DebugNumber: *number,
 	}
 
-	s, err := h.LookupCollection(*collectionFlag)
+	if *reposOverride != "" {
+		cfg.Repos = strings.Split(*reposOverride, ",")
+	}
+
+	tp := triage.New(cfg)
+	if err := tp.Load(f); err != nil {
+		klog.Exitf("load %s: %v", *configPath, err)
+	}
+
+	if *collection != "" {
+		executeCollection(ctx, tp)
+	} else {
+		executeRule(ctx, tp)
+	}
+
+	if err := initcache.Save(c, cachePath); err != nil {
+		klog.Exitf("initcache save to %s: %v", cachePath, err)
+	}
+}
+
+func executeCollection(ctx context.Context, tp *triage.Party) {
+	s, err := tp.LookupCollection(*collection)
 	if err != nil {
 		klog.Exitf("collection: %v", err)
 	}
 
-	r, err := h.ExecuteCollection(ctx, client, s)
+	r, err := tp.ExecuteCollection(ctx, s)
 	if err != nil {
 		klog.Exitf("execute: %v", err)
-	}
-	if err := initcache.Save(c, *cacheFlag); err != nil {
-		klog.Exitf("initcache save to %s: %v", *cacheFlag, err)
 	}
 
 	for _, o := range r.RuleResults {
 		fmt.Printf("## %s\n", o.Rule.Name)
-
+		fmt.Printf(" #  %d items\n", len(o.Items))
 		for _, i := range o.Items {
-			if *numFlag != 0 && i.ID != *numFlag {
-				continue
-			}
-
 			s, err := json.MarshalIndent(i, "", "  ")
 			if err != nil {
 				panic(err)
@@ -137,5 +130,27 @@ func main() {
 			fmt.Printf("// Total Hold: %s\n", i.OnHoldTotal)
 			fmt.Printf("// Latest Response Delay: %s\n", i.LatestResponseDelay)
 		}
+	}
+}
+
+func executeRule(ctx context.Context, tp *triage.Party) {
+	s, err := tp.LookupRule(*rule)
+	if err != nil {
+		klog.Exitf("rule: %v", err)
+	}
+
+	o, err := tp.ExecuteRule(ctx, s)
+	if err != nil {
+		klog.Exitf("execute: %v", err)
+	}
+
+	for _, i := range o {
+		s, err := json.MarshalIndent(i, "", "  ")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(string(s))
+		fmt.Printf("// Total Hold: %s\n", i.OnHoldTotal)
+		fmt.Printf("// Latest Response Delay: %s\n", i.LatestResponseDelay)
 	}
 }

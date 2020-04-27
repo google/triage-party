@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// updater package handles background updates of GitHub data
+// Package updater handles background refreshes of GitHub data
 package updater
 
 import (
@@ -21,10 +21,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/triage-party/pkg/hubbub"
+	"github.com/google/triage-party/pkg/triage"
 
-	"github.com/golang/glog"
-	"github.com/google/go-github/v24/github"
 	"k8s.io/klog"
 )
 
@@ -34,8 +32,7 @@ const minFlushAge = 1 * time.Second
 type PFunc = func() error
 
 type Config struct {
-	HubBub        *hubbub.HubBub
-	Client        *github.Client
+	Party         *triage.Party
 	MinRefreshAge time.Duration
 	MaxRefreshAge time.Duration
 	PersistFunc   PFunc
@@ -43,11 +40,10 @@ type Config struct {
 
 func New(cfg Config) *Updater {
 	return &Updater{
-		hubbub:        cfg.HubBub,
-		client:        cfg.Client,
+		party:         cfg.Party,
 		maxRefreshAge: cfg.MaxRefreshAge,
 		minRefreshAge: cfg.MinRefreshAge,
-		cache:         map[string]*hubbub.CollectionResult{},
+		cache:         map[string]*triage.CollectionResult{},
 		lastRequest:   sync.Map{},
 		loopEvery:     250 * time.Millisecond,
 		mutex:         &sync.Mutex{},
@@ -56,11 +52,10 @@ func New(cfg Config) *Updater {
 }
 
 type Updater struct {
-	hubbub        *hubbub.HubBub
-	client        *github.Client
+	party         *triage.Party
 	maxRefreshAge time.Duration
 	minRefreshAge time.Duration
-	cache         map[string]*hubbub.CollectionResult
+	cache         map[string]*triage.CollectionResult
 	lastRequest   sync.Map
 	lastSave      time.Time
 	loopEvery     time.Duration
@@ -69,24 +64,24 @@ type Updater struct {
 }
 
 // Lookup results for a given metric
-func (u *Updater) Lookup(ctx context.Context, id string, blocking bool) *hubbub.CollectionResult {
+func (u *Updater) Lookup(ctx context.Context, id string, blocking bool) *triage.CollectionResult {
 	defer u.lastRequest.Store(id, time.Now())
 	r := u.cache[id]
 	if r == nil {
 		if blocking {
-			glog.Warningf("%s unavailable, blocking page load!", id)
+			klog.Warningf("%s is not available in the cache, blocking page load!", id)
 			if _, err := u.RunSingle(ctx, id, true); err != nil {
-				glog.Errorf("unable to run %s: %v", id, err)
+				klog.Errorf("unable to run %s: %v", id, err)
 			}
 		} else {
-			glog.Warningf("%s unavailable, but not blocking: happily returning nil", id)
+			klog.Warningf("%s unavailable, but not blocking: happily returning nil", id)
 		}
 	}
 	r = u.cache[id]
 	return r
 }
 
-func (u *Updater) ForceRefresh(ctx context.Context, id string) *hubbub.CollectionResult {
+func (u *Updater) ForceRefresh(ctx context.Context, id string) *triage.CollectionResult {
 	defer u.lastRequest.Store(id, time.Now())
 
 	_, ok := u.lastRequest.Load(id)
@@ -97,7 +92,7 @@ func (u *Updater) ForceRefresh(ctx context.Context, id string) *hubbub.Collectio
 
 	start := time.Now()
 	klog.Infof("Forcing refresh for %s", id)
-	if err := u.hubbub.FlushSearchCache(id, minFlushAge); err != nil {
+	if err := u.party.FlushSearchCache(id, minFlushAge); err != nil {
 		klog.Errorf("unable to flush cache: %v", err)
 	}
 
@@ -111,11 +106,12 @@ func (u *Updater) ForceRefresh(ctx context.Context, id string) *hubbub.Collectio
 func (u *Updater) shouldUpdate(id string) bool {
 	result, ok := u.cache[id]
 	if !ok {
+		klog.Infof("%s is not in cache, needs update", id)
 		return true
 	}
 	age := time.Since(result.Time)
 	if age > u.maxRefreshAge {
-		klog.Infof("%s is too old (%s), refreshing", id, age)
+		klog.Infof("%s is older than max refresh age (%s), should update", id, age)
 		return true
 	}
 
@@ -123,20 +119,21 @@ func (u *Updater) shouldUpdate(id string) bool {
 	if !ok {
 		return false
 	}
+
 	lr, ok := lastReq.(time.Time)
 	if !ok {
 		return false
 	}
 
 	if lr.After(result.Time) && age > u.minRefreshAge {
-		klog.Infof("%s not updated since last request (%s), refreshing", id, age)
+		klog.Infof("%s has been requested since last update, and is older than min refresh age (%s), should update", id, age)
 		return true
 	}
 	return false
 }
 
-func (u *Updater) update(ctx context.Context, s hubbub.Collection) error {
-	r, err := u.hubbub.ExecuteCollection(ctx, u.client, s)
+func (u *Updater) update(ctx context.Context, s triage.Collection) error {
+	r, err := u.party.ExecuteCollection(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -151,7 +148,7 @@ func (u *Updater) RunSingle(ctx context.Context, id string, force bool) (bool, e
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
-	s, err := u.hubbub.LookupCollection(id)
+	s, err := u.party.LookupCollection(id)
 	if err != nil {
 		return updated, err
 	}
@@ -171,7 +168,7 @@ func (u *Updater) RunSingle(ctx context.Context, id string, force bool) (bool, e
 func (u *Updater) RunOnce(ctx context.Context, force bool) error {
 	updated := false
 	klog.V(3).Infof("RunOnce: force=%v", force)
-	sts, err := u.hubbub.ListCollections()
+	sts, err := u.party.ListCollections()
 	if err != nil {
 		return err
 	}

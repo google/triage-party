@@ -18,11 +18,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v24/github"
+	"github.com/google/go-github/v31/github"
 	"k8s.io/klog"
 )
 
-func (h *HubBub) cachedOrgMembers(ctx context.Context, org string) (map[string]bool, error) {
+func (h *Engine) cachedOrgMembers(ctx context.Context, org string) (map[string]bool, error) {
 	key := fmt.Sprintf("%s-members", org)
 	if x, ok := h.cache.Get(key); ok {
 		members := x.(map[string]bool)
@@ -35,7 +35,7 @@ func (h *HubBub) cachedOrgMembers(ctx context.Context, org string) (map[string]b
 
 	members := map[string]bool{}
 	for {
-		klog.V(2).Infof("Downloading orgs for %s (page %d)...", org, opt.Page)
+		klog.Infof("Downloading members of %q org (page %d)...", org, opt.Page)
 		mem, resp, err := h.client.Organizations.ListMembers(ctx, org, opt)
 		if err != nil {
 			return nil, err
@@ -50,5 +50,6 @@ func (h *HubBub) cachedOrgMembers(ctx context.Context, org string) (map[string]b
 	}
 
 	h.cache.Set(key, members, h.maxEventAge)
+	klog.Infof("%s has %d members", org, len(members))
 	return members, nil
 }
