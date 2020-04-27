@@ -37,11 +37,11 @@ func related(c *Conversation) *RelatedConversation {
 
 // updateSimilarConversations updates a slice of conversations with similar ones
 func (h *Engine) updateSimilarConversations(cs []*Conversation) error {
-	klog.Infof("updating similar conversations for %d conversations ...", len(cs))
+	klog.V(2).Infof("updating similar conversations for %d conversations ...", len(cs))
 	start := time.Now()
 	found := 0
 	defer func() {
-		klog.Infof("updated similar conversations for %d conversations within %s", found, time.Since(start))
+		klog.V(2).Infof("updated similar conversations for %d conversations within %s", found, time.Since(start))
 	}()
 
 	urls, err := h.cachedSimilarURLs()

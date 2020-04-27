@@ -56,7 +56,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 			klog.Errorf("open issues: %v", err)
 			return
 		}
-		klog.Infof("%s/%s open issue count: %d", org, project, len(open))
+		klog.V(1).Infof("%s/%s open issue count: %d", org, project, len(open))
 	}()
 
 	wg.Add(1)
@@ -66,7 +66,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		if err != nil {
 			klog.Errorf("closed issues: %v", err)
 		}
-		klog.Infof("%s/%s closed issue count: %d", org, project, len(closed))
+		klog.V(1).Infof("%s/%s closed issue count: %d", org, project, len(closed))
 	}()
 
 	wg.Wait()
@@ -93,7 +93,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	}
 
 	var filtered []*Conversation
-	klog.Infof("%s/%s aggregate issue count: %d, filtering for:\n%s", org, project, len(is), toYAML(fs))
+	klog.V(1).Infof("%s/%s aggregate issue count: %d, filtering for:\n%s", org, project, len(is), toYAML(fs))
 
 	for _, i := range is {
 		// Inconsistency warning: issues use a list of labels, prs a list of label pointers
@@ -158,7 +158,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 			klog.Errorf("open prs: %v", err)
 			return
 		}
-		klog.Infof("open PR count: %d", len(open))
+		klog.V(1).Infof("open PR count: %d", len(open))
 	}()
 
 	wg.Add(1)
@@ -169,7 +169,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 			klog.Errorf("closed prs: %v", err)
 			return
 		}
-		klog.Infof("closed PR count: %d", len(closed))
+		klog.V(1).Infof("closed PR count: %d", len(closed))
 	}()
 
 	wg.Wait()

@@ -95,8 +95,6 @@ func SummarizeCollectionResult(os []*RuleResult) *CollectionResult {
 	r := &CollectionResult{}
 
 	for _, oc := range os {
-		klog.Infof("total age is %.1f days", r.TotalAgeDays)
-
 		r.Total += len(oc.Items)
 		if oc.Rule.Type == hubbub.PullRequest {
 			r.TotalPullRequests += len(oc.Items)
