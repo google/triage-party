@@ -10,8 +10,8 @@ import (
 	"k8s.io/klog"
 )
 
-// IssueLike is an interface that matches both GitHub Issues and PullRequests
-type IssueLike interface {
+// GitHubItem is an interface that matches both GitHub Issues and PullRequests
+type GitHubItem interface {
 	GetAssignee() *github.User
 	GetBody() string
 	GetComments() int
@@ -30,7 +30,7 @@ type IssueLike interface {
 }
 
 // conversation creates a conversation from an issue-like
-func (h *Engine) conversation(i IssueLike, cs []CommentLike, authorIsMember bool) *Conversation {
+func (h *Engine) conversation(i GitHubItem, cs []CommentLike, authorIsMember bool) *Conversation {
 	co := &Conversation{
 		ID:                   i.GetNumber(),
 		URL:                  i.GetHTMLURL(),
@@ -157,69 +157,4 @@ func (h *Engine) conversation(i IssueLike, cs []CommentLike, authorIsMember bool
 	co.CommentersPerMonth = float64(co.CommentersTotal) / float64(months)
 	co.ReactionsPerMonth = float64(co.ReactionsTotal) / float64(months)
 	return co
-}
-
-// Check if an item matches the filters, pre-comment fetch
-func matchItem(i IssueLike, labels []*github.Label, fs []Filter) bool {
-	for _, f := range fs {
-		klog.V(2).Infof("matching item #%d against filter: %+v", i.GetNumber(), toYAML(f))
-
-		if f.State != "" && f.State != "all" {
-			if i.GetState() != f.State {
-				klog.V(3).Infof("#%d state is %q, want: %q", i.GetNumber(), i.GetState(), f.State)
-				return false
-			}
-		}
-
-		if f.Updated != "" {
-			if ok := matchDuration(i.GetUpdatedAt(), f.Updated); !ok {
-				klog.V(2).Infof("#%d update at %s does not meet %s", i.GetNumber(), i.GetUpdatedAt(), f.Updated)
-				return false
-			}
-		}
-
-		if f.Responded != "" {
-			if ok := matchDuration(i.GetUpdatedAt(), f.Responded); !ok {
-				klog.V(2).Infof("#%d update at %s does not meet responded %s", i.GetNumber(), i.GetUpdatedAt(), f.Responded)
-				return false
-			}
-		}
-
-		if f.Created != "" {
-			if ok := matchDuration(i.GetCreatedAt(), f.Created); !ok {
-				klog.V(2).Infof("#%d creation at %s does not meet %s", i.GetNumber(), i.GetCreatedAt(), f.Created)
-				return false
-			}
-		}
-
-		if f.LabelRegex() != nil {
-			if ok := matchLabel(labels, f.LabelRegex(), f.LabelNegate()); !ok {
-				klog.V(2).Infof("#%d labels do not meet %s", i.GetNumber(), f.LabelRegex())
-				return false
-			}
-		}
-
-		if f.Milestone != "" {
-			if i.GetMilestone().GetTitle() != f.Milestone {
-				klog.V(2).Infof("#%d milestone does not meet %s: %+v", i.GetNumber(), f.Milestone, i.GetMilestone())
-				return false
-			}
-		}
-
-		// TODO: comment math
-
-		// This state can be performed without downloading comments
-		if f.TagRegex() != nil && f.TagRegex().String() == "assigned" {
-			// If assigned and no assignee, fail
-			if !f.TagNegate() && i.GetAssignee() == nil {
-				return false
-			}
-			// if !assigned and has assignee, fail
-			if f.TagNegate() && i.GetAssignee() != nil {
-				return false
-			}
-		}
-
-	}
-	return true
 }

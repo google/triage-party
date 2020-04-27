@@ -151,23 +151,22 @@ func processRules(raw map[string]Rule) (map[string]Rule, error) {
 			if f.RawLabel != "" {
 				err := f.LoadLabelRegex()
 				if err != nil {
-					return rules, fmt.Errorf("%q: %w", id, err)
+					return rules, fmt.Errorf("%q label: %w", id, err)
 				}
-				if f.LabelRegex() == nil {
-					return rules, fmt.Errorf("%q yielded nil regex: %+v", f.RawLabel, f)
-				}
-				klog.Infof("label regex: %s (negate=%v)", f.LabelRegex(), f.LabelNegate())
 			}
 
 			if f.RawTag != "" {
 				err := f.LoadTagRegex()
 				if err != nil {
-					return rules, fmt.Errorf("%q: %w", id, err)
+					return rules, fmt.Errorf("%q tag: %w", id, err)
 				}
-				if f.TagRegex() == nil {
-					return rules, fmt.Errorf("%q yielded nil regex: %+v", f.RawTag, f)
+			}
+
+			if f.RawTitle != "" {
+				err := f.LoadTitleRegex()
+				if err != nil {
+					return rules, fmt.Errorf("%q title: %w", id, err)
 				}
-				klog.Infof("tag regex: %s (negate=%v)", f.TagRegex(), f.TagNegate())
 			}
 
 			newfs = append(newfs, f)
