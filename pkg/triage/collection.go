@@ -37,19 +37,19 @@ type Collection struct {
 // The result of Execute
 type CollectionResult struct {
 	Time        time.Time
-	RuleResults []RuleResult
+	RuleResults []*RuleResult
 
 	Total             int
 	TotalPullRequests int
 	TotalIssues       int
 
-	AvgHold  time.Duration
-	AvgAge   time.Duration
-	AvgDelay time.Duration
+	AvgAge             time.Duration
+	AvgCurrentHold     time.Duration
+	AvgAccumulatedHold time.Duration
 
-	TotalHold  time.Duration
-	TotalAge   time.Duration
-	TotalDelay time.Duration
+	TotalAgeDays             float64
+	TotalCurrentHoldDays     float64
+	TotalAccumulatedHoldDays float64
 }
 
 // ExecuteCollection executes a collection.
@@ -57,7 +57,7 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection) (*Collectio
 	klog.Infof(">>> Executing collection %q: %s", s.ID, s.RuleIDs)
 	start := time.Now()
 
-	os := []RuleResult{}
+	os := []*RuleResult{}
 	seen := map[string]*Rule{}
 	seenRule := map[string]bool{}
 
@@ -74,12 +74,12 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection) (*Collectio
 			return nil, err
 		}
 
-		cs, err := p.ExecuteRule(ctx, t)
+		ro, err := p.ExecuteRule(ctx, t, seen)
 		if err != nil {
 			return nil, fmt.Errorf("rule %q: %v", t.Name, err)
 		}
 
-		os = append(os, SummarizeRuleResult(t, cs, seen))
+		os = append(os, ro)
 	}
 
 	r := SummarizeCollectionResult(os)
@@ -89,27 +89,41 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection) (*Collectio
 }
 
 // SummarizeCollectionResult adds together statistics about collection results {
-func SummarizeCollectionResult(os []RuleResult) *CollectionResult {
+func SummarizeCollectionResult(os []*RuleResult) *CollectionResult {
+	klog.Infof("Summarizing collection result with %s rules...", len(os))
+
 	r := &CollectionResult{}
+
 	for _, oc := range os {
+		klog.Infof("total age is %.1f days", r.TotalAgeDays)
+
 		r.Total += len(oc.Items)
 		if oc.Rule.Type == hubbub.PullRequest {
 			r.TotalPullRequests += len(oc.Items)
 		} else {
 			r.TotalIssues += len(oc.Items)
 		}
+
 		r.RuleResults = append(r.RuleResults, oc)
-		r.TotalHold += oc.TotalHold
-		r.TotalAge += oc.TotalAge
-		r.TotalDelay += oc.TotalDelay
+
+		r.TotalAgeDays += oc.TotalAgeDays
+		r.TotalCurrentHoldDays += oc.TotalCurrentHoldDays
+		r.TotalAccumulatedHoldDays += oc.TotalAccumulatedHoldDays
 
 	}
-	if r.Total > 0 {
-		r.AvgHold = time.Duration(int64(r.TotalHold) / int64(r.Total))
-		r.AvgAge = time.Duration(int64(r.TotalAge) / int64(r.Total))
-		r.AvgDelay = time.Duration(int64(r.TotalDelay) / int64(r.Total))
+	if r.Total == 0 {
+		klog.Warningf("no summary, total=0")
+		return r
 	}
+
+	r.AvgAge = avgDayDuration(r.TotalAgeDays, r.Total)
+	r.AvgCurrentHold = avgDayDuration(r.TotalCurrentHoldDays, r.Total)
+	r.AvgAccumulatedHold = avgDayDuration(r.TotalAccumulatedHoldDays, r.Total)
 	return r
+}
+
+func avgDayDuration(total float64, count int) time.Duration {
+	return time.Duration(int64(total/float64(count)*24)) * time.Hour
 }
 
 // Flush the search cache for a collection

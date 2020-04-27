@@ -118,6 +118,10 @@ func executeCollection(ctx context.Context, tp *triage.Party) {
 		klog.Exitf("execute: %v", err)
 	}
 
+	fmt.Printf("// Average age: %s\n", toDays(r.AvgAge))
+	fmt.Printf("// Average delay: %s\n", toDays(r.AvgAccumulatedHold))
+	fmt.Printf("// Average hold: %s\n", toDays(r.AvgCurrentHold))
+
 	for _, o := range r.RuleResults {
 		fmt.Printf("## %s\n", o.Rule.Name)
 		fmt.Printf(" #  %d items\n", len(o.Items))
@@ -127,30 +131,38 @@ func executeCollection(ctx context.Context, tp *triage.Party) {
 				panic(err)
 			}
 			fmt.Println(string(s))
-			fmt.Printf("// Total Hold: %s\n", i.OnHoldTotal)
-			fmt.Printf("// Latest Response Delay: %s\n", i.LatestResponseDelay)
+			fmt.Printf("// Current hold: %s\n", toDays(i.CurrentHoldTime))
+			fmt.Printf("// Accumulated hold: %s\n", toDays(i.AccumulatedHoldTime))
 		}
 	}
 }
 
 func executeRule(ctx context.Context, tp *triage.Party) {
-	s, err := tp.LookupRule(*rule)
+	r, err := tp.LookupRule(*rule)
 	if err != nil {
 		klog.Exitf("rule: %v", err)
 	}
 
-	o, err := tp.ExecuteRule(ctx, s)
+	rr, err := tp.ExecuteRule(ctx, r, nil)
 	if err != nil {
 		klog.Exitf("execute: %v", err)
 	}
 
-	for _, i := range o {
+	fmt.Printf("// Average age: %s\n", toDays(rr.AvgAge))
+	fmt.Printf("// Average current hold: %s\n", toDays(rr.AvgCurrentHold))
+	fmt.Printf("// Average accumulated hold: %s\n", toDays(rr.AvgAccumulatedHold))
+
+	for _, i := range rr.Items {
 		s, err := json.MarshalIndent(i, "", "  ")
 		if err != nil {
 			panic(err)
 		}
 		fmt.Println(string(s))
-		fmt.Printf("// Total Hold: %s\n", i.OnHoldTotal)
-		fmt.Printf("// Latest Response Delay: %s\n", i.LatestResponseDelay)
+		fmt.Printf("// Current hold: %s\n", toDays(i.CurrentHoldTime))
+		fmt.Printf("// Accumulated hold: %s\n", toDays(i.AccumulatedHoldTime))
 	}
+}
+
+func toDays(d time.Duration) string {
+	return fmt.Sprintf("%0.1fd", d.Hours()/24)
 }

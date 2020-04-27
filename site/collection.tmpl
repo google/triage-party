@@ -17,7 +17,8 @@
           <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
           {{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }}, 
           Avg age: {{ .CollectionResult.AvgAge | toDays }}, 
-          Avg response delay: {{ .CollectionResult.AvgDelay | toDays }}</div>
+          Avg wait: {{ .CollectionResult.AvgCurrentHold | toDays }}
+          </div>
           <script>
           function openAllTabs() {
               {{ range .UniqueItems}}window.open("{{ .URL | toJS }}", "_tab{{ .ID }}");
@@ -74,7 +75,7 @@
         <div class="box-head-left">
           <h3 title="{{ .Rule | toYAML }}">{{ .Rule.Name }} ({{ len .Items }})<div class="tab-link"><a href="#" title="open in new tabs" onclick="{{ .Rule.ID | toJSfunc }}tabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div></h3>
           <h4 class="subtitle">Resolution: {{ .Rule.Resolution }}</h4>
-          <h5 class="stats">Average age: {{ .AvgAge | toDays }}, Avg latest response delay: {{ .AvgDelay | toDays }}</h5>
+          <h5 class="stats">Average age: {{ .AvgAge | toDays }}, Avg wait: {{ .AvgCurrentHold | toDays }}</h5>
         </div>
         <div class="box-head-right">
         <!--  just save the space -->
