@@ -101,6 +101,9 @@ For example configurations, see `examples/*.yaml`. There are two that are partic
 # GitHub label
 - label: [!]regex
 
+# Issue or PR title
+- title: [!]regex
+
 # Internal tagging: particularly useful tags are:
 # - recv: updated by author more recently than a project member
 # - recv-q: updated by author with a question
