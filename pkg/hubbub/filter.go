@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v24/github"
+	"github.com/google/go-github/v31/github"
 	"k8s.io/klog"
 )
 
@@ -29,10 +29,80 @@ var (
 	dayRegexp   = regexp.MustCompile(`(\d+)d`)
 	weekRegexp  = regexp.MustCompile(`(\d+)w`)
 	rangeRegexp = regexp.MustCompile(`([<>=]*)([\d\.]+)`)
+
+	rawString = regexp.MustCompile(`^[\w-/]+$`)
 )
 
+// Filter lets you do less.
+type Filter struct {
+	RawLabel    string `yaml:"label,omitempty"`
+	labelRegex  *regexp.Regexp
+	labelNegate bool
+
+	RawTag    string `yaml:"tag,omitempty"`
+	tagRegex  *regexp.Regexp
+	tagNegate bool
+
+	Milestone string `yaml:"milestone,omitempty"`
+
+	Created            string `yaml:"created,omitempty"`
+	Updated            string `yaml:"updated,omitempty"`
+	Responded          string `yaml:"responded,omitempty"`
+	Reactions          string `yaml:"reactions,omitempty"`
+	ReactionsPerMonth  string `yaml:"reactions-per-month,omitempty"`
+	Comments           string `yaml:"comments,omitempty"`
+	Commenters         string `yaml:"commenters,omitempty"`
+	CommentersPerMonth string `yaml:"commenters-per-month,omitempty"`
+	ClosedComments     string `yaml:"comments-while-closed,omitempty"`
+	ClosedCommenters   string `yaml:"commenters-while-closed,omitempty"`
+	State              string `yaml:"state,omitempty"`
+}
+
+// LoadLabelRegex loads a new label reegx
+func (f *Filter) LoadLabelRegex() error {
+	label, negateLabel := negativeMatch(f.RawLabel)
+
+	re, err := regex(label)
+	if err != nil {
+		return err
+	}
+
+	f.labelRegex = re
+	f.labelNegate = negateLabel
+	return nil
+}
+
+func (f *Filter) LabelRegex() *regexp.Regexp {
+	return f.labelRegex
+}
+
+func (f *Filter) LabelNegate() bool {
+	return f.labelNegate
+}
+
+func (f *Filter) LoadTagRegex() error {
+	tag, negateState := negativeMatch(f.RawTag)
+
+	re, err := regex(tag)
+	if err != nil {
+		return err
+	}
+
+	f.tagRegex = re
+	f.tagNegate = negateState
+	return nil
+}
+
+func (f *Filter) TagRegex() *regexp.Regexp {
+	return f.tagRegex
+}
+
+func (f *Filter) TagNegate() bool {
+	return f.tagNegate
+}
+
 // Check if an issue matches the summarized version
-func matchColloquy(co *Colloquy, fs []Filter) bool {
+func matchConversation(co *Conversation, fs []Filter) bool {
 	for _, f := range fs {
 		if f.TagRegex() != nil {
 			if ok := matchTag(co.Tags, f.TagRegex(), f.TagNegate()); !ok {
@@ -205,4 +275,20 @@ func matchRange(i float64, r string) bool {
 		klog.Errorf("unknown range modifier: %s", matches[1])
 		return false
 	}
+}
+
+// negativeMatch parses a match string and returns the underlying string and negation bool
+func negativeMatch(s string) (string, bool) {
+	if strings.HasPrefix(s, "!") {
+		return s[1:], true
+	}
+	return s, false
+}
+
+// regex returns regexps matching a string.
+func regex(s string) (*regexp.Regexp, error) {
+	if rawString.MatchString(s) {
+		s = fmt.Sprintf("^%s$", s)
+	}
+	return regexp.Compile(s)
 }

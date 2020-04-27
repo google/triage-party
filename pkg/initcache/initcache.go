@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// initcache provides a disk cache for getting up and running
+// Package initcache provides a bootstrap for the in-memory cache
 package initcache
 
 import (
@@ -23,9 +23,11 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
-	"github.com/google/go-github/v24/github"
+	"github.com/google/go-github/v31/github"
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/xerrors"
 	"k8s.io/klog"
@@ -38,6 +40,13 @@ const (
 	CleanupInterval = 15 * time.Minute
 )
 
+// Cacher is the cache interface we support
+type Cacher interface {
+	Set(string, interface{}, time.Duration)
+	Delete(string)
+	Get(string) (interface{}, bool)
+}
+
 func init() {
 	// Register values we plan to store on disk
 	gob.Register(&time.Time{})
@@ -46,7 +55,7 @@ func init() {
 	gob.Register(hubbub.IssueSearchCache{})
 	gob.Register(hubbub.PRSearchCache{})
 	gob.Register(&github.Issue{})
-	gob.Register([]hubbub.Colloquy{})
+	gob.Register([]hubbub.Conversation{})
 	gob.Register([]*github.Issue{})
 	gob.Register([]int{})
 	gob.Register(&github.PullRequest{})
@@ -94,7 +103,7 @@ func Load(path string) (*cache.Cache, error) {
 
 func Save(c *cache.Cache, path string) error {
 	start := time.Now()
-	klog.Infof("Saving items to initcache")
+	klog.Infof("Saving items to initcache at %s", path)
 	defer func() {
 		klog.Infof("initcache.Save took %s", time.Since(start))
 	}()
@@ -106,4 +115,14 @@ func Save(c *cache.Cache, path string) error {
 		return xerrors.Errorf("encode: %v", err)
 	}
 	return ioutil.WriteFile(path, b.Bytes(), 0644)
+}
+
+func DefaultDiskPath(configPath string, override string) string {
+	name := strings.Replace(filepath.Base(configPath), filepath.Ext(configPath), "", -1)
+
+	if override != "" {
+		name = name + "_" + strings.Replace(override, "/", "_", -1)
+	}
+
+	return filepath.Join(fmt.Sprintf("/var/tmp/tparty_%s.cache", name))
 }

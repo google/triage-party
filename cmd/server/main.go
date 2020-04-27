@@ -18,38 +18,40 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v24/github"
+	"github.com/google/go-github/v31/github"
 	"golang.org/x/oauth2"
 	"k8s.io/klog"
 
-	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/initcache"
 	"github.com/google/triage-party/pkg/site"
+	"github.com/google/triage-party/pkg/triage"
 	"github.com/google/triage-party/pkg/updater"
 )
 
 var (
-	configPath    = flag.String("config", "", "configuration path")
+	// shared with tester
+	configPath      = flag.String("config", "", "configuration path")
+	initCachePath   = flag.String("init_cache", "", "Where to load the initial cache from (optional)")
+	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
+	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via GITHUB_TOKEN")
+
+	// server specific
 	siteDir       = flag.String("site_dir", "site/", "path to site files")
 	thirdPartyDir = flag.String("3p_dir", "third_party/", "path to 3rd party files")
-	maxListAge    = flag.Duration("max_list_age", 12*time.Hour, "maximum time to cache GitHub searches (prod recommendation: 15s)")
-	maxRefreshAge = flag.Duration("max_refresh_age", 15*time.Minute, "Maximum time between collection runs")
-	minRefreshAge = flag.Duration("min_refresh_age", 15*time.Second, "Minimum time between collection runs")
-	warnAge       = flag.Duration("warn_age", 30*time.Minute, "Maximum time before warning about stale results. Recommended: 2*max_refresh_age")
-
 	dryRun        = flag.Bool("dry_run", false, "run queries, don't start a server")
 	port          = flag.Int("port", 8080, "port to run server at")
 	siteName      = flag.String("site_name", "", "override site name from config file")
-	cacheFlag     = flag.String("init_cache", "", "Where to load cache from")
-	repos         = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
-	tokenFileFlag = flag.String("github-token-file", "", "github token secret file")
+
+	maxListAge    = flag.Duration("max_list_age", 12*time.Hour, "maximum time to cache GitHub searches")
+	maxRefreshAge = flag.Duration("max_refresh_age", 15*time.Minute, "Maximum time between collection runs")
+	minRefreshAge = flag.Duration("min_refresh_age", 15*time.Second, "Minimum time between collection runs")
+	warnAge       = flag.Duration("warn_age", 30*time.Minute, "Maximum time before warning about stale results. Recommended: 2*max_refresh_age")
 )
 
 func main() {
@@ -77,36 +79,20 @@ func main() {
 		klog.Exitf("--config is required")
 	}
 
-	token := os.Getenv("GITHUB_TOKEN")
-	if *tokenFileFlag != "" {
-		t, err := ioutil.ReadFile(*tokenFileFlag)
-		if err != nil {
-			klog.Exitf("unable to read token file: %v", err)
-		}
-		token = strings.TrimSpace(string(t))
-		klog.Infof("loaded %d byte github token from %s", len(token), *tokenFileFlag)
-	}
-
-	if len(token) < 8 {
-		klog.Exitf("github token impossibly small: %q", token)
-	}
-
 	ctx := context.Background()
-	tc := oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token}))
-	client := github.NewClient(tc)
+
+	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: triage.MustReadToken(*githubTokenFile, "GITHUB_TOKEN")},
+	)))
 
 	f, err := os.Open(findPath(*configPath))
 	if err != nil {
 		klog.Exitf("open %s: %v", *configPath, err)
 	}
 
-	cachePath := *cacheFlag
+	cachePath := *initCachePath
 	if cachePath == "" {
-		name := filepath.Base(*configPath)
-		if *repos != "" {
-			name = name + "_" + filepath.Base(*repos)
-		}
-		cachePath = filepath.Join(fmt.Sprintf("/var/tmp/tparty_%s.cache", name))
+		cachePath = initcache.DefaultDiskPath(*configPath, *reposOverride)
 	}
 	klog.Infof("cache path: %s", cachePath)
 
@@ -115,22 +101,23 @@ func main() {
 		klog.Exitf("initcache load to %s: %v", cachePath, err)
 	}
 
-	cfg := hubbub.Config{
+	cfg := triage.Config{
 		Client:      client,
 		Cache:       c,
 		MaxListAge:  *maxListAge,
 		MaxEventAge: 90 * 24 * time.Hour,
 	}
 
-	if *repos != "" {
-		cfg.Repos = strings.Split(*repos, ",")
-	}
-	h := hubbub.New(cfg)
-	if err := h.Load(f); err != nil {
-		klog.Exitf("load %s: %v", *configPath, err)
+	if *reposOverride != "" {
+		cfg.Repos = strings.Split(*reposOverride, ",")
 	}
 
-	ts, err := h.ListRules()
+	tp := triage.New(cfg)
+	if err := tp.Load(f); err != nil {
+		klog.Exitf("load from %s: %v", *configPath, err)
+	}
+
+	ts, err := tp.ListRules()
 	if err != nil {
 		klog.Exitf("list rules: %v", err)
 	}
@@ -146,7 +133,7 @@ func main() {
 	}
 
 	u := updater.New(updater.Config{
-		HubBub:        h,
+		Party:         tp,
 		Client:        client,
 		MinRefreshAge: *minRefreshAge,
 		MaxRefreshAge: *maxRefreshAge,
@@ -169,7 +156,7 @@ func main() {
 	s := site.New(&site.Config{
 		BaseDirectory: findPath(*siteDir),
 		Updater:       u,
-		HubBub:        h,
+		Party:         tp,
 		WarnAge:       *warnAge,
 		Name:          sn,
 	})
@@ -192,7 +179,7 @@ func main() {
 }
 
 // calculates a user-friendly site name based on repositories
-func calculateSiteName(ts []hubbub.Rule) string {
+func calculateSiteName(ts []triage.Rule) string {
 	seen := map[string]bool{}
 	for _, t := range ts {
 		for _, r := range t.Repos {

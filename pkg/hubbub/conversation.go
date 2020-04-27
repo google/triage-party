@@ -17,11 +17,22 @@ package hubbub
 import (
 	"time"
 
-	"github.com/google/go-github/v24/github"
+	"github.com/google/go-github/v31/github"
 )
 
-type Colloquy struct {
-	ID      int          `json:"id"`
+// Issue is a type representing an issue
+const Issue = "issue"
+
+// PullRequest is a type representing a PR
+const PullRequest = "pull_request"
+
+// Conversation represents a discussion within a GitHub item (issue or PR)
+type Conversation struct {
+	ID int `json:"id"`
+
+	Organization string `json:"organization"`
+	Project      string `json:"project"`
+
 	Hidden  bool         `json:"hidden"`
 	URL     string       `json:"url"`
 	Title   string       `json:"title"`
@@ -48,7 +59,7 @@ type Colloquy struct {
 
 	ReactionsTotal    int            `json:"reactions_total"`
 	Reactions         map[string]int `json:"reactions"`
-	ReactionsPerMonth float64        `json:"commenters_per_month"`
+	ReactionsPerMonth float64        `json:"reactions_per_month"`
 
 	Commenters         []*github.User `json:"commenters"`
 	LastCommentBody    string         `json:"last_comment_body"`
@@ -59,22 +70,13 @@ type Colloquy struct {
 
 	ClosedCommentsTotal   int          `json:"closed_comments_total"`
 	ClosedCommentersTotal int          `json:"closed_commenters_total"`
-	ClosedAt              time.Time    `json:"closed_at`
-	ClosedBy              *github.User `json:"closed_by`
+	ClosedAt              time.Time    `json:"closed_at"`
+	ClosedBy              *github.User `json:"closed_by"`
 
 	Tags []string `json:"tags"`
-	// Similar is a subset to keep memory usage low
-	Similar []RelatedColloquy `json:"similar"`
+
+	// Similar issues to this one
+	Similar []*RelatedConversation `json:"similar"`
 
 	Milestone string `json:"milestone"`
-}
-
-// A subset of Colloquy, for related items.
-type RelatedColloquy struct {
-	ID      int          `json:"id"`
-	URL     string       `json:"url"`
-	Title   string       `json:"title"`
-	Author  *github.User `json:"author"`
-	Type    string       `json:"type"`
-	Created time.Time    `json:"created"`
 }

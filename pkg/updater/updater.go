@@ -21,10 +21,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/triage-party/pkg/hubbub"
-
 	"github.com/golang/glog"
-	"github.com/google/go-github/v24/github"
+	"github.com/google/go-github/v31/github"
+	"github.com/google/triage-party/pkg/triage"
+
 	"k8s.io/klog"
 )
 
@@ -34,7 +34,7 @@ const minFlushAge = 1 * time.Second
 type PFunc = func() error
 
 type Config struct {
-	HubBub        *hubbub.HubBub
+	Party         *triage.Party
 	Client        *github.Client
 	MinRefreshAge time.Duration
 	MaxRefreshAge time.Duration
@@ -43,11 +43,11 @@ type Config struct {
 
 func New(cfg Config) *Updater {
 	return &Updater{
-		hubbub:        cfg.HubBub,
+		party:         cfg.Party,
 		client:        cfg.Client,
 		maxRefreshAge: cfg.MaxRefreshAge,
 		minRefreshAge: cfg.MinRefreshAge,
-		cache:         map[string]*hubbub.CollectionResult{},
+		cache:         map[string]*triage.CollectionResult{},
 		lastRequest:   sync.Map{},
 		loopEvery:     250 * time.Millisecond,
 		mutex:         &sync.Mutex{},
@@ -56,11 +56,11 @@ func New(cfg Config) *Updater {
 }
 
 type Updater struct {
-	hubbub        *hubbub.HubBub
+	party         *triage.Party
 	client        *github.Client
 	maxRefreshAge time.Duration
 	minRefreshAge time.Duration
-	cache         map[string]*hubbub.CollectionResult
+	cache         map[string]*triage.CollectionResult
 	lastRequest   sync.Map
 	lastSave      time.Time
 	loopEvery     time.Duration
@@ -69,7 +69,7 @@ type Updater struct {
 }
 
 // Lookup results for a given metric
-func (u *Updater) Lookup(ctx context.Context, id string, blocking bool) *hubbub.CollectionResult {
+func (u *Updater) Lookup(ctx context.Context, id string, blocking bool) *triage.CollectionResult {
 	defer u.lastRequest.Store(id, time.Now())
 	r := u.cache[id]
 	if r == nil {
@@ -86,7 +86,7 @@ func (u *Updater) Lookup(ctx context.Context, id string, blocking bool) *hubbub.
 	return r
 }
 
-func (u *Updater) ForceRefresh(ctx context.Context, id string) *hubbub.CollectionResult {
+func (u *Updater) ForceRefresh(ctx context.Context, id string) *triage.CollectionResult {
 	defer u.lastRequest.Store(id, time.Now())
 
 	_, ok := u.lastRequest.Load(id)
@@ -97,7 +97,7 @@ func (u *Updater) ForceRefresh(ctx context.Context, id string) *hubbub.Collectio
 
 	start := time.Now()
 	klog.Infof("Forcing refresh for %s", id)
-	if err := u.hubbub.FlushSearchCache(id, minFlushAge); err != nil {
+	if err := u.party.FlushSearchCache(id, minFlushAge); err != nil {
 		klog.Errorf("unable to flush cache: %v", err)
 	}
 
@@ -135,8 +135,8 @@ func (u *Updater) shouldUpdate(id string) bool {
 	return false
 }
 
-func (u *Updater) update(ctx context.Context, s hubbub.Collection) error {
-	r, err := u.hubbub.ExecuteCollection(ctx, u.client, s)
+func (u *Updater) update(ctx context.Context, s triage.Collection) error {
+	r, err := u.party.ExecuteCollection(ctx, u.client, s)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func (u *Updater) RunSingle(ctx context.Context, id string, force bool) (bool, e
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
-	s, err := u.hubbub.LookupCollection(id)
+	s, err := u.party.LookupCollection(id)
 	if err != nil {
 		return updated, err
 	}
@@ -171,7 +171,7 @@ func (u *Updater) RunSingle(ctx context.Context, id string, force bool) (bool, e
 func (u *Updater) RunOnce(ctx context.Context, force bool) error {
 	updated := false
 	klog.V(3).Infof("RunOnce: force=%v", force)
-	sts, err := u.hubbub.ListCollections()
+	sts, err := u.party.ListCollections()
 	if err != nil {
 		return err
 	}

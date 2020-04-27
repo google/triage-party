@@ -19,67 +19,35 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/go-github/v24/github"
+	"github.com/google/go-github/v31/github"
 	"k8s.io/klog"
 )
 
 // closedPRDays is how old of a closed PR to consider
 const closedPRDays = 14
 
-type PRCommentCache struct {
-	Time    time.Time
-	Content []*github.PullRequestComment
-}
-
-type PRSearchCache struct {
-	Time    time.Time
-	Content []*github.PullRequest
-}
-
-func prSearchKey(org, project string, state string, days int) string {
-	if days > 0 {
-		return fmt.Sprintf("%s-%s-%s-prs-within-%dd", org, project, state, days)
-	}
-	return fmt.Sprintf("%s-%s-%s-prs", org, project, state)
-}
-
-func (h *HubBub) flushPRSearchCache(org string, project string, minAge time.Duration) error {
-	klog.Infof("flushPRs older than %s: %s/%s", minAge, org, project)
-
-	keys := []string{
-		issueSearchKey(org, project, "open", 0),
-		issueSearchKey(org, project, "closed", closedIssueDays),
-	}
-
-	for _, key := range keys {
-		x, ok := h.cache.Get(key)
-		if !ok {
-			return fmt.Errorf("no such key: %v", key)
-		}
-		is := x.(PRSearchCache)
-		if time.Since(is.Time) < minAge {
-			return fmt.Errorf("%s not old enough: %v", key, is.Time)
-		}
-		klog.Infof("Flushing %s", key)
-		h.cache.Delete(key)
-	}
-	return nil
-}
-
-func (h *HubBub) cachedPRs(ctx context.Context, org string, project string, state string, updatedDays int) ([]*github.PullRequest, error) {
+// cachedPRs returns a list of cached PR's if possible
+func (h *Engine) cachedPRs(ctx context.Context, org string, project string, state string, updatedDays int) ([]*github.PullRequest, error) {
 	key := prSearchKey(org, project, state, updatedDays)
 	if x, ok := h.cache.Get(key); ok {
 		klog.V(1).Infof("cache hit: %s", key)
 		prs := x.(PRSearchCache)
 		return prs.Content, nil
 	}
+
 	klog.Infof("cache miss: %s", key)
+	return h.updatePRs(ctx, org, project, state, updatedDays, key)
+}
+
+// updatePRs returns and caches live PR's
+func (h *Engine) updatePRs(ctx context.Context, org string, project string, state string, updatedDays int, key string) ([]*github.PullRequest, error) {
 	opt := &github.PullRequestListOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
 		State:       state,
 		Sort:        "updated",
 		Direction:   "desc",
 	}
+	klog.Infof("%s PR list opts for %s: %+v", state, key, opt)
 
 	entry := PRSearchCache{
 		Time:    time.Now(),
@@ -97,6 +65,14 @@ func (h *HubBub) cachedPRs(ctx context.Context, org string, project string, stat
 			return xprs, err
 		}
 		klog.Errorf("...")
+
+		// messy
+		for _, pr := range xprs {
+			if pr.GetState() != state {
+				klog.Errorf("#%d: I asked for state %q, but got PR in %q - open a go-github bug!", pr.GetNumber(), state, pr.GetState())
+				continue
+			}
+		}
 
 		var prs []*github.PullRequest
 		// Because PR searches do not support opt.Since
@@ -118,11 +94,13 @@ func (h *HubBub) cachedPRs(ctx context.Context, org string, project string, stat
 		}
 		opt.Page = resp.NextPage
 	}
+
 	h.cache.Set(key, entry, h.maxListAge)
+	klog.Infof("updatePRs %s returning %d PRs", key, len(entry.Content))
 	return entry.Content, nil
 }
 
-func (h *HubBub) cachedPRComments(ctx context.Context, org string, project string, num int, minFetchTime time.Time) ([]*github.PullRequestComment, error) {
+func (h *Engine) cachedPRComments(ctx context.Context, org string, project string, num int, minFetchTime time.Time) ([]*github.PullRequestComment, error) {
 	key := fmt.Sprintf("%s-%s-%d-pr-comments", org, project, num)
 	if x, ok := h.cache.Get(key); ok {
 		cs := x.(PRCommentCache)
@@ -133,6 +111,12 @@ func (h *HubBub) cachedPRComments(ctx context.Context, org string, project strin
 		klog.Infof("%s near cache hit: %s is earlier than %s", key, cs.Time, minFetchTime)
 	}
 	klog.Infof("cache miss: %s", key)
+
+	return h.updatePRComments(ctx, org, project, num, key)
+}
+
+func (h *Engine) updatePRComments(ctx context.Context, org string, project string, num int, key string) ([]*github.PullRequestComment, error) {
+	klog.Infof("Downloading PR comments for %s/%s #%d", org, project, num)
 
 	opt := &github.PullRequestListCommentsOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
@@ -157,50 +141,7 @@ func (h *HubBub) cachedPRComments(ctx context.Context, org string, project strin
 	return val.Content, nil
 }
 
-func (h *HubBub) PullRequests(ctx context.Context, org string, project string, fs []Filter) ([]*Colloquy, error) {
-	fs = openByDefault(fs)
-
-	klog.Infof("Searching %s/%s for PR's matching: %+v", org, project, fs)
-	filtered := []*Colloquy{}
-
-	prs, err := h.cachedPRs(ctx, org, project, "open", 0)
-	if err != nil {
-		return filtered, err
-	}
-	klog.Infof("open PR count: %d", len(prs))
-
-	cprs, err := h.cachedPRs(ctx, org, project, "closed", closedIssueDays)
-	if err != nil {
-		return filtered, err
-	}
-	klog.Infof("closed PR count: %d", len(prs))
-	prs = append(prs, cprs...)
-
-	for _, pr := range prs {
-		klog.V(4).Infof("Found PR #%d with labels: %+v", pr.GetNumber(), pr.Labels)
-		if !matchItem(pr, pr.Labels, fs) {
-			klog.V(4).Infof("PR #%d did not pass matchItem :(", pr.GetNumber())
-			continue
-		}
-		comments, err := h.cachedPRComments(ctx, org, project, pr.GetNumber(), pr.GetUpdatedAt())
-		if err != nil {
-			klog.Errorf("comments: %v", err)
-		}
-
-		co := h.PRSummary(pr, comments)
-		co.Labels = pr.Labels
-
-		if !matchColloquy(co, fs) {
-			klog.V(4).Infof("PR #%d did not pass matchColloquy with filter: %v", pr.GetNumber(), fs)
-			continue
-		}
-
-		filtered = append(filtered, co)
-	}
-	return filtered, nil
-}
-
-func (h *HubBub) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComment) *Colloquy {
+func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComment) *Conversation {
 	cl := []CommentLike{}
 	reviewed := false
 	for _, c := range cs {
@@ -209,12 +150,13 @@ func (h *HubBub) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComme
 			reviewed = true
 		}
 	}
-	co := h.baseSummary(pr, cl, isMember(pr.GetAuthorAssociation()))
+	co := h.conversation(pr, cl, isMember(pr.GetAuthorAssociation()))
 	if reviewed {
 		co.Tags = append(co.Tags, "reviewed")
 	}
 
-	// Close enough?
+	// Technically not the same thing, but close enough for me.
 	co.ClosedBy = pr.GetMergedBy()
+
 	return co
 }
