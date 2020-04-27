@@ -40,12 +40,9 @@
                 of
               {{ end }}
               <select onchange="this.form.submit();" name="players">
-                <option value="1" {{ if eq .Players 1}}selected{{ end }}>Solo</option>
-                <option value="2" {{ if eq .Players 2}}selected{{ end }}>2 Players</option>
-                <option value="3" {{ if eq .Players 3}}selected{{ end }}>3 Players</option>
-                <option value="4" {{ if eq .Players 4}}selected{{ end }}>4 Players</option>
-                <option value="5" {{ if eq .Players 5}}selected{{ end }}>5 Players</option>
-                <option value="6" {{ if eq .Players 6}}selected{{ end }}>6 Players</option>                
+                {{ range $i, $val := .PlayerNums }}
+                  <option value="{{ $val }}" {{ if eq $.Players $val}}selected{{ end }}>{{ if eq $val 1}}Solo{{ else }}{{ $val }} Players{{ end }}</option>
+                {{ end }}
               </select>
             </form>
           </div>

@@ -25,16 +25,16 @@
     <div class="navbar-start">
       {{ range .Collections }}
         {{ if not .Hidden }}
-          <a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/s/{{ .ID }}">{{ .Name }}</a>
+          <a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/s/{{ .ID }}{{ $.GetVars }}">{{ .Name }}</a>
         {{ end }}
       {{ end }}
     </div>
     <div class="navbar-end">
       <div class="buttons">
       {{ if .Stats }}
-        <a class="button is-white" title="Total PRs" href="/s/{{ .StatsID }}">{{ .Stats.TotalPullRequests }} PRs</a>
-        <a class="button is-white" title="Total Issues" href="/s/{{ .StatsID }}">{{ .Stats.TotalIssues }} issues</a>
-        <a class="button is-white" title="Average time latest response took on each issue" href="/s/{{ .StatsID }}">{{ .Stats.AvgDelay | toDays }} response</a>
+        <a class="button is-white" title="Total PRs" href="/s/{{ .StatsID }}{{ $.GetVars }}">{{ .Stats.TotalPullRequests }} PRs</a>
+        <a class="button is-white" title="Total Issues" href="/s/{{ .StatsID }}{{ $.GetVars }}">{{ .Stats.TotalIssues }} issues</a>
+        <a class="button is-white" title="Average time latest response took on each issue" href="/s/{{ .StatsID }}{{ $.GetVars }}">{{ .Stats.AvgDelay | toDays }} response</a>
       {{ end }}
       </div>
     </div>
