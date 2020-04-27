@@ -373,7 +373,7 @@ func avatar(u *github.User) template.HTML {
 // playerFilter filters out results for a particular player
 func playerFilter(result *triage.CollectionResult, player int, players int) *triage.CollectionResult {
 	klog.Infof("Filtering for player %d of %d ...", player, players)
-	os := []triage.RuleResult{}
+	os := []*triage.RuleResult{}
 
 	seen := map[string]*triage.Rule{}
 

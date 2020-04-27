@@ -37,22 +37,23 @@ type RuleResult struct {
 	Rule  Rule
 	Items []*hubbub.Conversation
 
-	AvgHold  time.Duration
-	AvgAge   time.Duration
-	AvgDelay time.Duration
+	AvgAge             time.Duration
+	AvgCurrentHold     time.Duration
+	AvgAccumulatedHold time.Duration
 
-	TotalHold  time.Duration
-	TotalAge   time.Duration
-	TotalDelay time.Duration
+	// Avoiding time.Duration because it's easy to int64 overflow
+	TotalAgeDays             float64
+	TotalCurrentHoldDays     float64
+	TotalAccumulatedHoldDays float64
 
 	Duplicates int
 }
 
 // SummarizeRuleResult adds together statistics about a pool of conversations
-func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rule) RuleResult {
+func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rule) *RuleResult {
 	klog.Infof("Summarizing %q with %d conversations, seen has %d members", t.ID, len(cs), len(seen))
 
-	r := RuleResult{
+	r := &RuleResult{
 		Rule:       t,
 		Duplicates: 0,
 	}
@@ -82,27 +83,32 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 	}
 
 	for _, c := range cs {
-		r.TotalDelay += c.LatestResponseDelay
-		r.TotalHold += time.Since(c.OnHoldSince)
-		r.TotalAge += time.Since(c.Created)
+		if c.Created.After(time.Now()) {
+			klog.Errorf("#%d claims to have be newer than now: %s", c.ID, c.Created)
+			continue
+		}
+		r.TotalAgeDays += time.Since(c.Created).Hours() / 24
+		r.TotalCurrentHoldDays += c.CurrentHoldTime.Hours() / 24
+		r.TotalAccumulatedHoldDays += c.AccumulatedHoldTime.Hours() / 24
 	}
 
-	count := int64(len(cs))
-	r.AvgHold = time.Duration(int64(r.TotalHold) / count)
-	r.AvgAge = time.Duration(int64(r.TotalAge) / count)
-	r.AvgDelay = time.Duration(int64(r.TotalDelay) / count)
+	count := len(cs)
+
+	r.AvgAge = avgDayDuration(r.TotalAgeDays, count)
+	r.AvgCurrentHold = avgDayDuration(r.TotalCurrentHoldDays, count)
+	r.AvgAccumulatedHold = avgDayDuration(r.TotalAccumulatedHoldDays, count)
 	return r
 }
 
-// ExecuteRule executes a rule.
-func (p *Party) ExecuteRule(ctx context.Context, t Rule) ([]*hubbub.Conversation, error) {
+// ExecuteRule executes a rule. seen is optional.
+func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule) (*RuleResult, error) {
 	klog.Infof("executing rule %q", t.ID)
 	rcs := []*hubbub.Conversation{}
 
 	for _, repo := range t.Repos {
 		org, project, err := parseRepo(repo)
 		if err != nil {
-			return rcs, err
+			return nil, err
 		}
 
 		klog.V(2).Infof("%s -> org=%s project=%s", repo, org, project)
@@ -118,14 +124,14 @@ func (p *Party) ExecuteRule(ctx context.Context, t Rule) ([]*hubbub.Conversation
 		}
 
 		if err != nil {
-			return rcs, err
+			return nil, err
 		}
 
 		rcs = append(rcs, cs...)
 	}
 
 	klog.Infof("rule %q matched %d items", t.ID, len(rcs))
-	return rcs, nil
+	return SummarizeRuleResult(t, rcs, seen), nil
 }
 
 // Return a fully resolved rule

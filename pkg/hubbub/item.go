@@ -50,8 +50,8 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike, authorIsMember boo
 	if i.GetAssignee() != nil {
 		co.Assignees = append(co.Assignees, i.GetAssignee())
 	}
+
 	if !authorIsMember {
-		co.OnHoldSince = i.GetCreatedAt()
 		co.LatestMemberResponse = i.GetCreatedAt()
 	}
 
@@ -85,8 +85,7 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike, authorIsMember boo
 		}
 		if isMember(c.GetAuthorAssociation()) && !isBot(c.GetUser()) {
 			if !co.LatestMemberResponse.After(co.LatestAuthorResponse) && !authorIsMember {
-				co.LatestResponseDelay = c.GetCreatedAt().Sub(co.LatestAuthorResponse)
-				co.OnHoldTotal += co.LatestResponseDelay
+				co.AccumulatedHoldTime += c.GetCreatedAt().Sub(co.LatestAuthorResponse)
 			}
 			co.LatestMemberResponse = c.GetCreatedAt()
 			tags["commented"] = true
@@ -112,12 +111,11 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike, authorIsMember boo
 
 	if co.LatestMemberResponse.After(co.LatestAuthorResponse) {
 		tags["send"] = true
-		co.OnHoldSince = co.LatestMemberResponse
+		co.CurrentHoldTime = 0
 	} else if !authorIsMember {
 		tags["recv"] = true
-		co.OnHoldSince = co.LatestAuthorResponse
-		co.OnHoldTotal += time.Since(co.LatestAuthorResponse)
-		co.LatestResponseDelay = time.Since(co.LatestAuthorResponse)
+		co.CurrentHoldTime += time.Since(co.LatestAuthorResponse)
+		co.AccumulatedHoldTime += time.Since(co.LatestAuthorResponse)
 	}
 
 	if lastQuestion.After(co.LatestMemberResponse) {
@@ -149,6 +147,10 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike, authorIsMember boo
 	sort.Strings(co.Tags)
 	co.CommentersTotal = len(seenCommenters)
 	co.ClosedCommentersTotal = len(seenClosedCommenters)
+
+	if co.AccumulatedHoldTime > time.Since(co.Created) {
+		panic(fmt.Sprintf("accumulated %s is more than age %s", co.AccumulatedHoldTime, time.Since(co.Created)))
+	}
 
 	// Loose, but good enough
 	months := time.Since(co.Created).Hours() / 24 / 30
