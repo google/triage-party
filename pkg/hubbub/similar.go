@@ -21,32 +21,45 @@ type RelatedConversation struct {
 	Created time.Time    `json:"created"`
 }
 
-// findSimilar returns other conversations related to this URL
-func (h *Engine) FindSimilar(c *Conversation) []*RelatedConversation {
-	rc := []*RelatedConversation{}
+func related(c *Conversation) *RelatedConversation {
+	return &RelatedConversation{
+		Organization: c.Organization,
+		Project:      c.Project,
+		ID:           c.ID,
 
-	for _, other := range h.similar[c.URL] {
-		oc := h.seen[other]
-		rc = append(rc, &RelatedConversation{
-			Organization: oc.Organization,
-			Project:      oc.Project,
-			ID:           oc.ID,
-
-			URL:     oc.URL,
-			Title:   oc.Title,
-			Author:  oc.Author,
-			Type:    oc.Type,
-			Created: oc.Created,
-		})
+		URL:     c.URL,
+		Title:   c.Title,
+		Author:  c.Author,
+		Type:    c.Type,
+		Created: c.Created,
 	}
-	return rc
 }
 
 // updateSimilarConversations updates a slice of conversations with similar ones
-func (h *Engine) updateSimilarConversations(cs []*Conversation) {
-	for _, c := range cs {
-		c.Similar = h.FindSimilar(c)
+func (h *Engine) updateSimilarConversations(cs []*Conversation) error {
+	klog.Infof("updating similar conversations for %d conversations ...", len(cs))
+	start := time.Now()
+	found := 0
+	defer func() {
+		klog.Infof("updated similar conversations for %d conversations within %s", found, time.Since(start))
+	}()
+
+	urls, err := h.cachedSimilarURLs()
+	if err != nil {
+		return err
 	}
+
+	for _, c := range cs {
+		if len(urls[c.URL]) == 0 {
+			continue
+		}
+		c.Similar = []*RelatedConversation{}
+		for _, url := range urls[c.URL] {
+			c.Similar = append(c.Similar, related(h.seen[url]))
+		}
+		found++
+	}
+	return nil
 }
 
 // seenByTitle returns conversations by title
@@ -54,7 +67,6 @@ func (h *Engine) seenByTitle() map[string][]*Conversation {
 	byTitle := map[string][]*Conversation{}
 
 	for _, c := range h.seen {
-
 		_, ok := byTitle[c.Title]
 		if ok {
 			byTitle[c.Title] = append(byTitle[c.Title], c)
@@ -66,6 +78,74 @@ func (h *Engine) seenByTitle() map[string][]*Conversation {
 	return byTitle
 }
 
+// cachedSimilarURLs returns similar URL's that may be cached
+func (h *Engine) cachedSimilarURLs() (map[string][]string, error) {
+	if h.similarCacheUpdated.After(h.lastItemUpdate) {
+		return h.similarCache, nil
+	}
+
+	sim, err := h.similarURLs()
+	if err != nil {
+		return sim, err
+	}
+
+	h.similarCache = sim
+	h.similarCacheUpdated = time.Now()
+	return h.similarCache, nil
+}
+
+// similarURL's returns issue URL's that are similar to one another - SLOW!
+func (h *Engine) similarURLs() (map[string][]string, error) {
+	if h.MinSimilarity == 0 {
+		klog.Warningf("min similarity is 0")
+		return nil, nil
+	}
+
+	klog.Infof("UPDATING SIMILARITY!")
+	start := time.Now()
+	defer func() {
+		klog.Infof("updateSimilar took %s", time.Since(start))
+	}()
+
+	byt := h.seenByTitle()
+	titles := []string{}
+	for k := range byt {
+		titles = append(titles, k)
+	}
+
+	sim, err := similarTitles(titles, h.MinSimilarity)
+	if err != nil {
+		return nil, err
+	}
+
+	similar := map[string][]string{}
+
+	for k, v := range sim {
+		for _, c := range byt[k] {
+			similar[c.URL] = []string{}
+
+			// identical matches
+			for _, oc := range byt[k] {
+				if oc.URL != c.URL {
+					similar[c.URL] = append(similar[c.URL], oc.URL)
+				}
+			}
+
+			// similar matches
+			for _, otherTitle := range v {
+				for _, oc := range byt[otherTitle] {
+					if oc.URL != c.URL {
+						similar[c.URL] = append(similar[c.URL], oc.URL)
+					}
+				}
+			}
+		}
+	}
+
+	return similar, nil
+}
+
+// similarTitles pairs together similar titles - INEFFICIENT
 func similarTitles(titles []string, minSimilarity float64) (map[string][]string, error) {
 	st := map[string][]string{}
 
@@ -85,53 +165,4 @@ func similarTitles(titles []string, minSimilarity float64) (map[string][]string,
 	}
 
 	return st, nil
-}
-
-// updateSimilar updates the similarity cache
-func (h *Engine) updateSimilar() error {
-
-	if h.minSimilarity == 0 {
-		return nil
-	}
-
-	klog.Infof("UPDATING SIMILARITY!")
-	start := time.Now()
-	defer func() {
-		klog.Infof("updateSimilar took %s", time.Since(start))
-	}()
-
-	byt := h.seenByTitle()
-	titles := []string{}
-	for k, _ := range byt {
-		titles = append(titles, k)
-	}
-
-	sim, err := similarTitles(titles, h.minSimilarity)
-	if err != nil {
-		return err
-	}
-
-	for k, v := range sim {
-		for _, c := range byt[k] {
-			h.similar[c.URL] = []string{}
-
-			// identical matches
-			for _, oc := range byt[k] {
-				if oc.URL != c.URL {
-					h.similar[c.URL] = append(h.similar[c.URL], oc.URL)
-				}
-			}
-
-			// similar matches
-			for _, otherTitle := range v {
-				for _, oc := range byt[otherTitle] {
-					if oc.URL != c.URL {
-						h.similar[c.URL] = append(h.similar[c.URL], oc.URL)
-					}
-				}
-			}
-		}
-	}
-
-	return nil
 }

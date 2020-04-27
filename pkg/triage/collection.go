@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/go-github/v31/github"
-
 	"github.com/google/triage-party/pkg/hubbub"
 	"k8s.io/klog"
 )
@@ -55,7 +53,7 @@ type CollectionResult struct {
 }
 
 // ExecuteCollection executes a collection.
-func (p *Party) ExecuteCollection(ctx context.Context, client *github.Client, s Collection) (*CollectionResult, error) {
+func (p *Party) ExecuteCollection(ctx context.Context, s Collection) (*CollectionResult, error) {
 	klog.Infof(">>> Executing collection %q: %s", s.ID, s.RuleIDs)
 	start := time.Now()
 
@@ -76,7 +74,7 @@ func (p *Party) ExecuteCollection(ctx context.Context, client *github.Client, s 
 			return nil, err
 		}
 
-		cs, err := p.ExecuteRule(ctx, client, t)
+		cs, err := p.ExecuteRule(ctx, t)
 		if err != nil {
 			return nil, fmt.Errorf("rule %q: %v", t.Name, err)
 		}

@@ -31,19 +31,31 @@ type Config struct {
 
 	// MinSimilarity is how close two items need to be to each other to be called similar
 	MinSimilarity float64
+
+	// DebugNumber is used when you want to debug why a single item is being handled in a certain wait
+	DebugNumber int
 }
 
 // Engine is the search engine interface for hubbub
 type Engine struct {
-	cache         Cacher
-	client        *github.Client
-	maxListAge    time.Duration
-	maxEventAge   time.Duration
-	minSimilarity float64
+	cache       Cacher
+	client      *github.Client
+	maxListAge  time.Duration
+	maxEventAge time.Duration
+
+	// Must be settable from config
+	MinSimilarity float64
+
+	debugNumber int
 
 	// indexes used for similarity matching
-	seen    map[string]*Conversation
-	similar map[string][]string
+	seen map[string]*Conversation
+	// stored in-memory only
+	similarCache        map[string][]string
+	similarCacheUpdated time.Time
+
+	// when did we last see a new item?
+	lastItemUpdate time.Time
 }
 
 func New(cfg Config) *Engine {
@@ -54,8 +66,9 @@ func New(cfg Config) *Engine {
 		maxEventAge: cfg.MaxEventAge,
 
 		seen:          map[string]*Conversation{},
-		similar:       map[string][]string{},
-		minSimilarity: cfg.MinSimilarity,
+		similarCache:  map[string][]string{},
+		MinSimilarity: cfg.MinSimilarity,
+		debugNumber:   cfg.DebugNumber,
 	}
 	return e
 }

@@ -2,9 +2,12 @@ package hubbub
 
 import (
 	"context"
+	"strings"
 	"sync"
 
-	"github.com/golang/glog"
+	"github.com/davecgh/go-spew/spew"
+	"github.com/hokaccha/go-prettyjson"
+
 	"github.com/google/go-github/v31/github"
 	"k8s.io/klog"
 )
@@ -40,7 +43,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		defer wg.Done()
 		members, err = h.cachedOrgMembers(ctx, org)
 		if err != nil {
-			glog.Errorf("members: %v", err)
+			klog.Errorf("members: %v", err)
 			return
 		}
 	}()
@@ -50,7 +53,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		defer wg.Done()
 		open, err = h.cachedIssues(ctx, org, project, "open", 0)
 		if err != nil {
-			glog.Errorf("open issues: %v", err)
+			klog.Errorf("open issues: %v", err)
 			return
 		}
 		klog.Infof("%s/%s open issue count: %d", org, project, len(open))
@@ -61,7 +64,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		defer wg.Done()
 		closed, err = h.cachedIssues(ctx, org, project, "closed", closedIssueDays)
 		if err != nil {
-			glog.Errorf("closed issues: %v", err)
+			klog.Errorf("closed issues: %v", err)
 		}
 		klog.Infof("%s/%s closed issue count: %d", org, project, len(closed))
 	}()
@@ -72,6 +75,15 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	seen := map[string]bool{}
 
 	for _, i := range append(open, closed...) {
+		if h.debugNumber != 0 {
+			if i.GetNumber() == h.debugNumber {
+				klog.Errorf("*** Found debug issue #%d:\n%s", i.GetNumber(), formatStruct(*i))
+
+			} else {
+				continue
+			}
+		}
+
 		if seen[i.GetURL()] {
 			klog.Errorf("unusual: I already saw #%d", i.GetNumber())
 			continue
@@ -98,7 +110,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 		comments := []*github.IssueComment{}
 		if i.GetComments() > 0 {
-			klog.Infof("#%d - %q: need comments for final filtering", i.GetNumber(), i.GetTitle())
+			klog.V(1).Infof("#%d - %q: need comments for final filtering", i.GetNumber(), i.GetTitle())
 			comments, err = h.cachedIssueComments(ctx, org, project, i.GetNumber(), i.GetUpdatedAt())
 			if err != nil {
 				klog.Errorf("comments: %v", err)
@@ -107,6 +119,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 		co := h.IssueSummary(i, comments, members[i.User.GetLogin()])
 		co.Labels = labels
+		h.seen[co.URL] = co
 
 		if !matchConversation(co, fs) {
 			klog.V(1).Infof("#%d - %q did not match conversation filter: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
@@ -114,6 +127,11 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		}
 
 		filtered = append(filtered, co)
+	}
+
+	// TODO: Make this only happen when caches are missed
+	if err := h.updateSimilarConversations(filtered); err != nil {
+		klog.Errorf("update similar: %v", err)
 	}
 
 	klog.Infof("%d of %d issues within %s/%s matched filters:\n%s", len(filtered), len(is), org, project, toYAML(fs))
@@ -126,36 +144,72 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 	klog.Infof("Searching %s/%s for PR's matching: %s", org, project, toYAML(fs))
 	filtered := []*Conversation{}
 
-	prs, err := h.cachedPRs(ctx, org, project, "open", 0)
-	if err != nil {
-		return filtered, err
-	}
-	klog.Infof("open PR count: %d", len(prs))
+	var wg sync.WaitGroup
 
-	cprs, err := h.cachedPRs(ctx, org, project, "closed", closedIssueDays)
-	if err != nil {
-		return filtered, err
+	var open []*github.PullRequest
+	var closed []*github.PullRequest
+	var err error
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		open, err = h.cachedPRs(ctx, org, project, "open", 0)
+		if err != nil {
+			klog.Errorf("open prs: %v", err)
+			return
+		}
+		klog.Infof("open PR count: %d", len(open))
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		closed, err = h.cachedPRs(ctx, org, project, "closed", closedPRDays)
+		if err != nil {
+			klog.Errorf("closed prs: %v", err)
+			return
+		}
+		klog.Infof("closed PR count: %d", len(closed))
+	}()
+
+	wg.Wait()
+
+	prs := []*github.PullRequest{}
+	for _, pr := range append(open, closed...) {
+		if h.debugNumber != 0 {
+			if pr.GetNumber() == h.debugNumber {
+				klog.Errorf("*** Found debug PR #%d:\n%s", pr.GetNumber(), formatStruct(*pr))
+			} else {
+				continue
+			}
+		}
+		prs = append(prs, pr)
 	}
-	klog.Infof("closed PR count: %d", len(prs))
-	prs = append(prs, cprs...)
 
 	for _, pr := range prs {
-		klog.V(4).Infof("Found PR #%d with labels: %+v", pr.GetNumber(), pr.Labels)
+		klog.V(3).Infof("Found PR #%d with labels: %+v", pr.GetNumber(), pr.Labels)
 		if !matchItem(pr, pr.Labels, fs) {
 			klog.V(4).Infof("PR #%d did not pass matchItem :(", pr.GetNumber())
 			continue
 		}
 
 		comments := []*github.PullRequestComment{}
-		if pr.GetComments() > 0 {
+		// pr.GetComments() always returns 0 :(
+		if pr.GetState() == "open" && pr.GetUpdatedAt().After(pr.GetCreatedAt()) {
 			comments, err = h.cachedPRComments(ctx, org, project, pr.GetNumber(), pr.GetUpdatedAt())
 			if err != nil {
 				klog.Errorf("comments: %v", err)
 			}
+			if pr.GetNumber() == h.debugNumber {
+				klog.Errorf("debug comments: %s", formatStruct(comments))
+			}
+		} else {
+			klog.Infof("skipping comment download for #%d - not updated", pr.GetNumber())
 		}
 
 		co := h.PRSummary(pr, comments)
 		co.Labels = pr.Labels
+		h.seen[co.URL] = co
 
 		if !matchConversation(co, fs) {
 			klog.V(4).Infof("PR #%d did not pass matchConversation with filter: %v", pr.GetNumber(), fs)
@@ -164,5 +218,23 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 
 		filtered = append(filtered, co)
 	}
+
+	// TODO: Make this only happen when caches are missed
+	if err := h.updateSimilarConversations(filtered); err != nil {
+		klog.Errorf("update similar: %v", err)
+	}
+
+	klog.Infof("%d of %d PR's within %s/%s matched filters:\n%s", len(filtered), len(prs), org, project, toYAML(fs))
 	return filtered, nil
+}
+
+func formatStruct(x interface{}) string {
+	s, err := prettyjson.Marshal(x)
+	if err == nil {
+		return string(s)
+	}
+	y := strings.Replace(spew.Sdump(x), "\n", "\n|", -1)
+	y = strings.Replace(y, ", ", ",\n - ", -1)
+	y = strings.Replace(y, "}, ", "},\n", -1)
+	return strings.Replace(y, "},\n - ", "},\n", -1)
 }

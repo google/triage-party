@@ -59,36 +59,23 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 
 	for {
 		klog.Infof("Downloading %s pull requests for %s/%s (page %d)...", state, org, project, opt.Page)
-		xprs, resp, err := h.client.PullRequests.List(ctx, org, project, opt)
+		prs, resp, err := h.client.PullRequests.List(ctx, org, project, opt)
 		if err != nil {
 			klog.Errorf("err")
-			return xprs, err
-		}
-		klog.Errorf("...")
-
-		// messy
-		for _, pr := range xprs {
-			if pr.GetState() != state {
-				klog.Errorf("#%d: I asked for state %q, but got PR in %q - open a go-github bug!", pr.GetNumber(), state, pr.GetState())
-				continue
-			}
+			return prs, err
 		}
 
-		var prs []*github.PullRequest
-		// Because PR searches do not support opt.Since
-		if updatedDays != 0 {
-			for _, pr := range xprs {
+		for _, pr := range prs {
+			// Because PR searches do not support opt.Since
+			if updatedDays != 0 {
 				if pr.GetUpdatedAt().Before(since) {
 					foundOldest = true
 					break
 				}
-				prs = append(prs, pr)
 			}
-		} else {
-			prs = xprs
+			entry.Content = append(entry.Content, pr)
 		}
 
-		entry.Content = append(entry.Content, prs...)
 		if resp.NextPage == 0 || foundOldest {
 			break
 		}
@@ -96,7 +83,9 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 	}
 
 	h.cache.Set(key, entry, h.maxListAge)
+	h.lastItemUpdate = time.Now()
 	klog.Infof("updatePRs %s returning %d PRs", key, len(entry.Content))
+
 	return entry.Content, nil
 }
 

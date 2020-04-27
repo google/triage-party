@@ -40,6 +40,7 @@ var (
 
 	// tester specific
 	collection = flag.String("collection", "", "collection")
+	rule       = flag.String("rule", "", "rule")
 	number     = flag.Int("num", 0, "only display results for this GitHub number")
 )
 
@@ -53,8 +54,8 @@ func main() {
 		klog.Exitf("--config is required")
 	}
 
-	if *collection == "" {
-		klog.Exitf("--collection is required")
+	if *collection == "" && *rule == "" {
+		klog.Exitf("--collection or --rule is required")
 	}
 
 	ctx := context.Background()
@@ -83,6 +84,7 @@ func main() {
 		Cache:       c,
 		MaxListAge:  24 * time.Hour,
 		MaxEventAge: 90 * 24 * time.Hour,
+		DebugNumber: *number,
 	}
 
 	if *reposOverride != "" {
@@ -94,27 +96,32 @@ func main() {
 		klog.Exitf("load %s: %v", *configPath, err)
 	}
 
+	if *collection != "" {
+		executeCollection(ctx, tp)
+	} else {
+		executeRule(ctx, tp)
+	}
+
+	if err := initcache.Save(c, cachePath); err != nil {
+		klog.Exitf("initcache save to %s: %v", cachePath, err)
+	}
+}
+
+func executeCollection(ctx context.Context, tp *triage.Party) {
 	s, err := tp.LookupCollection(*collection)
 	if err != nil {
 		klog.Exitf("collection: %v", err)
 	}
 
-	r, err := tp.ExecuteCollection(ctx, client, s)
+	r, err := tp.ExecuteCollection(ctx, s)
 	if err != nil {
 		klog.Exitf("execute: %v", err)
-	}
-	if err := initcache.Save(c, cachePath); err != nil {
-		klog.Exitf("initcache save to %s: %v", cachePath, err)
 	}
 
 	for _, o := range r.RuleResults {
 		fmt.Printf("## %s\n", o.Rule.Name)
 		fmt.Printf(" #  %d items\n", len(o.Items))
 		for _, i := range o.Items {
-			if *number != 0 && i.ID != *number {
-				continue
-			}
-
 			s, err := json.MarshalIndent(i, "", "  ")
 			if err != nil {
 				panic(err)
@@ -123,5 +130,27 @@ func main() {
 			fmt.Printf("// Total Hold: %s\n", i.OnHoldTotal)
 			fmt.Printf("// Latest Response Delay: %s\n", i.LatestResponseDelay)
 		}
+	}
+}
+
+func executeRule(ctx context.Context, tp *triage.Party) {
+	s, err := tp.LookupRule(*rule)
+	if err != nil {
+		klog.Exitf("rule: %v", err)
+	}
+
+	o, err := tp.ExecuteRule(ctx, s)
+	if err != nil {
+		klog.Exitf("execute: %v", err)
+	}
+
+	for _, i := range o {
+		s, err := json.MarshalIndent(i, "", "  ")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(string(s))
+		fmt.Printf("// Total Hold: %s\n", i.OnHoldTotal)
+		fmt.Printf("// Latest Response Delay: %s\n", i.LatestResponseDelay)
 	}
 }

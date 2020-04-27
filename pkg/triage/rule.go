@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/hubbub"
 	"k8s.io/klog"
 )
@@ -96,7 +95,7 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 }
 
 // ExecuteRule executes a rule.
-func (p *Party) ExecuteRule(ctx context.Context, client *github.Client, t Rule) ([]*hubbub.Conversation, error) {
+func (p *Party) ExecuteRule(ctx context.Context, t Rule) ([]*hubbub.Conversation, error) {
 	klog.Infof("executing rule %q", t.ID)
 	rcs := []*hubbub.Conversation{}
 

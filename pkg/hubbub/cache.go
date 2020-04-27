@@ -71,7 +71,7 @@ func (h *Engine) flushPRSearchCache(org string, project string, minAge time.Dura
 
 	keys := []string{
 		issueSearchKey(org, project, "open", 0),
-		issueSearchKey(org, project, "closed", closedIssueDays),
+		issueSearchKey(org, project, "closed", closedPRDays),
 	}
 
 	for _, key := range keys {

@@ -83,6 +83,7 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 	}
 
 	h.cache.Set(key, entry, h.maxListAge)
+	h.lastItemUpdate = time.Now()
 	klog.Infof("updateIssues %s returning %d issues", key, len(entry.Content))
 	return entry.Content, nil
 }

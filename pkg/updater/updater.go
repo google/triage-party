@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// updater package handles background updates of GitHub data
+// Package updater handles background refreshes of GitHub data
 package updater
 
 import (
@@ -21,8 +21,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
-	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/triage"
 
 	"k8s.io/klog"
@@ -35,7 +33,6 @@ type PFunc = func() error
 
 type Config struct {
 	Party         *triage.Party
-	Client        *github.Client
 	MinRefreshAge time.Duration
 	MaxRefreshAge time.Duration
 	PersistFunc   PFunc
@@ -44,7 +41,6 @@ type Config struct {
 func New(cfg Config) *Updater {
 	return &Updater{
 		party:         cfg.Party,
-		client:        cfg.Client,
 		maxRefreshAge: cfg.MaxRefreshAge,
 		minRefreshAge: cfg.MinRefreshAge,
 		cache:         map[string]*triage.CollectionResult{},
@@ -57,7 +53,6 @@ func New(cfg Config) *Updater {
 
 type Updater struct {
 	party         *triage.Party
-	client        *github.Client
 	maxRefreshAge time.Duration
 	minRefreshAge time.Duration
 	cache         map[string]*triage.CollectionResult
@@ -74,12 +69,12 @@ func (u *Updater) Lookup(ctx context.Context, id string, blocking bool) *triage.
 	r := u.cache[id]
 	if r == nil {
 		if blocking {
-			glog.Warningf("%s unavailable, blocking page load!", id)
+			klog.Warningf("%s is not available in the cache, blocking page load!", id)
 			if _, err := u.RunSingle(ctx, id, true); err != nil {
-				glog.Errorf("unable to run %s: %v", id, err)
+				klog.Errorf("unable to run %s: %v", id, err)
 			}
 		} else {
-			glog.Warningf("%s unavailable, but not blocking: happily returning nil", id)
+			klog.Warningf("%s unavailable, but not blocking: happily returning nil", id)
 		}
 	}
 	r = u.cache[id]
@@ -111,11 +106,12 @@ func (u *Updater) ForceRefresh(ctx context.Context, id string) *triage.Collectio
 func (u *Updater) shouldUpdate(id string) bool {
 	result, ok := u.cache[id]
 	if !ok {
+		klog.Infof("%s is not in cache, needs update", id)
 		return true
 	}
 	age := time.Since(result.Time)
 	if age > u.maxRefreshAge {
-		klog.Infof("%s is too old (%s), refreshing", id, age)
+		klog.Infof("%s is older than max refresh age (%s), should update", id, age)
 		return true
 	}
 
@@ -123,20 +119,21 @@ func (u *Updater) shouldUpdate(id string) bool {
 	if !ok {
 		return false
 	}
+
 	lr, ok := lastReq.(time.Time)
 	if !ok {
 		return false
 	}
 
 	if lr.After(result.Time) && age > u.minRefreshAge {
-		klog.Infof("%s not updated since last request (%s), refreshing", id, age)
+		klog.Infof("%s has been requested since last update, and is older than min refresh age (%s), should update", id, age)
 		return true
 	}
 	return false
 }
 
 func (u *Updater) update(ctx context.Context, s triage.Collection) error {
-	r, err := u.party.ExecuteCollection(ctx, u.client, s)
+	r, err := u.party.ExecuteCollection(ctx, s)
 	if err != nil {
 		return err
 	}

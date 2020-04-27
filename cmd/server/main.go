@@ -55,13 +55,6 @@ var (
 )
 
 func main() {
-	if err := flag.Set("logtostderr", "false"); err != nil {
-		panic(fmt.Sprintf("flag set: %v", err))
-	}
-	if err := flag.Set("alsologtostderr", "true"); err != nil {
-		panic(fmt.Sprintf("flag set: %v", err))
-	}
-
 	flag.Parse()
 	kf := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(kf)
@@ -134,7 +127,6 @@ func main() {
 
 	u := updater.New(updater.Config{
 		Party:         tp,
-		Client:        client,
 		MinRefreshAge: *minRefreshAge,
 		MaxRefreshAge: *maxRefreshAge,
 		PersistFunc: func() error {

@@ -32,6 +32,8 @@ type Config struct {
 	Repos       []string
 	MaxListAge  time.Duration
 	MaxEventAge time.Duration
+	// DebugNumber is useful when you want to debug why a single issue is or is-not appearing
+	DebugNumber int
 }
 
 type Party struct {
@@ -40,6 +42,7 @@ type Party struct {
 	collections   []Collection
 	rules         map[string]Rule
 	reposOverride []string
+	debugNumber   int
 }
 
 func New(cfg Config) *Party {
@@ -49,13 +52,16 @@ func New(cfg Config) *Party {
 		Repos:       cfg.Repos,
 		MaxListAge:  cfg.MaxListAge,
 		MaxEventAge: cfg.MaxEventAge,
+		DebugNumber: cfg.DebugNumber,
 	}
+
 	klog.Infof("New hubbub with config: %+v", hc)
 	h := hubbub.New(hc)
 
 	return &Party{
 		engine:        h,
 		reposOverride: cfg.Repos,
+		debugNumber:   cfg.DebugNumber,
 	}
 }
 
@@ -95,28 +101,17 @@ func (p *Party) Load(r io.Reader) error {
 		return fmt.Errorf("no rules found after unmarshal")
 	}
 
-	for id, t := range dc.RawRules {
-		for _, f := range t.Filters {
-			if f.RawLabel != "" {
-				err := f.LoadLabelRegex()
-				if err != nil {
-					return fmt.Errorf("%q: %w", id, err)
-				}
-			}
-
-			if f.RawTag != "" {
-				err := f.LoadTagRegex()
-				if err != nil {
-					return fmt.Errorf("%q: %w", id, err)
-				}
-
-			}
-		}
+	rules, err := processRules(dc.RawRules)
+	if err != nil {
+		return fmt.Errorf("rule processing: %w", err)
 	}
 
 	p.collections = dc.RawCollections
-	p.rules = dc.RawRules
+	p.rules = rules
 	p.settings = dc.Settings
+
+	p.engine.MinSimilarity = dc.Settings.MinSimilarity
+
 	if _, err := p.ListCollections(); err != nil {
 		return fmt.Errorf("unable to calculate collections: %v", err)
 	}
@@ -142,4 +137,51 @@ func (p *Party) logLoaded() {
 		klog.Errorf("marshal rules: %v", err)
 	}
 	klog.V(2).Infof("Loaded Rules:\n%s", s)
+}
+
+// processRules precaches regular expressions
+func processRules(raw map[string]Rule) (map[string]Rule, error) {
+	rules := map[string]Rule{}
+
+	for id, t := range raw {
+		rules[id] = t
+		newfs := []hubbub.Filter{}
+
+		for _, f := range raw[id].Filters {
+			if f.RawLabel != "" {
+				err := f.LoadLabelRegex()
+				if err != nil {
+					return rules, fmt.Errorf("%q: %w", id, err)
+				}
+				if f.LabelRegex() == nil {
+					return rules, fmt.Errorf("%q yielded nil regex: %+v", f.RawLabel, f)
+				}
+				klog.Infof("label regex: %s (negate=%v)", f.LabelRegex(), f.LabelNegate())
+			}
+
+			if f.RawTag != "" {
+				err := f.LoadTagRegex()
+				if err != nil {
+					return rules, fmt.Errorf("%q: %w", id, err)
+				}
+				if f.TagRegex() == nil {
+					return rules, fmt.Errorf("%q yielded nil regex: %+v", f.RawTag, f)
+				}
+				klog.Infof("tag regex: %s (negate=%v)", f.TagRegex(), f.TagNegate())
+			}
+
+			newfs = append(newfs, f)
+		}
+
+		rules[id] = Rule{
+			ID:         t.ID,
+			Resolution: t.Resolution,
+			Name:       t.Name,
+			Repos:      t.Repos,
+			Type:       t.Type,
+			Filters:    newfs,
+		}
+	}
+
+	return rules, nil
 }

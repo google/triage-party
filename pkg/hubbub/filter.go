@@ -106,7 +106,7 @@ func matchConversation(co *Conversation, fs []Filter) bool {
 	for _, f := range fs {
 		if f.TagRegex() != nil {
 			if ok := matchTag(co.Tags, f.TagRegex(), f.TagNegate()); !ok {
-				klog.V(4).Infof("#%d did not pass matchTag: %s vs %s %s", co.ID, co.Tags, f.TagRegex, f.TagNegate)
+				klog.V(4).Infof("#%d did not pass matchTag: %s vs %s %v", co.ID, co.Tags, f.TagRegex(), f.TagNegate())
 				return false
 			}
 		}
