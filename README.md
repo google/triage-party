@@ -6,21 +6,21 @@ Triage Party is a tool for triaging incoming GitHub issues for large open-source
 
 ![screenshot](screenshot.png)
 
-Triage focuses on reducing response latency for incoming GitHub issues and PR's, and ensure that conversations are not lost in the ether. It was built from the [Google Container DevEx team](http://github.com/GoogleContainerTools)'s experience contributing to open-source projects, such as minikube, kaniko, and skaffold.
+Triage Party focuses on reducing response latency for incoming GitHub issues and PR's, and ensure that conversations are not lost in the ether. It was built from the [Google Container DevEx team](http://github.com/GoogleContainerTools)'s experience contributing to popular open-source projects, such as minikube, kaniko, and skaffold.
 
 Triage Party is a stateless Go web application, configured via YAML. While it has been optimized for Google Cloud Run deployments, it's deployable anywhere due to its low memory footprint: even on a Raspberry Pi.
 
 ## Features
 
-* Queries across multiple repositories
 * Queries that are not possible on GitHub:
-  * conversation direction (`tag: recv`)
+  * conversation state (`tag: recv`, `tag: send`)
   * duration (`updated: +30d`)
   * regexp (`label: priority/.*`)
   * reactions (`reactions: >=5`)
   * comment popularity (`comments-per-month: >0.9`)
   * ... and more!
 * Multi-player mode: for simultaneous group triage of a pool of issues
+* Queries across multiple repositories
 * Button to open issue groups as browser tabs (pop-ups must be disabled)
 * "Shift-Reload" for live data pull
 
@@ -31,15 +31,10 @@ Triage Party is a stateless Go web application, configured via YAML. While it ha
 
 ## Triage Party in production
 
-Triage Party is used in production for [kubernetes/minikube](https://github.com/kubernetes/minikube):
+See these fine examples:
 
-* [Triage Party dashboard](http://tinyurl.com/mk-tparty)
-* [configuration file](examples/minikube.yaml)
-* [Cloud Run deployment script](examples/minikube-deploy.sh)
-
-Other examples:
-
-* [GoogleContainerTools/skaffold Triage Party](https://skaffold-triage-party-eyodkz2nea-uc.a.run.app/)
+* [kubernetes/minikube](http://tinyurl.com/mk-tparty)
+* [GoogleContainerTools/skaffold)(http://tinyurl.com/skaffold-teaparty)
 
 ## Try it locally
 
@@ -140,7 +135,7 @@ For example configurations, see `examples/*.yaml`. There are two that are partic
 - commenters-per-month: [><=]float
 ```
 
-## How to deploy
+## Deploying Triage Party
 
 Docker:
 
