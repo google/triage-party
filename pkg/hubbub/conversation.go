@@ -50,9 +50,8 @@ type Conversation struct {
 
 	LatestAuthorResponse time.Time     `json:"latest_author_response"`
 	LatestMemberResponse time.Time     `json:"latest_member_response"`
-	LatestResponseDelay  time.Duration `json:"latest_response_delay"`
-	OnHoldSince          time.Time     `json:"on_hold_since"`
-	OnHoldTotal          time.Duration `json:"on_hold_total"`
+	AccumulatedHoldTime  time.Duration `json:"accumulated_hold_time"`
+	CurrentHoldTime      time.Duration `json:"current_hold_time"`
 
 	Assignees []*github.User  `json:"assignees"`
 	Labels    []*github.Label `json:"labels"`

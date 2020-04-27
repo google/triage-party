@@ -37,7 +37,7 @@ import (
 	"k8s.io/klog"
 )
 
-const VERSION = "2020-04-22.01"
+const VERSION = "2020-04-27.00"
 
 var (
 	nonWordRe  = regexp.MustCompile(`\W`)
@@ -373,7 +373,7 @@ func avatar(u *github.User) template.HTML {
 // playerFilter filters out results for a particular player
 func playerFilter(result *triage.CollectionResult, player int, players int) *triage.CollectionResult {
 	klog.Infof("Filtering for player %d of %d ...", player, players)
-	os := []triage.RuleResult{}
+	os := []*triage.RuleResult{}
 
 	seen := map[string]*triage.Rule{}
 
