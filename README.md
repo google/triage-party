@@ -56,7 +56,7 @@ The first time you run Triage Party against a new repository, there will be a lo
 
 ## Configuration
 
-Each page is configured with a `collection` that references multiple queries (`rules`). These rules can be shared across pages:
+Each page within Triage Party is represented by a `collection`. Each collection references a list of `rules` that can be shared across collections. Here is a simple collection, which creates a page named `I like soup!`, containing two rules:
 
 ```yaml
 collections:
@@ -65,7 +65,12 @@ collections:
     rules:
       - discuss
       - many-reactions
+```
 
+The first rule, `discuss`, include all items labelled as `triage/discuss`, whether they are pull requests or issues, open or closed.
+
+
+```yaml
 rules:
   discuss:
     name: "Items for discussion"
@@ -73,10 +78,15 @@ rules:
     filters:
       - label: triage/discuss
       - state: "all"
+```
 
+The second rule, `many-reactions`, is more fine-grained. It is only focused on issues that have seen more than 3 comments, with an average of over 1 reaction per month, is not prioritized highly, and has not seen a response by a member of the project within 2 months:
+
+``` yaml
   many-reactions:
     name: "many reactions, low priority, no recent comment"
     resolution: "Bump the priority, add a comment"
+    type: issue
     filters:
       - reactions: ">3"
       - reactions-per-month: ">1"
@@ -85,7 +95,7 @@ rules:
       - responded: +60d
 ```
 
-For example configurations, see `examples/*.yaml`. There are two that are particularly useful to get started:
+For full example configurations, see `examples/*.yaml`. There are two that are particularly useful to get started:
 
 * [generic-project](examples/generic-project.yaml): uses label regular expressions that work for most GitHub projects
 * [generic-kubernetes](examples/generic-project.yaml): for projects that use Kubernetes-style labels, particularly  prioritization
