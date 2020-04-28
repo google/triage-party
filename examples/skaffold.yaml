@@ -142,7 +142,7 @@ rules:
   ### Daily Triage ####
   # SLO violations
   issue-needs-priority-slo:
-    name: "Unprioritized bugs/features older than 7 days (SLO violation)"
+    name: "Unprioritized bugs/features older than 7 days -- exceeds limit"
     resolution: "Add a priority/ label"
     type: issue
     filters:
@@ -153,7 +153,7 @@ rules:
       - responded: +1d
 
   issue-needs-comment-slo:
-    name: "Unresponded, older than 7 days (SLO violation)"
+    name: "Unresponded, older than 7 days -- exceeds limit"
     resolution: "Respond to the issue"
     type: issue
     filters:
@@ -162,7 +162,7 @@ rules:
       - created: +7d
 
   issue-p0-followup-slo:
-    name: "p0 bug, no comments in 3 days (SLO violation)"
+    name: "p0 bug, no comments in 3 days -- exceeds limit"
     resolution: "Downgrade to p1"
     type: issue
     filters:
@@ -172,7 +172,7 @@ rules:
       - label: "kind/bug"
 
   issue-p0-fix-slo:
-    name: "p0 bug, older than a week (SLO violation)"
+    name: "p0 bug, older than a week -- exceeds limit"
     resolution: "Downgrade to p1"
     type: issue
     filters:
@@ -182,7 +182,7 @@ rules:
       - label: "kind/bug"
 
   issue-p1-fix-slo:
-    name: "p1 bug, older than 6 weeks (SLO violation)"
+    name: "p1 bug, older than 6 weeks -- exceeds limit"
     resolution: "Downgrade to p2"
     type: issue
     filters:
@@ -192,7 +192,7 @@ rules:
       - label: "kind/bug"
 
   issue-p2-fix-slo:
-    name: "p2 bug, older than 1 quarter (SLO violation)"
+    name: "p2 bug, older than 1 quarter -- exceeds limit"
     resolution: "Downgrade to p3"
     type: issue
     filters:
@@ -309,7 +309,7 @@ rules:
 
   # SLO nearing
   issue-near-p0-followup-slo:
-    name: "p0 bug, no comments in 3 days (SLO violation)"
+    name: "p0 bug, no comments in 3 days -- exceeds limit"
     resolution: "Downgrade to p1"
     type: issue
     filters:
