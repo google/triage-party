@@ -33,10 +33,12 @@ Triage Party is a stateless Go web application, configured via YAML. While it ha
 
 ## Triage Party in production
 
-See these fine examples:
+See these fine examples in the wild:
 
 * [kubernetes/minikube](http://tinyurl.com/mk-tparty)
 * [GoogleContainerTools/skaffold](http://tinyurl.com/skaffold-tparty)
+* [jetstack/cert-manager](https://triage.build-infra.jetstack.net/)
+
 
 ## Try it locally
 
