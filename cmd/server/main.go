@@ -114,6 +114,7 @@ func main() {
 	if err != nil {
 		klog.Exitf("list rules: %v", err)
 	}
+
 	klog.Infof("Loaded %d rules", len(ts))
 	sn := *siteName
 	if sn == "" {
@@ -143,7 +144,11 @@ func main() {
 	}
 
 	klog.Infof("Starting update loop: %+v", u)
-	go u.Loop(ctx)
+	go func() {
+		if err := u.Loop(ctx); err != nil {
+			panic(fmt.Errorf("update loop failed: %w", err))
+		}
+	}()
 
 	s := site.New(&site.Config{
 		BaseDirectory: findPath(*siteDir),

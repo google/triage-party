@@ -112,10 +112,49 @@ func (p *Party) Load(r io.Reader) error {
 
 	p.engine.MinSimilarity = dc.Settings.MinSimilarity
 
-	if _, err := p.ListCollections(); err != nil {
-		return fmt.Errorf("unable to calculate collections: %v", err)
-	}
 	p.logLoaded()
+	if err := p.validateLoadedConfig(); err != nil {
+		return fmt.Errorf("validate config: %w", err)
+	}
+	return nil
+}
+
+func (p *Party) validateLoadedConfig() error {
+	if len(p.collections) == 0 {
+		return fmt.Errorf("no 'collections' defined")
+	}
+	if len(p.rules) == 0 {
+		return fmt.Errorf("no 'rules' defined")
+	}
+
+	cols, err := p.ListCollections()
+	if err != nil {
+		return fmt.Errorf("list collections: %w", err)
+	}
+
+	filters := 0
+	for _, c := range cols {
+		seenRule := map[string]*Rule{}
+
+		for _, tid := range c.RuleIDs {
+			if seenRule[tid] != nil {
+				return fmt.Errorf("%q has a duplicate rule: %q", c.ID, tid)
+			}
+
+			r, err := p.LookupRule(tid)
+			if err != nil {
+				return fmt.Errorf("lookup rule %q: %w", tid, err)
+			}
+
+			seenRule[tid] = &r
+			filters += len(r.Filters)
+		}
+	}
+
+	if filters == 0 {
+		return fmt.Errorf("No 'filters' found in the configuration")
+	}
+	klog.Infof("configuration defines %d filters - looking good!", filters)
 	return nil
 }
 
