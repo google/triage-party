@@ -26,11 +26,6 @@ Triage Party is a stateless Go web application, configured via YAML. While it ha
 * Queries across multiple repositories
 * "Shift-Reload" for live data pull
 
-## Requirements
-
-* [GitHub API token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
-* Go v1.14 or higher
-
 ## Triage Party in production
 
 See these fine examples in the wild:
@@ -39,6 +34,10 @@ See these fine examples in the wild:
 * [GoogleContainerTools/skaffold](http://tinyurl.com/skaffold-tparty)
 * [jetstack/cert-manager](https://triage.build-infra.jetstack.net/)
 
+## Requirements
+
+* [GitHub API token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
+* Go v1.14 or higher
 
 ## Try it locally
 
