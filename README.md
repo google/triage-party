@@ -45,7 +45,7 @@ See what Triage Party would look like for an arbitrary repository:
 
 ```shell
 go run cmd/server/main.go \
-  --github-token-file=<path to a github token> \
+  --github-token-file=<path to a file containing your github token> \
   --config examples/generic-kubernetes.yaml \
   --repos kubernetes/sig-release
 ```
