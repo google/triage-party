@@ -139,7 +139,7 @@ rules:
       - created: +5d
 
   issue-soon-slo:
-    name: "Important soon, but no updates in 60 days (SLO violation)"
+    name: "Important soon, but no updates in 60 days -- exceeds limit"
     resolution: "Downgrade to important-longterm"
     type: issue
     filters:
@@ -147,7 +147,7 @@ rules:
       - updated: +60d
 
   issue-longterm-slo:
-    name: "Important longterm, but no updates in 120 days (SLO violation)"
+    name: "Important longterm, but no updates in 120 days -- exceeds limit"
     resolution: "Downgrade to backlog"
     type: issue
     filters:
@@ -242,7 +242,7 @@ rules:
   ####### Weekly Triage #########
   # SLO nearing
   issue-near-soon-slo:
-    name: "Important soon, but no updates in 40 days (nearing SLO)"
+    name: "Important soon, but no updates in 40 days -- nearing limit"
     resolution: "Downgrade to important-longterm"
     type: issue
     filters:
@@ -250,7 +250,7 @@ rules:
       - updated: +40d
 
   issue-near-longterm-slo:
-    name: "Important longterm, but no updates in 110 days (nearing SLO)"
+    name: "Important longterm, but no updates in 110 days -- nearing limit"
     resolution: "Downgrade to backlog"
     type: issue
     filters:
