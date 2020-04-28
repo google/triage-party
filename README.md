@@ -19,6 +19,7 @@ Triage Party is a stateless Go web application, configured via YAML. While it ha
   * regexp (`label: priority/.*`)
   * reactions (`reactions: >=5`)
   * comment popularity (`comments-per-month: >0.9`)
+  * duplicate detection
   * ... and more!
 * Multi-player mode: Supports up to 20 simultaneous players in group triage
 * Easily open groups of issues into browser tabs (must allow pop-ups)
