@@ -90,7 +90,7 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection) (*Collectio
 
 // SummarizeCollectionResult adds together statistics about collection results {
 func SummarizeCollectionResult(os []*RuleResult) *CollectionResult {
-	klog.Infof("Summarizing collection result with %s rules...", len(os))
+	klog.Infof("Summarizing collection result with %d rules...", len(os))
 
 	r := &CollectionResult{}
 
