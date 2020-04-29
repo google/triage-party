@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v31/github"
+	"github.com/google/triage-party/pkg/initcache"
 	"gopkg.in/yaml.v2"
 	"k8s.io/klog"
 )
@@ -29,13 +30,14 @@ import (
 const closedIssueDays = 14
 
 // cachedIssues returns issues, cached if possible
-func (h *Engine) cachedIssues(ctx context.Context, org string, project string, state string, updatedDays int) ([]*github.Issue, error) {
+func (h *Engine) cachedIssues(ctx context.Context, org string, project string, state string, updatedDays int, newerThan time.Time) ([]*github.Issue, error) {
 	key := issueSearchKey(org, project, state, updatedDays)
-	if x, ok := h.cache.Get(key); ok {
-		is := x.(IssueSearchCache)
-		return is.Content, nil
+
+	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+		return x.Issues, nil
 	}
 
+	klog.Infof("cache miss for %s newer than %s", key, newerThan)
 	return h.updateIssues(ctx, org, project, state, updatedDays, key)
 }
 
@@ -51,10 +53,7 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 		opt.Since = time.Now().Add(time.Duration(updatedDays*-24) * time.Hour)
 	}
 
-	entry := IssueSearchCache{
-		Time:    time.Now(),
-		Content: []*github.Issue{},
-	}
+	var allIssues []*github.Issue
 
 	for {
 		klog.Infof("Downloading %s issues for %s/%s (page %d)...", state, org, project, opt.Page)
@@ -73,7 +72,7 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 				continue
 			}
 
-			entry.Content = append(entry.Content, i)
+			allIssues = append(allIssues, i)
 		}
 
 		if resp.NextPage == 0 {
@@ -82,23 +81,22 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 		opt.Page = resp.NextPage
 	}
 
-	h.cache.Set(key, entry, h.maxListAge)
-	h.lastItemUpdate = time.Now()
-	klog.Infof("updateIssues %s returning %d issues", key, len(entry.Content))
-	return entry.Content, nil
-}
-
-func (h *Engine) cachedIssueComments(ctx context.Context, org string, project string, num int, minFetchTime time.Time) ([]*github.IssueComment, error) {
-	key := fmt.Sprintf("%s-%s-%d-issue-comments", org, project, num)
-
-	if x, ok := h.cache.Get(key); ok {
-		cs := x.(IssueCommentCache)
-		if !cs.Time.Before(minFetchTime) {
-			return cs.Content, nil
-		}
-		klog.V(1).Infof("%s near cache hit: %s is earlier than %s", key, cs.Time, minFetchTime)
+	if err := h.cache.Set(key, &initcache.Hoard{Issues: allIssues}); err != nil {
+		klog.Errorf("set %q failed: %v", key, err)
 	}
 
+	klog.Infof("updateIssues %s returning %d issues", key, len(allIssues))
+	return allIssues, nil
+}
+
+func (h *Engine) cachedIssueComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.IssueComment, error) {
+	key := fmt.Sprintf("%s-%s-%d-issue-comments", org, project, num)
+
+	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+		return x.IssueComments, nil
+	}
+
+	klog.Infof("cache miss for %s newer than %s", key, newerThan)
 	return h.updateIssueComments(ctx, org, project, num, key)
 }
 
@@ -125,9 +123,12 @@ func (h *Engine) updateIssueComments(ctx context.Context, org string, project st
 		}
 		opt.Page = resp.NextPage
 	}
-	val := IssueCommentCache{Time: time.Now(), Content: allComments}
-	h.cache.Set(key, val, h.maxEventAge)
-	return val.Content, nil
+
+	if err := h.cache.Set(key, &initcache.Hoard{IssueComments: allComments}); err != nil {
+		klog.Errorf("set %q failed: %v", key, err)
+	}
+
+	return allComments, nil
 }
 
 func toYAML(v interface{}) string {

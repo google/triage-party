@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v31/github"
+	"github.com/google/triage-party/pkg/initcache"
 	"k8s.io/klog"
 )
 
@@ -27,15 +28,13 @@ import (
 const closedPRDays = 14
 
 // cachedPRs returns a list of cached PR's if possible
-func (h *Engine) cachedPRs(ctx context.Context, org string, project string, state string, updatedDays int) ([]*github.PullRequest, error) {
+func (h *Engine) cachedPRs(ctx context.Context, org string, project string, state string, updatedDays int, newerThan time.Time) ([]*github.PullRequest, error) {
 	key := prSearchKey(org, project, state, updatedDays)
-	if x, ok := h.cache.Get(key); ok {
-		klog.V(1).Infof("cache hit: %s", key)
-		prs := x.(PRSearchCache)
-		return prs.Content, nil
+	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+		return x.PullRequests, nil
 	}
 
-	klog.Infof("cache miss: %s", key)
+	klog.Infof("cache miss: %s newer than %s", key, newerThan)
 	return h.updatePRs(ctx, org, project, state, updatedDays, key)
 }
 
@@ -49,14 +48,9 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 	}
 	klog.Infof("%s PR list opts for %s: %+v", state, key, opt)
 
-	entry := PRSearchCache{
-		Time:    time.Now(),
-		Content: []*github.PullRequest{},
-	}
-
 	since := time.Now().Add(time.Duration(updatedDays*-24) * time.Hour)
 	foundOldest := false
-
+	var allPRs []*github.PullRequest
 	for {
 		klog.Infof("Downloading %s pull requests for %s/%s (page %d)...", state, org, project, opt.Page)
 		prs, resp, err := h.client.PullRequests.List(ctx, org, project, opt)
@@ -73,7 +67,7 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 					break
 				}
 			}
-			entry.Content = append(entry.Content, pr)
+			allPRs = append(allPRs, pr)
 		}
 
 		if resp.NextPage == 0 || foundOldest {
@@ -82,25 +76,24 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 		opt.Page = resp.NextPage
 	}
 
-	h.cache.Set(key, entry, h.maxListAge)
-	h.lastItemUpdate = time.Now()
-	klog.Infof("updatePRs %s returning %d PRs", key, len(entry.Content))
+	if err := h.cache.Set(key, &initcache.Hoard{PullRequests: allPRs}); err != nil {
+		klog.Errorf("set %q failed: %v", key, err)
+	}
 
-	return entry.Content, nil
+	h.lastItemUpdate = time.Now()
+	klog.Infof("updatePRs %s returning %d PRs", key, len(allPRs))
+
+	return allPRs, nil
 }
 
-func (h *Engine) cachedPRComments(ctx context.Context, org string, project string, num int, minFetchTime time.Time) ([]*github.PullRequestComment, error) {
+func (h *Engine) cachedPRComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.PullRequestComment, error) {
 	key := fmt.Sprintf("%s-%s-%d-pr-comments", org, project, num)
-	if x, ok := h.cache.Get(key); ok {
-		cs := x.(PRCommentCache)
-		if !cs.Time.Before(minFetchTime) {
-			klog.V(1).Infof("%s cache hit", key)
-			return cs.Content, nil
-		}
-		klog.Infof("%s near cache hit: %s is earlier than %s", key, cs.Time, minFetchTime)
-	}
-	klog.Infof("cache miss: %s", key)
 
+	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+		return x.PullRequestComments, nil
+	}
+
+	klog.Infof("cache miss for %s newer than %s", key, newerThan)
 	return h.updatePRComments(ctx, org, project, num, key)
 }
 
@@ -125,9 +118,11 @@ func (h *Engine) updatePRComments(ctx context.Context, org string, project strin
 		opt.Page = resp.NextPage
 	}
 
-	val := PRCommentCache{Time: time.Now(), Content: allComments}
-	h.cache.Set(key, val, h.maxEventAge)
-	return val.Content, nil
+	if err := h.cache.Set(key, &initcache.Hoard{PullRequestComments: allComments}); err != nil {
+		klog.Errorf("set %q failed: %v", key, err)
+	}
+
+	return allComments, nil
 }
 
 func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComment) *Conversation {

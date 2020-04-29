@@ -43,11 +43,13 @@ func New(cfg Config) *Updater {
 		party:         cfg.Party,
 		maxRefreshAge: cfg.MaxRefreshAge,
 		minRefreshAge: cfg.MinRefreshAge,
+		idleDuration:  5 * time.Minute,
 		cache:         map[string]*triage.CollectionResult{},
 		lastRequest:   sync.Map{},
 		loopEvery:     250 * time.Millisecond,
 		mutex:         &sync.Mutex{},
 		persistFunc:   cfg.PersistFunc,
+		startTime:     time.Time{},
 	}
 }
 
@@ -55,9 +57,11 @@ type Updater struct {
 	party         *triage.Party
 	maxRefreshAge time.Duration
 	minRefreshAge time.Duration
+	idleDuration  time.Duration
 	cache         map[string]*triage.CollectionResult
 	lastRequest   sync.Map
 	lastSave      time.Time
+	startTime     time.Time
 	loopEvery     time.Duration
 	mutex         *sync.Mutex
 	persistFunc   PFunc
@@ -92,7 +96,7 @@ func (u *Updater) ForceRefresh(ctx context.Context, id string) *triage.Collectio
 
 	start := time.Now()
 	klog.Infof("Forcing refresh for %s", id)
-	if err := u.party.FlushSearchCache(id, minFlushAge); err != nil {
+	if err := u.party.FlushSearchCache(id, time.Now().Add(minFlushAge*-1)); err != nil {
 		klog.Errorf("unable to flush cache: %v", err)
 	}
 
@@ -109,31 +113,44 @@ func (u *Updater) shouldUpdate(id string) bool {
 		klog.Infof("%s is not in cache, needs update", id)
 		return true
 	}
-	age := time.Since(result.Time)
-	if age > u.maxRefreshAge {
-		klog.Infof("%s is older than max refresh age (%s), should update", id, age)
+
+	resultAge := time.Since(result.Time)
+	if resultAge > u.maxRefreshAge {
+		klog.Infof("%s is older than max refresh age (%s), should update", id, resultAge)
 		return true
 	}
 
-	lastReq, ok := u.lastRequest.Load(id)
-	if !ok {
-		return false
-	}
-
-	lr, ok := lastReq.(time.Time)
-	if !ok {
-		return false
-	}
-
-	if lr.After(result.Time) && age > u.minRefreshAge {
-		klog.Infof("%s has been requested since last update, and is older than min refresh age (%s), should update", id, age)
+	lastRequestAge := time.Since(u.lastRequested(id))
+	if resultAge > u.minRefreshAge && lastRequestAge < u.idleDuration {
+		klog.Infof("should update %s: %s is older than refresh (%s), but less than idle (%s)", id, resultAge, u.minRefreshAge, u.idleDuration)
 		return true
 	}
 	return false
 }
 
+func (u *Updater) lastRequested(id string) time.Time {
+	x, ok := u.lastRequest.Load(id)
+	if !ok {
+		return u.startTime
+	}
+
+	lr, ok := x.(time.Time)
+	if !ok {
+		return u.startTime
+	}
+
+	return lr
+}
+
 func (u *Updater) update(ctx context.Context, s triage.Collection) error {
-	r, err := u.party.ExecuteCollection(ctx, s)
+	if u.lastSave.IsZero() {
+		klog.Infof("have not yet saved content - will accept stale results")
+		u.party.AcceptStaleResults(true)
+	} else {
+		u.party.AcceptStaleResults(false)
+	}
+
+	r, err := u.party.ExecuteCollection(ctx, s, u.lastRequested(s.ID))
 	if err != nil {
 		return err
 	}
@@ -175,30 +192,48 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) error {
 
 	var failed []string
 	for _, s := range sts {
-		u, err := u.RunSingle(ctx, s.ID, force)
+		runUpdated, err := u.RunSingle(ctx, s.ID, force)
 		if err != nil {
 			klog.Errorf("%s failed to update: %v", s.ID, err)
 			failed = append(failed, s.ID)
 		}
-		if u {
-			updated = u
+		if runUpdated {
+			updated = true
 		}
-		continue
 	}
 
 	if updated && time.Since(u.lastSave) > u.maxRefreshAge {
-		u.persistFunc()
-		u.lastSave = time.Now()
+		if err := u.persistFunc(); err != nil {
+			klog.Errorf("persist failed: %v", err)
+		} else {
+			u.lastSave = time.Now()
+		}
 	}
 
 	if len(failed) > 0 {
 		return fmt.Errorf("collections failed: %v", failed)
 	}
+
 	return nil
 }
 
 // Update loop
 func (u *Updater) Loop(ctx context.Context) error {
+	klog.Infof("Looping: data will be updated between %s and %s", u.minRefreshAge, u.maxRefreshAge)
+
+	// Quickly establish a baseline with stale data
+	if err := u.RunOnce(ctx, false); err != nil {
+		return err
+	}
+
+	u.startTime = time.Now()
+
+	// Run once with fresh data
+	if err := u.RunOnce(ctx, true); err != nil {
+		return err
+	}
+
+	// Loop if everything goes to plan
 	ticker := time.NewTicker(u.loopEvery)
 	defer ticker.Stop()
 	for range ticker.C {

@@ -4,47 +4,28 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/go-github/v31/github"
 	"k8s.io/klog"
 )
 
-// PRCommentCache are cached comments
-type PRCommentCache struct {
-	Time    time.Time
-	Content []*github.PullRequestComment
-}
-
-// PRSearchCache are cached PR's
-type PRSearchCache struct {
-	Time    time.Time
-	Content []*github.PullRequest
-}
-
-// IssueCommentCache are cached issue comments
-type IssueCommentCache struct {
-	Time    time.Time
-	Content []*github.IssueComment
-}
-
-// IssueSearchCache are cached issues
-type IssueSearchCache struct {
-	Time    time.Time
-	Content []*github.Issue
+// Toggle acceptability of stale results, useful for bootstrapping
+func (e *Engine) AcceptStaleResults(b bool) {
+	klog.V(1).Infof("Setting stale results=%v", b)
+	e.acceptStaleResults = b
 }
 
 // FlushSearchCache invalidates the in-memory search cache
-func (h *Engine) FlushSearchCache(org string, project string, minAge time.Duration) error {
-	if err := h.flushIssueSearchCache(org, project, minAge); err != nil {
-		return fmt.Errorf("issues: %v", err)
+func (h *Engine) FlushSearchCache(org string, project string, olderThan time.Time) error {
+	if h.acceptStaleResults {
+		return fmt.Errorf("stale results enabled, refusing to flush")
 	}
-	if err := h.flushPRSearchCache(org, project, minAge); err != nil {
-		return fmt.Errorf("prs: %v", err)
-	}
+
+	h.flushIssueSearchCache(org, project, olderThan)
+	h.flushPRSearchCache(org, project, olderThan)
 	return nil
 }
 
-func (h *Engine) flushIssueSearchCache(org string, project string, minAge time.Duration) error {
-	klog.Infof("flushIssues older than %s: %s/%s", minAge, org, project)
+func (h *Engine) flushIssueSearchCache(org string, project string, olderThan time.Time) {
+	klog.Infof("flushIssues older than %s: %s/%s", olderThan, org, project)
 
 	keys := []string{
 		issueSearchKey(org, project, "open", 0),
@@ -52,22 +33,14 @@ func (h *Engine) flushIssueSearchCache(org string, project string, minAge time.D
 	}
 
 	for _, key := range keys {
-		x, ok := h.cache.Get(key)
-		if !ok {
-			return fmt.Errorf("no such key: %v", key)
+		if err := h.cache.DeleteOlderThan(key, olderThan); err != nil {
+			klog.Warningf("delete %q: %v", key, err)
 		}
-		is := x.(IssueSearchCache)
-		if time.Since(is.Time) < minAge {
-			return fmt.Errorf("%s not old enough: %v", key, is.Time)
-		}
-		klog.Infof("Flushing %s", key)
-		h.cache.Delete(key)
 	}
-	return nil
 }
 
-func (h *Engine) flushPRSearchCache(org string, project string, minAge time.Duration) error {
-	klog.Infof("flushPRs older than %s: %s/%s", minAge, org, project)
+func (h *Engine) flushPRSearchCache(org string, project string, olderThan time.Time) {
+	klog.Infof("flushPRs older than %s: %s/%s", olderThan, org, project)
 
 	keys := []string{
 		issueSearchKey(org, project, "open", 0),
@@ -75,18 +48,10 @@ func (h *Engine) flushPRSearchCache(org string, project string, minAge time.Dura
 	}
 
 	for _, key := range keys {
-		x, ok := h.cache.Get(key)
-		if !ok {
-			return fmt.Errorf("no such key: %v", key)
+		if err := h.cache.DeleteOlderThan(key, olderThan); err != nil {
+			klog.Warningf("delete %q: %v", key, err)
 		}
-		is := x.(PRSearchCache)
-		if time.Since(is.Time) < minAge {
-			return fmt.Errorf("%s not old enough: %v", key, is.Time)
-		}
-		klog.Infof("Flushing %s", key)
-		h.cache.Delete(key)
 	}
-	return nil
 }
 
 // issueSearchKey is the cache key used for issues
