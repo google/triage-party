@@ -51,7 +51,7 @@ type RuleResult struct {
 
 // SummarizeRuleResult adds together statistics about a pool of conversations
 func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rule) *RuleResult {
-	klog.Infof("Summarizing %q with %d conversations, seen has %d members", t.ID, len(cs), len(seen))
+	klog.V(2).Infof("Summarizing %q with %d conversations, seen has %d members", t.ID, len(cs), len(seen))
 
 	r := &RuleResult{
 		Rule:       t,
@@ -101,8 +101,12 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 }
 
 // ExecuteRule executes a rule. seen is optional.
-func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule) (*RuleResult, error) {
-	klog.Infof("executing rule %q", t.ID)
+func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, newerThan time.Time) (*RuleResult, error) {
+	if p.ItemExpiry == 0 {
+		return nil, fmt.Errorf("item expiry cannot be 0")
+	}
+
+	klog.Infof("executing rule %q for results newer than %s (stale_ok=%v, item expiry=%s)", t.ID, newerThan, p.acceptStaleResults, p.ItemExpiry)
 	rcs := []*hubbub.Conversation{}
 
 	for _, repo := range t.Repos {
@@ -116,11 +120,12 @@ func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule) 
 		var cs []*hubbub.Conversation
 		switch t.Type {
 		case hubbub.Issue:
-			cs, err = p.engine.SearchIssues(ctx, org, project, t.Filters)
+
+			cs, err = p.engine.SearchIssues(ctx, org, project, t.Filters, newerThan)
 		case hubbub.PullRequest:
-			cs, err = p.engine.SearchPullRequests(ctx, org, project, t.Filters)
+			cs, err = p.engine.SearchPullRequests(ctx, org, project, t.Filters, newerThan)
 		default:
-			cs, err = p.engine.SearchAny(ctx, org, project, t.Filters)
+			cs, err = p.engine.SearchAny(ctx, org, project, t.Filters, newerThan)
 		}
 
 		if err != nil {
@@ -130,7 +135,7 @@ func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule) 
 		rcs = append(rcs, cs...)
 	}
 
-	klog.Infof("rule %q matched %d items", t.ID, len(rcs))
+	klog.V(1).Infof("rule %q matched %d items", t.ID, len(rcs))
 	return SummarizeRuleResult(t, rcs, seen), nil
 }
 

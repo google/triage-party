@@ -22,16 +22,17 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/hubbub"
+	"github.com/google/triage-party/pkg/initcache"
 	"gopkg.in/yaml.v2"
 	"k8s.io/klog"
 )
 
 type Config struct {
-	Client      *github.Client
-	Cache       hubbub.Cacher
-	Repos       []string
-	MaxListAge  time.Duration
-	MaxEventAge time.Duration
+	Client          *github.Client
+	Cache           initcache.Cacher
+	Repos           []string
+	ItemExpiry      time.Duration
+	OrgMemberExpiry time.Duration
 	// DebugNumber is useful when you want to debug why a single issue is or is-not appearing
 	DebugNumber int
 }
@@ -43,16 +44,18 @@ type Party struct {
 	rules         map[string]Rule
 	reposOverride []string
 	debugNumber   int
+
+	ItemExpiry         time.Duration
+	acceptStaleResults bool
 }
 
 func New(cfg Config) *Party {
 	hc := hubbub.Config{
-		Client:      cfg.Client,
-		Cache:       cfg.Cache,
-		Repos:       cfg.Repos,
-		MaxListAge:  cfg.MaxListAge,
-		MaxEventAge: cfg.MaxEventAge,
-		DebugNumber: cfg.DebugNumber,
+		Client:          cfg.Client,
+		Cache:           cfg.Cache,
+		Repos:           cfg.Repos,
+		DebugNumber:     cfg.DebugNumber,
+		OrgMemberExpiry: cfg.OrgMemberExpiry,
 	}
 
 	klog.Infof("New hubbub with config: %+v", hc)
@@ -62,6 +65,7 @@ func New(cfg Config) *Party {
 		engine:        h,
 		reposOverride: cfg.Repos,
 		debugNumber:   cfg.DebugNumber,
+		ItemExpiry:    cfg.ItemExpiry,
 	}
 }
 
@@ -222,4 +226,10 @@ func processRules(raw map[string]Rule) (map[string]Rule, error) {
 	}
 
 	return rules, nil
+}
+
+// Toggle acceptability of stale results, useful for bootstrapping
+func (p *Party) AcceptStaleResults(b bool) {
+	p.acceptStaleResults = b
+	p.engine.AcceptStaleResults(b)
 }

@@ -20,8 +20,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/google/go-github/v31/github"
@@ -48,10 +50,13 @@ var (
 	port          = flag.Int("port", 8080, "port to run server at")
 	siteName      = flag.String("site_name", "", "override site name from config file")
 
-	maxListAge    = flag.Duration("max_list_age", 12*time.Hour, "maximum time to cache GitHub searches")
+	itemExpiry = flag.Duration("item_expiry", 12*time.Hour, "maximum time to cache GitHub search results")
+	orgExpiry  = flag.Duration("org_expiry", 30*12*time.Hour, "maximum time to cache GitHub organizational membership")
+
 	maxRefreshAge = flag.Duration("max_refresh_age", 15*time.Minute, "Maximum time between collection runs")
-	minRefreshAge = flag.Duration("min_refresh_age", 15*time.Second, "Minimum time between collection runs")
-	warnAge       = flag.Duration("warn_age", 30*time.Minute, "Maximum time before warning about stale results. Recommended: 2*max_refresh_age")
+	minRefreshAge = flag.Duration("min_refresh_age", 60*time.Second, "Minimum time between collection runs")
+
+	warnAge = flag.Duration("warn_age", 30*time.Minute, "Maximum time before warning about stale results. Recommended: 2*max_refresh_age")
 )
 
 func main() {
@@ -89,16 +94,16 @@ func main() {
 	}
 	klog.Infof("cache path: %s", cachePath)
 
-	c, err := initcache.Load(cachePath)
-	if err != nil {
+	c := initcache.New(initcache.Config{Type: "disk", Path: cachePath})
+	if err := c.Initialize(); err != nil {
 		klog.Exitf("initcache load to %s: %v", cachePath, err)
 	}
 
 	cfg := triage.Config{
-		Client:      client,
-		Cache:       c,
-		MaxListAge:  *maxListAge,
-		MaxEventAge: 90 * 24 * time.Hour,
+		Client:          client,
+		Cache:           c,
+		ItemExpiry:      *itemExpiry,
+		OrgMemberExpiry: *orgExpiry,
 	}
 
 	if *reposOverride != "" {
@@ -122,7 +127,7 @@ func main() {
 	}
 
 	// Make sure save works
-	if err := initcache.Save(c, cachePath); err != nil {
+	if err := c.Save(); err != nil {
 		klog.Exitf("initcache save to %s: %v", cachePath, err)
 	}
 
@@ -131,7 +136,7 @@ func main() {
 		MinRefreshAge: *minRefreshAge,
 		MaxRefreshAge: *maxRefreshAge,
 		PersistFunc: func() error {
-			return initcache.Save(c, cachePath)
+			return c.Save()
 		},
 	})
 
@@ -144,9 +149,21 @@ func main() {
 	}
 
 	klog.Infof("Starting update loop: %+v", u)
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		if err := u.Loop(ctx); err != nil {
-			panic(fmt.Errorf("update loop failed: %w", err))
+		for sig := range sigc {
+			klog.Infof("signal caught: %v", sig)
+			if err := c.Save(); err != nil {
+				klog.Errorf("save errro: %v", err)
+			}
+			os.Exit(0)
+		}
+	}()
+
+	go func() {
+		if err := u.Loop(ctx); err == nil {
+			klog.Exitf("loop failed: %v", err)
 		}
 	}()
 

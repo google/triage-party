@@ -74,17 +74,17 @@ func main() {
 
 	}
 
-	c, err := initcache.Load(cachePath)
-	if err != nil {
+	c := initcache.New(initcache.Config{Type: "disk", Path: cachePath})
+	if err := c.Initialize(); err != nil {
 		klog.Exitf("initcache load to %s: %v", cachePath, err)
 	}
 
 	cfg := triage.Config{
-		Client:      client,
-		Cache:       c,
-		MaxListAge:  24 * time.Hour,
-		MaxEventAge: 90 * 24 * time.Hour,
-		DebugNumber: *number,
+		Client:          client,
+		Cache:           c,
+		ItemExpiry:      7 * 24 * time.Hour,
+		OrgMemberExpiry: 90 * 24 * time.Hour,
+		DebugNumber:     *number,
 	}
 
 	if *reposOverride != "" {
@@ -102,7 +102,7 @@ func main() {
 		executeRule(ctx, tp)
 	}
 
-	if err := initcache.Save(c, cachePath); err != nil {
+	if err := c.Save(); err != nil {
 		klog.Exitf("initcache save to %s: %v", cachePath, err)
 	}
 }
@@ -113,7 +113,7 @@ func executeCollection(ctx context.Context, tp *triage.Party) {
 		klog.Exitf("collection: %v", err)
 	}
 
-	r, err := tp.ExecuteCollection(ctx, s)
+	r, err := tp.ExecuteCollection(ctx, s, time.Time{})
 	if err != nil {
 		klog.Exitf("execute: %v", err)
 	}
@@ -143,7 +143,7 @@ func executeRule(ctx context.Context, tp *triage.Party) {
 		klog.Exitf("rule: %v", err)
 	}
 
-	rr, err := tp.ExecuteRule(ctx, r, nil)
+	rr, err := tp.ExecuteRule(ctx, r, nil, time.Time{})
 	if err != nil {
 		klog.Exitf("execute: %v", err)
 	}

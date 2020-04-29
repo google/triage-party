@@ -53,8 +53,8 @@ type CollectionResult struct {
 }
 
 // ExecuteCollection executes a collection.
-func (p *Party) ExecuteCollection(ctx context.Context, s Collection) (*CollectionResult, error) {
-	klog.Infof(">>> Executing collection %q: %s", s.ID, s.RuleIDs)
+func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan time.Time) (*CollectionResult, error) {
+	klog.Infof("-**>> Executing collection %q: %s", s.ID, s.RuleIDs)
 	start := time.Now()
 
 	os := []*RuleResult{}
@@ -74,7 +74,7 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection) (*Collectio
 			return nil, err
 		}
 
-		ro, err := p.ExecuteRule(ctx, t, seen)
+		ro, err := p.ExecuteRule(ctx, t, seen, newerThan)
 		if err != nil {
 			return nil, fmt.Errorf("rule %q: %v", t.Name, err)
 		}
@@ -90,7 +90,7 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection) (*Collectio
 
 // SummarizeCollectionResult adds together statistics about collection results {
 func SummarizeCollectionResult(os []*RuleResult) *CollectionResult {
-	klog.Infof("Summarizing collection result with %d rules...", len(os))
+	klog.V(1).Infof("Summarizing collection result with %d rules...", len(os))
 
 	r := &CollectionResult{}
 
@@ -125,7 +125,7 @@ func avgDayDuration(total float64, count int) time.Duration {
 }
 
 // Flush the search cache for a collection
-func (p *Party) FlushSearchCache(id string, minAge time.Duration) error {
+func (p *Party) FlushSearchCache(id string, olderThan time.Time) error {
 	s, err := p.LookupCollection(id)
 	if err != nil {
 		return err
@@ -144,7 +144,7 @@ func (p *Party) FlushSearchCache(id string, minAge time.Duration) error {
 				if err != nil {
 					return err
 				}
-				if err := p.engine.FlushSearchCache(org, project, minAge); err != nil {
+				if err := p.engine.FlushSearchCache(org, project, olderThan); err != nil {
 					klog.Warningf("flush for %s/%s: %v", org, project, err)
 				}
 				flushed[r] = true

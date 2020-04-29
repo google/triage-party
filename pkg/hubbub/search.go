@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hokaccha/go-prettyjson"
@@ -13,13 +14,13 @@ import (
 )
 
 // Search for GitHub issues or PR's
-func (h *Engine) SearchAny(ctx context.Context, org string, project string, fs []Filter) ([]*Conversation, error) {
-	cs, err := h.SearchIssues(ctx, org, project, fs)
+func (h *Engine) SearchAny(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, error) {
+	cs, err := h.SearchIssues(ctx, org, project, fs, newerThan)
 	if err != nil {
 		return cs, err
 	}
 
-	pcs, err := h.SearchPullRequests(ctx, org, project, fs)
+	pcs, err := h.SearchPullRequests(ctx, org, project, fs, newerThan)
 	if err != nil {
 		return cs, err
 	}
@@ -28,9 +29,9 @@ func (h *Engine) SearchAny(ctx context.Context, org string, project string, fs [
 }
 
 // Search for GitHub issues or PR's
-func (h *Engine) SearchIssues(ctx context.Context, org string, project string, fs []Filter) ([]*Conversation, error) {
+func (h *Engine) SearchIssues(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, error) {
 	fs = openByDefault(fs)
-	klog.Infof("Gathering raw data for %s/%s search:\n%s", org, project, toYAML(fs))
+	klog.Infof("Gathering raw data for %s/%s search %s - newer than %s", org, project, toYAML(fs), newerThan)
 	var wg sync.WaitGroup
 
 	var members map[string]bool
@@ -38,10 +39,15 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	var closed []*github.Issue
 	var err error
 
+	orgCutoff := time.Now().Add(h.orgMemberExpiry * -1)
+	if h.acceptStaleResults {
+		orgCutoff = time.Time{}
+	}
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		members, err = h.cachedOrgMembers(ctx, org)
+		members, err = h.cachedOrgMembers(ctx, org, orgCutoff)
 		if err != nil {
 			klog.Errorf("members: %v", err)
 			return
@@ -51,7 +57,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		open, err = h.cachedIssues(ctx, org, project, "open", 0)
+		open, err = h.cachedIssues(ctx, org, project, "open", 0, newerThan)
 		if err != nil {
 			klog.Errorf("open issues: %v", err)
 			return
@@ -62,7 +68,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		closed, err = h.cachedIssues(ctx, org, project, "closed", closedIssueDays)
+		closed, err = h.cachedIssues(ctx, org, project, "closed", closedIssueDays, newerThan)
 		if err != nil {
 			klog.Errorf("closed issues: %v", err)
 		}
@@ -134,14 +140,14 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		klog.Errorf("update similar: %v", err)
 	}
 
-	klog.Infof("%d of %d issues within %s/%s matched filters:\n%s", len(filtered), len(is), org, project, toYAML(fs))
+	klog.Infof("%d of %d issues within %s/%s matched filters %s", len(filtered), len(is), org, project, toYAML(fs))
 	return filtered, nil
 }
 
-func (h *Engine) SearchPullRequests(ctx context.Context, org string, project string, fs []Filter) ([]*Conversation, error) {
+func (h *Engine) SearchPullRequests(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, error) {
 	fs = openByDefault(fs)
 
-	klog.Infof("Searching %s/%s for PR's matching: %s", org, project, toYAML(fs))
+	klog.Infof("Searching %s/%s for PR's matching: %s - newer than %s", org, project, toYAML(fs), newerThan)
 	filtered := []*Conversation{}
 
 	var wg sync.WaitGroup
@@ -153,7 +159,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		open, err = h.cachedPRs(ctx, org, project, "open", 0)
+		open, err = h.cachedPRs(ctx, org, project, "open", 0, newerThan)
 		if err != nil {
 			klog.Errorf("open prs: %v", err)
 			return
@@ -164,7 +170,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		closed, err = h.cachedPRs(ctx, org, project, "closed", closedPRDays)
+		closed, err = h.cachedPRs(ctx, org, project, "closed", closedPRDays, newerThan)
 		if err != nil {
 			klog.Errorf("closed prs: %v", err)
 			return

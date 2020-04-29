@@ -17,17 +17,20 @@ package hubbub
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/go-github/v31/github"
+	"github.com/google/triage-party/pkg/initcache"
 	"k8s.io/klog"
 )
 
-func (h *Engine) cachedOrgMembers(ctx context.Context, org string) (map[string]bool, error) {
+func (h *Engine) cachedOrgMembers(ctx context.Context, org string, newerThan time.Time) (map[string]bool, error) {
 	key := fmt.Sprintf("%s-members", org)
-	if x, ok := h.cache.Get(key); ok {
-		members := x.(map[string]bool)
-		return members, nil
+
+	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+		return x.StringBool, nil
 	}
+
 	klog.V(1).Infof("members miss: %s", key)
 	opt := &github.ListMembersOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
@@ -49,7 +52,10 @@ func (h *Engine) cachedOrgMembers(ctx context.Context, org string) (map[string]b
 		opt.Page = resp.NextPage
 	}
 
-	h.cache.Set(key, members, h.maxEventAge)
+	if err := h.cache.Set(key, &initcache.Hoard{StringBool: members}); err != nil {
+		klog.Errorf("set %q failed: %v", key, err)
+	}
+
 	klog.Infof("%s has %d members", org, len(members))
 	return members, nil
 }
