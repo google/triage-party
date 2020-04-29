@@ -119,6 +119,7 @@ func main() {
 	if err != nil {
 		klog.Exitf("list rules: %v", err)
 	}
+
 	klog.Infof("Loaded %d rules", len(ts))
 	sn := *siteName
 	if sn == "" {
