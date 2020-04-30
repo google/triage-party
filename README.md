@@ -54,6 +54,14 @@ The first time you run Triage Party against a new repository, there will be a lo
 
 ## Configuration
 
+### Creating a Github token file
+
+1. Create a GitHub token: https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line
+2. Store token by pasting it into a text-file:
+` YOUR_GENERATED_TOKEN > /path/to/file`
+
+### Configuring collections and rules
+
 Each page is configured with a `collection` that references multiple queries (`rules`). These rules can be shared across pages:
 
 ```yaml
