@@ -16,113 +16,42 @@
 package initcache
 
 import (
-	"bufio"
-	"bytes"
-	"encoding/gob"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/patrickmn/go-cache"
-	"golang.org/x/xerrors"
-	"k8s.io/klog"
-
-	"github.com/google/triage-party/pkg/hubbub"
 )
 
-const (
-	ExpireInterval  = 10 * 24 * time.Hour
-	CleanupInterval = 15 * time.Minute
-)
+// Config is cache configuration
+type Config struct {
+	Type string
+	Path string
+}
+
+type Hoard struct {
+	Creation time.Time
+
+	PullRequests []*github.PullRequest
+	Issues       []*github.Issue
+
+	PullRequestComments []*github.PullRequestComment
+	IssueComments       []*github.IssueComment
+
+	StringBool map[string]bool
+}
 
 // Cacher is the cache interface we support
 type Cacher interface {
-	Set(string, interface{}, time.Duration)
-	Delete(string)
-	Get(string) (interface{}, bool)
+	Set(string, *Hoard) error
+	DeleteOlderThan(string, time.Time) error
+	GetNewerThan(string, time.Time) *Hoard
+
+	Initialize() error
+	Save() error
 }
 
-func init() {
-	// Register values we plan to store on disk
-	gob.Register(&time.Time{})
-	gob.Register(hubbub.IssueCommentCache{})
-	gob.Register(hubbub.PRCommentCache{})
-	gob.Register(hubbub.IssueSearchCache{})
-	gob.Register(hubbub.PRSearchCache{})
-	gob.Register(&github.Issue{})
-	gob.Register([]hubbub.Conversation{})
-	gob.Register([]*github.Issue{})
-	gob.Register([]int{})
-	gob.Register(&github.PullRequest{})
-	gob.Register([]*github.PullRequest{})
-	gob.Register(map[string]bool{})
-}
-
-func Create(path string) (*cache.Cache, error) {
-	klog.Infof("Creating cache, expire interval: %s", ExpireInterval)
-	c := cache.New(ExpireInterval, CleanupInterval)
-	c.Set("create-time", time.Now(), ExpireInterval)
-	if err := Save(c, path); err != nil {
-		return c, xerrors.Errorf("save: %v", err)
+func New(cfg Config) Cacher {
+	if cfg.Type == "disk" {
+		return NewDisk(cfg)
 	}
-	return c, nil
-}
-
-func Load(path string) (*cache.Cache, error) {
-	klog.Infof("Loading cache from %s ...", path)
-
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return Create(path)
-	}
-
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, xerrors.Errorf("open: %v", err)
-	}
-	defer f.Close()
-
-	decoded := map[string]cache.Item{}
-	d := gob.NewDecoder(bufio.NewReader(f))
-	err = d.Decode(&decoded)
-	if err != nil && err != io.EOF {
-		klog.Errorf("Decode failed: %v", err)
-		return Create(path)
-	}
-	if len(decoded) == 0 {
-		return nil, fmt.Errorf("no items loaded from disk: %v", decoded)
-	}
-
-	klog.Infof("%d items loaded from disk", len(decoded))
-	return cache.NewFrom(ExpireInterval, CleanupInterval, decoded), nil
-}
-
-func Save(c *cache.Cache, path string) error {
-	start := time.Now()
-	klog.Infof("Saving items to initcache at %s", path)
-	defer func() {
-		klog.Infof("initcache.Save took %s", time.Since(start))
-	}()
-
-	b := new(bytes.Buffer)
-	e := gob.NewEncoder(b)
-	items := c.Items()
-	if err := e.Encode(items); err != nil {
-		return xerrors.Errorf("encode: %v", err)
-	}
-	return ioutil.WriteFile(path, b.Bytes(), 0644)
-}
-
-func DefaultDiskPath(configPath string, override string) string {
-	name := strings.Replace(filepath.Base(configPath), filepath.Ext(configPath), "", -1)
-
-	if override != "" {
-		name = name + "_" + strings.Replace(override, "/", "_", -1)
-	}
-
-	return filepath.Join(fmt.Sprintf("/var/tmp/tparty_%s.cache", name))
+	return nil
 }

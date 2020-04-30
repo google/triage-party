@@ -19,15 +19,18 @@ import (
 	"time"
 
 	"github.com/google/go-github/v31/github"
+	"github.com/google/triage-party/pkg/initcache"
 )
 
 // Config is how to configure a new hubbub engine
 type Config struct {
-	Client      *github.Client // Client is a GitHub client
-	Cache       Cacher         // Cacher is a cache interface
-	Repos       []string       // Repos is the repositories to search
-	MaxListAge  time.Duration  // MaxListAge is when GitHub searches go bad
-	MaxEventAge time.Duration  // MaxEventAge is when GitHub events go bad
+	Client *github.Client   // Client is a GitHub client
+	Cache  initcache.Cacher // Cacher is a cache interface
+	Repos  []string         // Repos is the repositories to search
+
+	// Cache expiration times
+	ItemExpiry      time.Duration
+	OrgMemberExpiry time.Duration
 
 	// MinSimilarity is how close two items need to be to each other to be called similar
 	MinSimilarity float64
@@ -38,10 +41,11 @@ type Config struct {
 
 // Engine is the search engine interface for hubbub
 type Engine struct {
-	cache       Cacher
-	client      *github.Client
-	maxListAge  time.Duration
-	maxEventAge time.Duration
+	cache  initcache.Cacher
+	client *github.Client
+
+	itemExpiry      time.Duration
+	orgMemberExpiry time.Duration
 
 	// Must be settable from config
 	MinSimilarity float64
@@ -56,14 +60,18 @@ type Engine struct {
 
 	// when did we last see a new item?
 	lastItemUpdate time.Time
+
+	// are stale results acceptable?
+	acceptStaleResults bool
 }
 
 func New(cfg Config) *Engine {
 	e := &Engine{
-		cache:       cfg.Cache,
-		client:      cfg.Client,
-		maxListAge:  cfg.MaxListAge,
-		maxEventAge: cfg.MaxEventAge,
+		cache:  cfg.Cache,
+		client: cfg.Client,
+
+		itemExpiry:      cfg.ItemExpiry,
+		orgMemberExpiry: cfg.OrgMemberExpiry,
 
 		seen:          map[string]*Conversation{},
 		similarCache:  map[string][]string{},
@@ -71,11 +79,4 @@ func New(cfg Config) *Engine {
 		debugNumber:   cfg.DebugNumber,
 	}
 	return e
-}
-
-// Cacher is the supported cache interface for GitHub data
-type Cacher interface {
-	Set(string, interface{}, time.Duration)
-	Delete(string)
-	Get(string) (interface{}, bool)
 }

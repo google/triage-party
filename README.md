@@ -6,7 +6,7 @@ Triage Party is a tool for triaging incoming GitHub issues for large open-source
 
 ![screenshot](screenshot.png)
 
-Triage Party focuses on reducing response latency for incoming GitHub issues and PR's, and ensure that conversations are not lost in the ether. It was built from the [Google Container DevEx team](http://github.com/GoogleContainerTools)'s experience contributing to popular open-source projects, such as [minikube](http://github.com/kubernetes/minikube), [Skaffold](github.com/GoogleContainerTools/skaffold/), and [Kaniko](github.com/GoogleContainerTools/kaniko/).
+Triage Party focuses on reducing response latency for incoming GitHub issues and PR's, and ensure that conversations are not lost in the ether. It was built from the [Google Container DevEx team](https://github.com/GoogleContainerTools)'s experience contributing to popular open-source projects, such as [minikube](https://github.com/kubernetes/minikube), [Skaffold](https://github.com/GoogleContainerTools/skaffold/), and [Kaniko](https://github.com/GoogleContainerTools/kaniko/).
 
 Triage Party is a stateless Go web application, configured via YAML. While it has been optimized for Google Cloud Run deployments, it's deployable anywhere due to its low memory footprint: even on a Raspberry Pi.
 
@@ -19,23 +19,25 @@ Triage Party is a stateless Go web application, configured via YAML. While it ha
   * regexp (`label: priority/.*`)
   * reactions (`reactions: >=5`)
   * comment popularity (`comments-per-month: >0.9`)
+  * duplicate detection
   * ... and more!
 * Multi-player mode: Supports up to 20 simultaneous players in group triage
 * Easily open groups of issues into browser tabs (must allow pop-ups)
 * Queries across multiple repositories
 * "Shift-Reload" for live data pull
 
+## Triage Party in production
+
+See these fine examples in the wild:
+
+* [kubernetes/minikube](http://tinyurl.com/mk-tparty)
+* [GoogleContainerTools/skaffold](http://tinyurl.com/skaffold-tparty)
+* [jetstack/cert-manager](https://triage.build-infra.jetstack.net/)
+
 ## Requirements
 
 * [GitHub API token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
 * Go v1.14 or higher
-
-## Triage Party in production
-
-See these fine examples:
-
-* [kubernetes/minikube](http://tinyurl.com/mk-tparty)
-* [GoogleContainerTools/skaffold](http://tinyurl.com/skaffold-teaparty)
 
 ## Try it locally
 
@@ -43,7 +45,7 @@ See what Triage Party would look like for an arbitrary repository:
 
 ```shell
 go run cmd/server/main.go \
-  --github-token-file=<path to a github token> \
+  --github-token-file=<path to a file containing your github token> \
   --config examples/generic-kubernetes.yaml \
   --repos kubernetes/sig-release
 ```
@@ -58,11 +60,11 @@ The first time you run Triage Party against a new repository, there will be a lo
 
 1. Create a GitHub token: https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line
 2. Store token by pasting it into a text-file:
-` YOUR_GENERATED_TOKEN > /path/to/file`
+`echo YOUR_GENERATED_TOKEN > /path/to/file`
 
 ### Configuring collections and rules
 
-Each page is configured with a `collection` that references multiple queries (`rules`). These rules can be shared across pages:
+Each page within Triage Party is represented by a `collection`. Each collection references a list of `rules` that can be shared across collections. Here is a simple collection, which creates a page named `I like soup!`, containing two rules:
 
 ```yaml
 collections:
@@ -71,7 +73,12 @@ collections:
     rules:
       - discuss
       - many-reactions
+```
 
+The first rule, `discuss`, include all items labelled as `triage/discuss`, whether they are pull requests or issues, open or closed.
+
+
+```yaml
 rules:
   discuss:
     name: "Items for discussion"
@@ -79,10 +86,15 @@ rules:
     filters:
       - label: triage/discuss
       - state: "all"
+```
 
+The second rule, `many-reactions`, is more fine-grained. It is only focused on issues that have seen more than 3 comments, with an average of over 1 reaction per month, is not prioritized highly, and has not seen a response by a member of the project within 2 months:
+
+``` yaml
   many-reactions:
     name: "many reactions, low priority, no recent comment"
     resolution: "Bump the priority, add a comment"
+    type: issue
     filters:
       - reactions: ">3"
       - reactions-per-month: ">1"
@@ -91,7 +103,7 @@ rules:
       - responded: +60d
 ```
 
-For example configurations, see `examples/*.yaml`. There are two that are particularly useful to get started:
+For full example configurations, see `examples/*.yaml`. There are two that are particularly useful to get started:
 
 * [generic-project](examples/generic-project.yaml): uses label regular expressions that work for most GitHub projects
 * [generic-kubernetes](examples/generic-project.yaml): for projects that use Kubernetes-style labels, particularly  prioritization
@@ -164,4 +176,4 @@ See [examples/minikube-deploy.sh](examples/minikube-deploy.sh)
 
 Kubernetes:
 
-See [examples/kubernetes-manifests](examples/kubernetes-manifests)
+See [examples/generic-kubernetes.yaml](examples/generic-kubernetes.yaml)
