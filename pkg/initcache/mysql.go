@@ -37,19 +37,22 @@ const (
 	DiskCleanupInterval = 15 * time.Minute
 )
 
-type Disk struct {
+type MySQL struct {
 	path  string
 	cache *cache.Cache
+	tableName
 }
 
-// NewDisk returns a new disk cache
-func NewDisk(cfg Config) *Disk {
+// NewMySQL returns a new MySQL cache
+func NewMySQL(cfg Config) *Disk {
 	gob.Register(&Hoard{})
-	return &Disk{path: cfg.Path}
+	return &MySQL{path: cfg.Path, tableName: "initcache"}
 }
 
 // Initialize creates or loads the disk cache
 func (d *Disk) Initialize() error {
+	// Make cconnection
+
 	klog.Infof("Initializing with %s ...", d.path)
 	if err := d.load(); err != nil {
 		klog.Infof("recreating cache due to load error: %v", err)
@@ -126,35 +129,36 @@ func (d *Disk) create() error {
 	return nil
 }
 
-func (d *Disk) Save() error {
+func (m *MySQL) Save() error {
 	start := time.Now()
 	items := d.cache.Items()
 
 	klog.Infof("*** Saving %d items to initcache at %s", len(items), d.path)
 	defer func() {
-		klog.Infof("*** initcache.Save took %s", time.Since(start))
+		klog.Infof("*** mysql.Save took %s", time.Since(start))
 	}()
 
-	b := new(bytes.Buffer)
-	ge := gob.NewEncoder(b)
-	if err := ge.Encode(items); err != nil {
-		return fmt.Errorf("encode: %w", err)
+	for k, v := range items {
+		b := new(bytes.Buffer)
+		ge := gob.NewEncoder(b)
+		if err := ge.Encode(v); err != nil {
+			return fmt.Errorf("encode: %w", err)
+		}
+	
+		_, err := s.db.Exec(fmt.Sprintf(`
+			REPLACE INTO %s (key, value, ts)
+			VALUES (?, ?);`, m.tableName), key, b.Bytes(), start)
+
+		if err != nil {
+			return fmt.Errorf("sql exec: %v (len=%d)", err, len(b))
+		}
+		return nil
 	}
-	return ioutil.WriteFile(d.path, b.Bytes(), 0644)
-}
 
-func DefaultDiskPath(configPath string, override string) string {
-	name := strings.Replace(filepath.Base(configPath), filepath.Ext(configPath), "", -1)
-
-	if override != "" {
-		name = name + "_" + strings.Replace(override, "/", "_", -1)
-	}
-
-	// os.UserCacheDir() is technically better, but difficult to calculate in Dockerfile
-	home, err := os.UserHomeDir()
+	// Flush older cache items out
+	var c string
+	err := s.db.Get(&c, fmt.Sprintf(`DELETE FROM %s WHERE ts > ?`, m.tableName), ts)
 	if err != nil {
-		klog.Exitf("unable to get home directory: %v", err)
+		return err
 	}
-
-	return filepath.Join(home, ".tpcache", name)
 }

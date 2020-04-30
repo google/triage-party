@@ -16,10 +16,9 @@
 FROM golang
 WORKDIR /app
 
-# CFG is the path to your configuration file
+# CFG is the path to your Triage Party configuration
 ARG CFG
 
-# Set an env var that matches your github repo name, replace treeder/dockergo here with your repo name
 ENV SRC_DIR=/src/tparty
 ENV GO111MODULE=on
 
