@@ -103,7 +103,19 @@ func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 
 	klog.V(2).Infof("#%d %q is similar to %v", co.ID, co.Title, similarURLs)
 
+	added := map[string]bool{}
+
 	for _, url := range similarURLs {
+		// We found ourselves with a different title
+		if url == co.URL {
+			continue
+		}
+
+		// May happen if we've seen a URL with different titles
+		if added[url] {
+			continue
+		}
+
 		oco := h.seen[url]
 		if oco == nil {
 			klog.Warningf("find similar: no conversation found for %s", url)
@@ -111,6 +123,7 @@ func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 		}
 		klog.V(2).Infof("found %s: %q", url, oco.Title)
 		simco = append(simco, makeRelated(h.seen[url]))
+		added[url] = true
 	}
 	return simco
 }
