@@ -51,7 +51,7 @@ var (
 	siteName      = flag.String("name", "", "override site name from config file")
 
 	maxRefresh    = flag.Duration("max-refresh", 60*time.Minute, "Maximum time between collection runs")
-	minRefresh    = flag.Duration("min-refresh", 5*time.Minute, "Minimum time between collection runs")
+	minRefresh    = flag.Duration("min-refresh", 60*time.Second, "Minimum time between collection runs")
 	memberRefresh = flag.Duration("membership-refresh", 24*time.Hour, "Minimum time between refreshing membership information")
 )
 

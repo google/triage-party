@@ -42,4 +42,4 @@ COPY $CFG /app/config.yaml
 RUN --mount=type=secret,id=github /app/main --github-token-file=/run/secrets/github --config /app/config.yaml --site /app/site --dry-run
 
 # Run the server at a reasonable refresh rate
-CMD ["/app/main", "--min-refresh=45s", "--max-refresh=30m", "--config=/app/config.yaml", "--site=/app/site", "--3p=/app/third_party"]
+CMD ["/app/main", "--min-refresh=25s", "--max-refresh=20m", "--config=/app/config.yaml", "--site=/app/site", "--3p=/app/third_party"]

@@ -197,7 +197,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 				return
 			}
 
-			klog.Infof("lookup %q result: %d items", id, len(result.RuleResults))
+			klog.V(2).Infof("lookup %q result: %d items", id, len(result.RuleResults))
 		}
 
 		warning := ""

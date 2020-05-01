@@ -28,7 +28,7 @@ import (
 )
 
 // Minimum age to flush to avoid bad behavior
-const minFlushAge = 1 * time.Second
+const minFlushAge = 5 * time.Second
 
 type PFunc = func() error
 
@@ -41,36 +41,47 @@ type Config struct {
 
 func New(cfg Config) *Updater {
 	return &Updater{
-		party:        cfg.Party,
-		maxRefresh:   cfg.MaxRefresh,
-		minRefresh:   cfg.MinRefresh,
-		idleDuration: 5 * time.Minute,
-		cache:        map[string]*triage.CollectionResult{},
-		lastRequest:  sync.Map{},
-		loopEvery:    250 * time.Millisecond,
-		mutex:        &sync.Mutex{},
-		persistFunc:  cfg.PersistFunc,
-		startTime:    time.Time{},
+		party:             cfg.Party,
+		maxRefresh:        cfg.MaxRefresh,
+		minRefresh:        cfg.MinRefresh,
+		idleDuration:      5 * time.Minute,
+		cache:             map[string]*triage.CollectionResult{},
+		lastRequest:       sync.Map{},
+		secondLastRequest: sync.Map{},
+		loopEvery:         250 * time.Millisecond,
+		mutex:             &sync.Mutex{},
+		persistFunc:       cfg.PersistFunc,
+		startTime:         time.Time{},
 	}
 }
 
 type Updater struct {
-	party        *triage.Party
-	maxRefresh   time.Duration
-	minRefresh   time.Duration
-	idleDuration time.Duration
-	cache        map[string]*triage.CollectionResult
-	lastRequest  sync.Map
-	lastSave     time.Time
-	startTime    time.Time
-	loopEvery    time.Duration
-	mutex        *sync.Mutex
-	persistFunc  PFunc
+	party             *triage.Party
+	maxRefresh        time.Duration
+	minRefresh        time.Duration
+	idleDuration      time.Duration
+	cache             map[string]*triage.CollectionResult
+	lastRequest       sync.Map
+	secondLastRequest sync.Map
+	lastSave          time.Time
+	startTime         time.Time
+	loopEvery         time.Duration
+	mutex             *sync.Mutex
+	persistFunc       PFunc
+}
+
+// recordAccess records stats on collection accesses
+func (u *Updater) recordAccess(id string) {
+	last := u.lastRequested(id)
+	if !last.IsZero() {
+		u.secondLastRequest.Store(id, last)
+	}
+	u.lastRequest.Store(id, time.Now())
 }
 
 // Lookup results for a given metric
 func (u *Updater) Lookup(ctx context.Context, id string, blocking bool) *triage.CollectionResult {
-	defer u.lastRequest.Store(id, time.Now())
+	defer u.recordAccess(id)
 	r := u.cache[id]
 	if r == nil {
 		if blocking {
@@ -87,7 +98,7 @@ func (u *Updater) Lookup(ctx context.Context, id string, blocking bool) *triage.
 }
 
 func (u *Updater) ForceRefresh(ctx context.Context, id string) *triage.CollectionResult {
-	defer u.lastRequest.Store(id, time.Now())
+	defer u.recordAccess(id)
 
 	_, ok := u.lastRequest.Load(id)
 	if !ok {
@@ -126,14 +137,24 @@ func (u *Updater) shouldUpdate(id string, force bool) error {
 
 	// collection has never been requested.
 	if u.lastRequested(id).IsZero() {
+		klog.V(4).Infof("%q has never been requested", id)
 		return nil
 	}
 
-	lastRequestAge := time.Since(u.lastRequested(id))
-
-	if resultAge > u.minRefresh && lastRequestAge < u.idleDuration {
-		return fmt.Errorf("recently requested (%s)", u.lastRequested(id))
+	if resultAge < u.minRefresh {
+		klog.V(4).Infof("too soon since %q was refreshed (%s)", id, resultAge)
+		return nil
 	}
+
+	// Back-off based on average of time since last two requests
+	requestAge := time.Since(u.lastRequested(id))
+	secondRequestDiff := u.lastRequested(id).Sub(u.secondLastRequested(id))
+	needAge := ((requestAge + secondRequestDiff) / 2) + u.minRefresh
+	if resultAge > needAge {
+		return fmt.Errorf("result age (%s) too old based on popularity", resultAge)
+	}
+
+	klog.V(4).Infof("no need to refresh %q", id)
 	return nil
 }
 
@@ -142,6 +163,21 @@ func (u *Updater) lastRequested(id string) time.Time {
 	x, ok := u.lastRequest.Load(id)
 	if !ok {
 		return time.Time{}
+	}
+
+	lr, ok := x.(time.Time)
+	if !ok {
+		return time.Time{}
+	}
+
+	return lr
+}
+
+// secondLastRequested is the second last time someone requested to view a collection
+func (u *Updater) secondLastRequested(id string) time.Time {
+	x, ok := u.secondLastRequest.Load(id)
+	if !ok {
+		return u.startTime
 	}
 
 	lr, ok := x.(time.Time)
@@ -160,7 +196,7 @@ func (u *Updater) update(ctx context.Context, s triage.Collection) error {
 		u.party.AcceptStaleResults(false)
 	}
 
-	klog.Infof(">>> updating %q >>>>>>>>>>>>>>>>>>>>>>>>", s.ID)
+	klog.Infof(">>> updating %q >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", s.ID)
 	r, err := u.party.ExecuteCollection(ctx, s, time.Now())
 	if err != nil {
 		return err

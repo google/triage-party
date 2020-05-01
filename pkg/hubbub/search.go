@@ -32,7 +32,7 @@ func (h *Engine) SearchAny(ctx context.Context, org string, project string, fs [
 // Search for GitHub issues or PR's
 func (h *Engine) SearchIssues(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, error) {
 	fs = openByDefault(fs)
-	klog.Infof("Gathering raw data for %s/%s search %s - newer than %s", org, project, toYAML(fs), logu.STime(newerThan))
+	klog.V(1).Infof("Gathering raw data for %s/%s search %s - newer than %s", org, project, toYAML(fs), logu.STime(newerThan))
 	var wg sync.WaitGroup
 
 	var members map[string]bool
@@ -148,7 +148,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 func (h *Engine) SearchPullRequests(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, error) {
 	fs = openByDefault(fs)
 
-	klog.Infof("Searching %s/%s for PR's matching: %s - newer than %s", org, project, toYAML(fs), logu.STime(newerThan))
+	klog.V(1).Infof("Searching %s/%s for PR's matching: %s - newer than %s", org, project, toYAML(fs), logu.STime(newerThan))
 	filtered := []*Conversation{}
 
 	var wg sync.WaitGroup
@@ -231,7 +231,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		klog.Errorf("update similar: %v", err)
 	}
 
-	klog.Infof("%d of %d PR's within %s/%s matched filters:\n%s", len(filtered), len(prs), org, project, toYAML(fs))
+	klog.V(1).Infof("%d of %d PR's within %s/%s matched filters:\n%s", len(filtered), len(prs), org, project, toYAML(fs))
 	return filtered, nil
 }
 
