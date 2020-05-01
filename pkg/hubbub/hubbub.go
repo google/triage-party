@@ -29,8 +29,7 @@ type Config struct {
 	Repos  []string         // Repos is the repositories to search
 
 	// Cache expiration times
-	ItemExpiry      time.Duration
-	OrgMemberExpiry time.Duration
+	MemberRefresh time.Duration
 
 	// MinSimilarity is how close two items need to be to each other to be called similar
 	MinSimilarity float64
@@ -44,8 +43,8 @@ type Engine struct {
 	cache  initcache.Cacher
 	client *github.Client
 
-	itemExpiry      time.Duration
-	orgMemberExpiry time.Duration
+	// How often to refresh organizational membership information
+	memberRefresh time.Duration
 
 	// Must be settable from config
 	MinSimilarity float64
@@ -70,8 +69,7 @@ func New(cfg Config) *Engine {
 		cache:  cfg.Cache,
 		client: cfg.Client,
 
-		itemExpiry:      cfg.ItemExpiry,
-		orgMemberExpiry: cfg.OrgMemberExpiry,
+		memberRefresh: cfg.MemberRefresh,
 
 		seen:          map[string]*Conversation{},
 		similarCache:  map[string][]string{},

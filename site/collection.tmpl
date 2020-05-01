@@ -15,9 +15,10 @@
     <div class="navbar-center">
           <div class="right-item">
           <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
-          {{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }}, 
+          <span title="Data as of {{.CollectionResult.Time }}">{{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }}, 
           Avg age: {{ .CollectionResult.AvgAge | toDays }}, 
           Avg wait: {{ .CollectionResult.AvgCurrentHold | toDays }}
+          </span>
           </div>
           <script>
           function openAllTabs() {

@@ -29,6 +29,7 @@ type Config struct {
 
 type Hoard struct {
 	Creation time.Time
+	ID       string
 
 	PullRequests []*github.PullRequest
 	Issues       []*github.Issue

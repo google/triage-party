@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/imjasonmiller/godice"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // A subset of Conversation for related items (requires less memory than a Conversation)

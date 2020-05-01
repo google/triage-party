@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // parseRepo returns the organization and project for a URL

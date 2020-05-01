@@ -21,7 +21,8 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/initcache"
-	"k8s.io/klog"
+	"github.com/google/triage-party/pkg/logu"
+	"k8s.io/klog/v2"
 )
 
 func (h *Engine) cachedOrgMembers(ctx context.Context, org string, newerThan time.Time) (map[string]bool, error) {
@@ -31,7 +32,7 @@ func (h *Engine) cachedOrgMembers(ctx context.Context, org string, newerThan tim
 		return x.StringBool, nil
 	}
 
-	klog.V(1).Infof("members miss: %s", key)
+	klog.Infof("members miss: %s newer than %s", key, logu.STime(newerThan))
 	opt := &github.ListMembersOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
 	}

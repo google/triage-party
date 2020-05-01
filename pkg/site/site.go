@@ -34,7 +34,7 @@ import (
 	"github.com/google/go-github/v31/github"
 	"gopkg.in/yaml.v2"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 const VERSION = "v1.0.0-beta.0"

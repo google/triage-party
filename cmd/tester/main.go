@@ -28,13 +28,13 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"golang.org/x/oauth2"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 var (
 	// shared with tester
 	configPath      = flag.String("config", "", "configuration path")
-	initCachePath   = flag.String("init_cache", "", "Where to load the initial cache from (optional)")
+	initCachePath   = flag.String("initcache", "", "Where to load the initial cache from (optional)")
 	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
 	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via GITHUB_TOKEN")
 
@@ -46,8 +46,6 @@ var (
 
 func main() {
 	klog.InitFlags(nil)
-	flag.Set("logtostderr", "false")
-	flag.Set("alsologtostderr", "false")
 	flag.Parse()
 
 	if *configPath == "" {
@@ -71,7 +69,6 @@ func main() {
 	cachePath := *initCachePath
 	if cachePath == "" {
 		cachePath = initcache.DefaultDiskPath(*configPath, *reposOverride)
-
 	}
 
 	c := initcache.New(initcache.Config{Type: "disk", Path: cachePath})
@@ -80,11 +77,10 @@ func main() {
 	}
 
 	cfg := triage.Config{
-		Client:          client,
-		Cache:           c,
-		ItemExpiry:      7 * 24 * time.Hour,
-		OrgMemberExpiry: 90 * 24 * time.Hour,
-		DebugNumber:     *number,
+		Client:        client,
+		Cache:         c,
+		MemberRefresh: 90 * 24 * time.Hour,
+		DebugNumber:   *number,
 	}
 
 	if *reposOverride != "" {
