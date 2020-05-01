@@ -96,6 +96,7 @@ type Page struct {
 	TotalShown  int
 	Types       string
 	UniqueItems []*hubbub.Conversation
+	ResultAge   time.Duration
 
 	Player        int
 	Players       int
@@ -276,6 +277,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 			Warning:          warning,
 			UniqueItems:      uniqueFiltered,
 			GetVars:          getVars,
+			ResultAge:        time.Since(result.Time),
 		}
 
 		for _, s := range sts {
