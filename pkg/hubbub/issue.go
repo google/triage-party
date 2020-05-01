@@ -68,11 +68,7 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 				continue
 			}
 
-			if i.GetState() != state {
-				klog.Errorf("#%d: I asked for state %q, but got issue in %q - open a go-github bug!", i.GetNumber(), state, i.GetState())
-				continue
-			}
-
+			h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())
 			allIssues = append(allIssues, i)
 		}
 
