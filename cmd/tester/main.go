@@ -28,7 +28,7 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"golang.org/x/oauth2"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -46,8 +46,6 @@ var (
 
 func main() {
 	klog.InitFlags(nil)
-	flag.Set("logtostderr", "false")
-	flag.Set("alsologtostderr", "false")
 	flag.Parse()
 
 	if *configPath == "" {
@@ -80,11 +78,10 @@ func main() {
 	}
 
 	cfg := triage.Config{
-		Client:          client,
-		Cache:           c,
-		ItemExpiry:      7 * 24 * time.Hour,
-		OrgMemberExpiry: 90 * 24 * time.Hour,
-		DebugNumber:     *number,
+		Client:        client,
+		Cache:         c,
+		MemberRefresh: 90 * 24 * time.Hour,
+		DebugNumber:   *number,
 	}
 
 	if *reposOverride != "" {

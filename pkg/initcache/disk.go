@@ -28,8 +28,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/triage-party/pkg/logu"
 	"github.com/patrickmn/go-cache"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -90,6 +91,7 @@ func (d *Disk) Set(key string, h *Hoard) error {
 		h.Creation = time.Now()
 	}
 
+	klog.V(1).Infof("Storing %s within in-memory cache", key)
 	d.cache.Set(key, h, DiskExpireInterval)
 	return nil
 }
@@ -104,20 +106,22 @@ func (d *Disk) DeleteOlderThan(key string, t time.Time) error {
 func (d *Disk) GetNewerThan(key string, t time.Time) *Hoard {
 	x, ok := d.cache.Get(key)
 	if !ok {
-		klog.V(1).Infof("%s is not in the cache!", key)
+		klog.Infof("%s is not within in-memory cache!", key)
 		return nil
 	}
 
 	h := x.(*Hoard)
+
 	if h.Creation.Before(t) {
-		klog.V(1).Infof("%s is in cache, but %s is older than %s", key, h.Creation, t)
+		klog.V(2).Infof("%s in cache, but %s is older than %s", key, logu.STime(h.Creation), logu.STime(t))
 		return nil
 	}
+
 	return h
 }
 
 func (d *Disk) create() error {
-	klog.Infof("Creating cache, expire interval: %s", DiskExpireInterval)
+	klog.Infof("Creating in-memory cache, expire interval: %s", DiskExpireInterval)
 
 	d.cache = cache.New(DiskExpireInterval, DiskCleanupInterval)
 	if err := d.Save(); err != nil {
@@ -130,9 +134,9 @@ func (d *Disk) Save() error {
 	start := time.Now()
 	items := d.cache.Items()
 
-	klog.Infof("*** Saving %d items to initcache at %s", len(items), d.path)
+	klog.Infof("*** Saving %d items to disk cache at %s", len(items), d.path)
 	defer func() {
-		klog.Infof("*** initcache.Save took %s", time.Since(start))
+		klog.Infof("*** disk.Save took %s", time.Since(start))
 	}()
 
 	b := new(bytes.Buffer)

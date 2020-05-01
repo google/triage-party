@@ -28,7 +28,7 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"golang.org/x/oauth2"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/google/triage-party/pkg/initcache"
 	"github.com/google/triage-party/pkg/site"
@@ -39,39 +39,25 @@ import (
 var (
 	// shared with tester
 	configPath      = flag.String("config", "", "configuration path")
-	initCachePath   = flag.String("init_cache", "", "Where to load the initial cache from (optional)")
+	initCachePath   = flag.String("initcache-path", "", "Where to load the initial cache from (optional)")
 	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
 	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via GITHUB_TOKEN")
 
 	// server specific
-	siteDir       = flag.String("site_dir", "site/", "path to site files")
-	thirdPartyDir = flag.String("3p_dir", "third_party/", "path to 3rd party files")
-	dryRun        = flag.Bool("dry_run", false, "run queries, don't start a server")
+	siteDir       = flag.String("site", "site/", "path to site files")
+	thirdPartyDir = flag.String("3p", "third_party/", "path to 3rd party files")
+	dryRun        = flag.Bool("dry-run", false, "run queries, don't start a server")
 	port          = flag.Int("port", 8080, "port to run server at")
-	siteName      = flag.String("site_name", "", "override site name from config file")
+	siteName      = flag.String("name", "", "override site name from config file")
 
-	itemExpiry = flag.Duration("item_expiry", 12*time.Hour, "maximum time to cache GitHub search results")
-	orgExpiry  = flag.Duration("org_expiry", 30*12*time.Hour, "maximum time to cache GitHub organizational membership")
-
-	maxRefreshAge = flag.Duration("max_refresh_age", 15*time.Minute, "Maximum time between collection runs")
-	minRefreshAge = flag.Duration("min_refresh_age", 60*time.Second, "Minimum time between collection runs")
-
-	warnAge = flag.Duration("warn_age", 30*time.Minute, "Maximum time before warning about stale results. Recommended: 2*max_refresh_age")
+	maxRefresh    = flag.Duration("max-refresh", 60*time.Minute, "Maximum time between collection runs")
+	minRefresh    = flag.Duration("min-refresh", 180*time.Second, "Minimum time between collection runs")
+	memberRefresh = flag.Duration("membership-refresh", 24*time.Hour, "Minimum time between refreshing membership information")
 )
 
 func main() {
+	klog.InitFlags(nil)
 	flag.Parse()
-	kf := flag.NewFlagSet("klog", flag.ExitOnError)
-	klog.InitFlags(kf)
-
-	// Sync the glog and klog flags.
-	flag.CommandLine.VisitAll(func(f1 *flag.Flag) {
-		f2 := kf.Lookup(f1.Name)
-		if f2 != nil {
-			value := f1.Value.String()
-			f2.Value.Set(value)
-		}
-	})
 
 	if *configPath == "" {
 		klog.Exitf("--config is required")
@@ -100,10 +86,9 @@ func main() {
 	}
 
 	cfg := triage.Config{
-		Client:          client,
-		Cache:           c,
-		ItemExpiry:      *itemExpiry,
-		OrgMemberExpiry: *orgExpiry,
+		Client:        client,
+		Cache:         c,
+		MemberRefresh: *memberRefresh,
 	}
 
 	if *reposOverride != "" {
@@ -132,9 +117,9 @@ func main() {
 	}
 
 	u := updater.New(updater.Config{
-		Party:         tp,
-		MinRefreshAge: *minRefreshAge,
-		MaxRefreshAge: *maxRefreshAge,
+		Party:      tp,
+		MinRefresh: *minRefresh,
+		MaxRefresh: *maxRefresh,
 		PersistFunc: func() error {
 			return c.Save()
 		},
@@ -171,7 +156,7 @@ func main() {
 		BaseDirectory: findPath(*siteDir),
 		Updater:       u,
 		Party:         tp,
-		WarnAge:       *warnAge,
+		WarnAge:       2 * *maxRefresh,
 		Name:          sn,
 	})
 

@@ -21,7 +21,7 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/initcache"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // closedPRDays is how old of a closed PR to consider

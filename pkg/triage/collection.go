@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/google/triage-party/pkg/hubbub"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // Collection represents a fully loaded YAML configuration
@@ -54,7 +54,7 @@ type CollectionResult struct {
 
 // ExecuteCollection executes a collection.
 func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan time.Time) (*CollectionResult, error) {
-	klog.Infof("-**>> Executing collection %q: %s", s.ID, s.RuleIDs)
+	klog.Infof("> Executing collection %q: %s", s.ID, s.RuleIDs)
 	start := time.Now()
 
 	os := []*RuleResult{}
@@ -83,7 +83,10 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 	}
 
 	r := SummarizeCollectionResult(os)
-	r.Time = time.Now()
+
+	// More accurate than time.Now()
+	r.Time = newerThan
+
 	klog.Infof("<<< Collection %q took %s to execute", s.ID, time.Since(start))
 	return r, nil
 }
@@ -109,8 +112,8 @@ func SummarizeCollectionResult(os []*RuleResult) *CollectionResult {
 		r.TotalAccumulatedHoldDays += oc.TotalAccumulatedHoldDays
 
 	}
+
 	if r.Total == 0 {
-		klog.Warningf("no summary, total=0")
 		return r
 	}
 

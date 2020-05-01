@@ -20,7 +20,8 @@ import (
 	"time"
 
 	"github.com/google/triage-party/pkg/hubbub"
-	"k8s.io/klog"
+	"github.com/google/triage-party/pkg/logu"
+	"k8s.io/klog/v2"
 )
 
 // Rule is a logical triage group
@@ -102,11 +103,7 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 
 // ExecuteRule executes a rule. seen is optional.
 func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, newerThan time.Time) (*RuleResult, error) {
-	if p.ItemExpiry == 0 {
-		return nil, fmt.Errorf("item expiry cannot be 0")
-	}
-
-	klog.Infof("executing rule %q for results newer than %s (stale_ok=%v, item expiry=%s)", t.ID, newerThan, p.acceptStaleResults, p.ItemExpiry)
+	klog.Infof("executing rule %q for results newer than %s (stale_ok=%v)", t.ID, logu.STime(newerThan), p.acceptStaleResults)
 	rcs := []*hubbub.Conversation{}
 
 	for _, repo := range t.Repos {

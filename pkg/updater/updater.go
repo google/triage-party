@@ -21,9 +21,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/triage-party/pkg/logu"
 	"github.com/google/triage-party/pkg/triage"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // Minimum age to flush to avoid bad behavior
@@ -32,39 +33,39 @@ const minFlushAge = 1 * time.Second
 type PFunc = func() error
 
 type Config struct {
-	Party         *triage.Party
-	MinRefreshAge time.Duration
-	MaxRefreshAge time.Duration
-	PersistFunc   PFunc
+	Party       *triage.Party
+	MinRefresh  time.Duration
+	MaxRefresh  time.Duration
+	PersistFunc PFunc
 }
 
 func New(cfg Config) *Updater {
 	return &Updater{
-		party:         cfg.Party,
-		maxRefreshAge: cfg.MaxRefreshAge,
-		minRefreshAge: cfg.MinRefreshAge,
-		idleDuration:  5 * time.Minute,
-		cache:         map[string]*triage.CollectionResult{},
-		lastRequest:   sync.Map{},
-		loopEvery:     250 * time.Millisecond,
-		mutex:         &sync.Mutex{},
-		persistFunc:   cfg.PersistFunc,
-		startTime:     time.Time{},
+		party:        cfg.Party,
+		maxRefresh:   cfg.MaxRefresh,
+		minRefresh:   cfg.MinRefresh,
+		idleDuration: 5 * time.Minute,
+		cache:        map[string]*triage.CollectionResult{},
+		lastRequest:  sync.Map{},
+		loopEvery:    250 * time.Millisecond,
+		mutex:        &sync.Mutex{},
+		persistFunc:  cfg.PersistFunc,
+		startTime:    time.Time{},
 	}
 }
 
 type Updater struct {
-	party         *triage.Party
-	maxRefreshAge time.Duration
-	minRefreshAge time.Duration
-	idleDuration  time.Duration
-	cache         map[string]*triage.CollectionResult
-	lastRequest   sync.Map
-	lastSave      time.Time
-	startTime     time.Time
-	loopEvery     time.Duration
-	mutex         *sync.Mutex
-	persistFunc   PFunc
+	party        *triage.Party
+	maxRefresh   time.Duration
+	minRefresh   time.Duration
+	idleDuration time.Duration
+	cache        map[string]*triage.CollectionResult
+	lastRequest  sync.Map
+	lastSave     time.Time
+	startTime    time.Time
+	loopEvery    time.Duration
+	mutex        *sync.Mutex
+	persistFunc  PFunc
 }
 
 // Lookup results for a given metric
@@ -107,31 +108,40 @@ func (u *Updater) ForceRefresh(ctx context.Context, id string) *triage.Collectio
 	return u.cache[id]
 }
 
-func (u *Updater) shouldUpdate(id string) bool {
+// shouldUpdate returns an error if a collection needs an update
+func (u *Updater) shouldUpdate(id string, force bool) error {
 	result, ok := u.cache[id]
 	if !ok {
-		klog.Infof("%s is not in cache, needs update", id)
-		return true
+		return fmt.Errorf("results are not cached")
 	}
 
 	resultAge := time.Since(result.Time)
-	if resultAge > u.maxRefreshAge {
-		klog.Infof("%s is older than max refresh age (%s), should update", id, resultAge)
-		return true
+	if resultAge > u.maxRefresh {
+		return fmt.Errorf("%s at %s is older than max refresh age (%s), should update", id, result.Time, resultAge)
+	}
+
+	if force {
+		return fmt.Errorf("force-mode enabled")
+	}
+
+	// collection has never been requested.
+	if u.lastRequested(id).IsZero() {
+		return nil
 	}
 
 	lastRequestAge := time.Since(u.lastRequested(id))
-	if resultAge > u.minRefreshAge && lastRequestAge < u.idleDuration {
-		klog.Infof("should update %s: %s is older than refresh (%s), but less than idle (%s)", id, resultAge, u.minRefreshAge, u.idleDuration)
-		return true
+
+	if resultAge > u.minRefresh && lastRequestAge < u.idleDuration {
+		return fmt.Errorf("recently requested (%s)", u.lastRequested(id))
 	}
-	return false
+	return nil
 }
 
+// lastRequested is the last time someone requested to view a collection
 func (u *Updater) lastRequested(id string) time.Time {
 	x, ok := u.lastRequest.Load(id)
 	if !ok {
-		return u.startTime
+		return time.Time{}
 	}
 
 	lr, ok := x.(time.Time)
@@ -150,18 +160,20 @@ func (u *Updater) update(ctx context.Context, s triage.Collection) error {
 		u.party.AcceptStaleResults(false)
 	}
 
-	r, err := u.party.ExecuteCollection(ctx, s, u.lastRequested(s.ID))
+	klog.Infof(">>> updating %q >>>>>>>>>>>>>>>>>>>>>>>>", s.ID)
+	r, err := u.party.ExecuteCollection(ctx, s, time.Now())
 	if err != nil {
 		return err
 	}
 	u.cache[s.ID] = r
+	klog.Infof("<<< updated %q to %s <<<<<<<<<<<<<<<<<<<<", s.ID, logu.STime(r.Time))
 	return nil
 }
 
 // Run a single collection, optionally forcing an update
 func (u *Updater) RunSingle(ctx context.Context, id string, force bool) (bool, error) {
 	updated := false
-	klog.V(3).Infof("RunSingle: %s (locking mutex)", id)
+	klog.V(3).Infof("RunSingle: %s, force=%v (locking mutex)", id, force)
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
@@ -170,8 +182,9 @@ func (u *Updater) RunSingle(ctx context.Context, id string, force bool) (bool, e
 		return updated, err
 	}
 
-	if force || u.shouldUpdate(s.ID) {
-		klog.Infof("must update: %s", s.ID)
+	if err := u.shouldUpdate(s.ID, force); err != nil {
+		klog.Infof("reason for updating %q: %v", s.ID, err)
+
 		err := u.update(ctx, s)
 		if err != nil {
 			return updated, err
@@ -184,7 +197,11 @@ func (u *Updater) RunSingle(ctx context.Context, id string, force bool) (bool, e
 // Run once, optionally forcing an update
 func (u *Updater) RunOnce(ctx context.Context, force bool) error {
 	updated := false
-	klog.V(3).Infof("RunOnce: force=%v", force)
+	if force {
+		klog.Warningf(">>> RunOnce has force enabled")
+	} else {
+		klog.V(3).Infof("RunOnce: force=%v", force)
+	}
 	sts, err := u.party.ListCollections()
 	if err != nil {
 		return err
@@ -202,7 +219,7 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) error {
 		}
 	}
 
-	if updated && time.Since(u.lastSave) > u.maxRefreshAge {
+	if updated && time.Since(u.lastSave) > u.maxRefresh {
 		if err := u.persistFunc(); err != nil {
 			klog.Errorf("persist failed: %v", err)
 		} else {
@@ -219,21 +236,21 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) error {
 
 // Update loop
 func (u *Updater) Loop(ctx context.Context) error {
-	klog.Infof("Looping: data will be updated between %s and %s", u.minRefreshAge, u.maxRefreshAge)
+	klog.Infof("Looping: data will be updated between %s and %s", u.minRefresh, u.maxRefresh)
 
-	// Quickly establish a baseline with stale data
+	klog.Infof("Generating results from stale data ...")
 	if err := u.RunOnce(ctx, false); err != nil {
 		return err
 	}
 
+	klog.Infof("Generating results from fresh data ...")
 	u.startTime = time.Now()
-
-	// Run once with fresh data
 	if err := u.RunOnce(ctx, true); err != nil {
 		return err
 	}
 
 	// Loop if everything goes to plan
+	klog.Infof("Results are now fresh, starting refresh loop ...")
 	ticker := time.NewTicker(u.loopEvery)
 	defer ticker.Stop()
 	for range ticker.C {

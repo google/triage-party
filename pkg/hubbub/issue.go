@@ -22,8 +22,9 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/initcache"
+	"github.com/google/triage-party/pkg/logu"
 	"gopkg.in/yaml.v2"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // closedIssueDays is how old of a closed issue to consider
@@ -37,7 +38,7 @@ func (h *Engine) cachedIssues(ctx context.Context, org string, project string, s
 		return x.Issues, nil
 	}
 
-	klog.Infof("cache miss for %s newer than %s", key, newerThan)
+	klog.Infof("cache miss for %s newer than %s", key, logu.STime(newerThan))
 	return h.updateIssues(ctx, org, project, state, updatedDays, key)
 }
 
@@ -96,7 +97,7 @@ func (h *Engine) cachedIssueComments(ctx context.Context, org string, project st
 		return x.IssueComments, nil
 	}
 
-	klog.Infof("cache miss for %s newer than %s", key, newerThan)
+	klog.Infof("cache miss for %s newer than %s", key, logu.STime(newerThan))
 	return h.updateIssueComments(ctx, org, project, num, key)
 }
 

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v31/github"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // Check if an item matches the filters, pre-comment fetch
@@ -86,7 +86,7 @@ func preFetchMatch(i GitHubItem, labels []*github.Label, fs []Filter) bool {
 
 		if f.Reactions != "" || f.ReactionsPerMonth != "" || f.Commenters != "" || f.Comments != "" {
 			if !i.GetUpdatedAt().After(i.GetCreatedAt()) {
-				klog.Infof("#%d has no updates, but need one for: %s", i.GetNumber(), toYAML(f))
+				klog.V(1).Infof("#%d has no updates, but need one for: %s", i.GetNumber(), toYAML(f))
 				return false
 			}
 		}
