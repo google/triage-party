@@ -16,6 +16,7 @@
 package hubbub
 
 import (
+	"sync"
 	"time"
 
 	"github.com/google/go-github/v31/github"
@@ -51,14 +52,11 @@ type Engine struct {
 
 	debugNumber int
 
+	titleToURLs   sync.Map
+	similarTitles sync.Map
+
 	// indexes used for similarity matching
 	seen map[string]*Conversation
-	// stored in-memory only
-	similarCache        map[string][]string
-	similarCacheUpdated time.Time
-
-	// when did we last see a new item?
-	lastItemUpdate time.Time
 
 	// are stale results acceptable?
 	acceptStaleResults bool
@@ -72,7 +70,6 @@ func New(cfg Config) *Engine {
 		memberRefresh: cfg.MemberRefresh,
 
 		seen:          map[string]*Conversation{},
-		similarCache:  map[string][]string{},
 		MinSimilarity: cfg.MinSimilarity,
 		debugNumber:   cfg.DebugNumber,
 	}

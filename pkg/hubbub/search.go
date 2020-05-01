@@ -133,12 +133,9 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 			continue
 		}
 
-		filtered = append(filtered, co)
-	}
+		co.Similar = h.FindSimilar(co)
 
-	// TODO: Make this only happen when caches are missed
-	if err := h.updateSimilarConversations(filtered); err != nil {
-		klog.Errorf("update similar: %v", err)
+		filtered = append(filtered, co)
 	}
 
 	klog.V(1).Infof("%d of %d issues within %s/%s matched filters %s", len(filtered), len(is), org, project, toYAML(fs))
@@ -224,11 +221,6 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		}
 
 		filtered = append(filtered, co)
-	}
-
-	// TODO: Make this only happen when caches are missed
-	if err := h.updateSimilarConversations(filtered); err != nil {
-		klog.Errorf("update similar: %v", err)
 	}
 
 	klog.V(1).Infof("%d of %d PR's within %s/%s matched filters:\n%s", len(filtered), len(prs), org, project, toYAML(fs))

@@ -67,6 +67,8 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 					break
 				}
 			}
+
+			h.updateSimilarityTables(pr.GetTitle(), pr.GetHTMLURL())
 			allPRs = append(allPRs, pr)
 		}
 
@@ -80,7 +82,6 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 		klog.Errorf("set %q failed: %v", key, err)
 	}
 
-	h.lastItemUpdate = time.Now()
 	klog.V(1).Infof("updatePRs %s returning %d PRs", key, len(allPRs))
 
 	return allPRs, nil
