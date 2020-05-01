@@ -39,7 +39,7 @@ import (
 var (
 	// shared with tester
 	configPath      = flag.String("config", "", "configuration path")
-	initCachePath   = flag.String("initcache-path", "", "Where to load the initial cache from (optional)")
+	initCachePath   = flag.String("initcache", "", "Where to load the initial cache from (optional)")
 	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
 	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via GITHUB_TOKEN")
 
@@ -51,7 +51,7 @@ var (
 	siteName      = flag.String("name", "", "override site name from config file")
 
 	maxRefresh    = flag.Duration("max-refresh", 60*time.Minute, "Maximum time between collection runs")
-	minRefresh    = flag.Duration("min-refresh", 180*time.Second, "Minimum time between collection runs")
+	minRefresh    = flag.Duration("min-refresh", 5*time.Minute, "Minimum time between collection runs")
 	memberRefresh = flag.Duration("membership-refresh", 24*time.Hour, "Minimum time between refreshing membership information")
 )
 

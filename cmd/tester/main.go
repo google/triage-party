@@ -34,7 +34,7 @@ import (
 var (
 	// shared with tester
 	configPath      = flag.String("config", "", "configuration path")
-	initCachePath   = flag.String("init_cache", "", "Where to load the initial cache from (optional)")
+	initCachePath   = flag.String("initcache", "", "Where to load the initial cache from (optional)")
 	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
 	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via GITHUB_TOKEN")
 
@@ -69,7 +69,6 @@ func main() {
 	cachePath := *initCachePath
 	if cachePath == "" {
 		cachePath = initcache.DefaultDiskPath(*configPath, *reposOverride)
-
 	}
 
 	c := initcache.New(initcache.Config{Type: "disk", Path: cachePath})
