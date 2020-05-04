@@ -6,7 +6,7 @@ Triage Party is a tool for triaging incoming GitHub issues for large open-source
 
 ![screenshot](screenshot.png)
 
-Triage Party focuses on reducing response latency for incoming GitHub issues and PR's, and ensure that conversations are not lost in the ether. It was built from the [Google Container DevEx team](http://github.com/GoogleContainerTools)'s experience contributing to popular open-source projects, such as [minikube](http://github.com/kubernetes/minikube), [Skaffold](github.com/GoogleContainerTools/skaffold/), and [Kaniko](github.com/GoogleContainerTools/kaniko/).
+Triage Party focuses on reducing response latency for incoming GitHub issues and PR's, and ensure that conversations are not lost in the ether. It was built from the [Google Container DevEx team](https://github.com/GoogleContainerTools)'s experience contributing to popular open-source projects, such as [minikube](https://github.com/kubernetes/minikube), [Skaffold](https://github.com/GoogleContainerTools/skaffold/), and [Kaniko](https://github.com/GoogleContainerTools/kaniko/).
 
 Triage Party is a stateless Go web application, configured via YAML. While it has been optimized for Google Cloud Run deployments, it's deployable anywhere due to its low memory footprint: even on a Raspberry Pi.
 
@@ -55,6 +55,14 @@ Then visit [http://localhost:8080/](http://localhost:8080/)
 The first time you run Triage Party against a new repository, there will be a long delay as it will download data from GitHub. This data will be cached for subsequent runs. We're working to improve this latency.
 
 ## Configuration
+
+### Creating a Github token file
+
+1. Create a GitHub token: https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line
+2. Store token by pasting it into a text-file:
+`echo YOUR_GENERATED_TOKEN > /path/to/file`
+
+### Configuring collections and rules
 
 Each page within Triage Party is represented by a `collection`. Each collection references a list of `rules` that can be shared across collections. Here is a simple collection, which creates a page named `I like soup!`, containing two rules:
 
@@ -168,4 +176,4 @@ See [examples/minikube-deploy.sh](examples/minikube-deploy.sh)
 
 Kubernetes:
 
-See [examples/kubernetes-manifests](examples/kubernetes-manifests)
+See [examples/generic-kubernetes.yaml](examples/generic-kubernetes.yaml)

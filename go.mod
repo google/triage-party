@@ -14,5 +14,5 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	gopkg.in/yaml.v2 v2.2.8
-	k8s.io/klog v1.0.0
+	k8s.io/klog/v2 v2.0.0
 )

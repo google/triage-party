@@ -22,8 +22,9 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/initcache"
+	"github.com/google/triage-party/pkg/logu"
 	"gopkg.in/yaml.v2"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // closedIssueDays is how old of a closed issue to consider
@@ -37,7 +38,7 @@ func (h *Engine) cachedIssues(ctx context.Context, org string, project string, s
 		return x.Issues, nil
 	}
 
-	klog.Infof("cache miss for %s newer than %s", key, newerThan)
+	klog.V(1).Infof("cache miss for %s newer than %s", key, logu.STime(newerThan))
 	return h.updateIssues(ctx, org, project, state, updatedDays, key)
 }
 
@@ -47,7 +48,7 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 		ListOptions: github.ListOptions{PerPage: 100},
 		State:       state,
 	}
-	klog.Infof("%s issue list opts for %s: %+v", state, key, opt)
+	klog.V(2).Infof("%s issue list opts for %s: %+v", state, key, opt)
 
 	if updatedDays > 0 {
 		opt.Since = time.Now().Add(time.Duration(updatedDays*-24) * time.Hour)
@@ -67,11 +68,7 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 				continue
 			}
 
-			if i.GetState() != state {
-				klog.Errorf("#%d: I asked for state %q, but got issue in %q - open a go-github bug!", i.GetNumber(), state, i.GetState())
-				continue
-			}
-
+			h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())
 			allIssues = append(allIssues, i)
 		}
 
@@ -85,7 +82,7 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 		klog.Errorf("set %q failed: %v", key, err)
 	}
 
-	klog.Infof("updateIssues %s returning %d issues", key, len(allIssues))
+	klog.V(1).Infof("updateIssues %s returning %d issues", key, len(allIssues))
 	return allIssues, nil
 }
 
@@ -96,12 +93,12 @@ func (h *Engine) cachedIssueComments(ctx context.Context, org string, project st
 		return x.IssueComments, nil
 	}
 
-	klog.Infof("cache miss for %s newer than %s", key, newerThan)
+	klog.V(1).Infof("cache miss for %s newer than %s", key, logu.STime(newerThan))
 	return h.updateIssueComments(ctx, org, project, num, key)
 }
 
 func (h *Engine) updateIssueComments(ctx context.Context, org string, project string, num int, key string) ([]*github.IssueComment, error) {
-	klog.Infof("Downloading issue comments for %s/%s #%d", org, project, num)
+	klog.V(1).Infof("Downloading issue comments for %s/%s #%d", org, project, num)
 
 	opt := &github.IssueListCommentsOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
@@ -109,7 +106,7 @@ func (h *Engine) updateIssueComments(ctx context.Context, org string, project st
 
 	var allComments []*github.IssueComment
 	for {
-		klog.V(2).Infof("Downloading comments for %s/%s #%d (page %d)...", org, project, num, opt.Page)
+		klog.Infof("Downloading comments for %s/%s #%d (page %d)...", org, project, num, opt.Page)
 		cs, resp, err := h.client.Issues.ListComments(ctx, org, project, num, opt)
 		klog.V(2).Infof("Received %d comments", len(cs))
 		klog.V(2).Infof("response: %+v", resp)

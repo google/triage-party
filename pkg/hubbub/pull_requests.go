@@ -21,7 +21,7 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/initcache"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // closedPRDays is how old of a closed PR to consider
@@ -34,7 +34,7 @@ func (h *Engine) cachedPRs(ctx context.Context, org string, project string, stat
 		return x.PullRequests, nil
 	}
 
-	klog.Infof("cache miss: %s newer than %s", key, newerThan)
+	klog.V(1).Infof("cache miss: %s newer than %s", key, newerThan)
 	return h.updatePRs(ctx, org, project, state, updatedDays, key)
 }
 
@@ -46,7 +46,7 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 		Sort:        "updated",
 		Direction:   "desc",
 	}
-	klog.Infof("%s PR list opts for %s: %+v", state, key, opt)
+	klog.V(1).Infof("%s PR list opts for %s: %+v", state, key, opt)
 
 	since := time.Now().Add(time.Duration(updatedDays*-24) * time.Hour)
 	foundOldest := false
@@ -67,6 +67,8 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 					break
 				}
 			}
+
+			h.updateSimilarityTables(pr.GetTitle(), pr.GetHTMLURL())
 			allPRs = append(allPRs, pr)
 		}
 
@@ -80,8 +82,7 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 		klog.Errorf("set %q failed: %v", key, err)
 	}
 
-	h.lastItemUpdate = time.Now()
-	klog.Infof("updatePRs %s returning %d PRs", key, len(allPRs))
+	klog.V(1).Infof("updatePRs %s returning %d PRs", key, len(allPRs))
 
 	return allPRs, nil
 }
@@ -93,12 +94,12 @@ func (h *Engine) cachedPRComments(ctx context.Context, org string, project strin
 		return x.PullRequestComments, nil
 	}
 
-	klog.Infof("cache miss for %s newer than %s", key, newerThan)
+	klog.V(1).Infof("cache miss for %s newer than %s", key, newerThan)
 	return h.updatePRComments(ctx, org, project, num, key)
 }
 
 func (h *Engine) updatePRComments(ctx context.Context, org string, project string, num int, key string) ([]*github.PullRequestComment, error) {
-	klog.Infof("Downloading PR comments for %s/%s #%d", org, project, num)
+	klog.V(1).Infof("Downloading PR comments for %s/%s #%d", org, project, num)
 
 	opt := &github.PullRequestListCommentsOptions{
 		ListOptions: github.ListOptions{PerPage: 100},

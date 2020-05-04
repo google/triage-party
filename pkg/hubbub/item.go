@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v31/github"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // GitHubItem is an interface that matches both GitHub Issues and PullRequests

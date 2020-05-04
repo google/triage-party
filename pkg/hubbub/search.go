@@ -10,7 +10,8 @@ import (
 	"github.com/hokaccha/go-prettyjson"
 
 	"github.com/google/go-github/v31/github"
-	"k8s.io/klog"
+	"github.com/google/triage-party/pkg/logu"
+	"k8s.io/klog/v2"
 )
 
 // Search for GitHub issues or PR's
@@ -31,7 +32,7 @@ func (h *Engine) SearchAny(ctx context.Context, org string, project string, fs [
 // Search for GitHub issues or PR's
 func (h *Engine) SearchIssues(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, error) {
 	fs = openByDefault(fs)
-	klog.Infof("Gathering raw data for %s/%s search %s - newer than %s", org, project, toYAML(fs), newerThan)
+	klog.V(1).Infof("Gathering raw data for %s/%s search %s - newer than %s", org, project, toYAML(fs), logu.STime(newerThan))
 	var wg sync.WaitGroup
 
 	var members map[string]bool
@@ -39,7 +40,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	var closed []*github.Issue
 	var err error
 
-	orgCutoff := time.Now().Add(h.orgMemberExpiry * -1)
+	orgCutoff := time.Now().Add(h.memberRefresh * -1)
 	if h.acceptStaleResults {
 		orgCutoff = time.Time{}
 	}
@@ -132,22 +133,19 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 			continue
 		}
 
+		co.Similar = h.FindSimilar(co)
+
 		filtered = append(filtered, co)
 	}
 
-	// TODO: Make this only happen when caches are missed
-	if err := h.updateSimilarConversations(filtered); err != nil {
-		klog.Errorf("update similar: %v", err)
-	}
-
-	klog.Infof("%d of %d issues within %s/%s matched filters %s", len(filtered), len(is), org, project, toYAML(fs))
+	klog.V(1).Infof("%d of %d issues within %s/%s matched filters %s", len(filtered), len(is), org, project, toYAML(fs))
 	return filtered, nil
 }
 
 func (h *Engine) SearchPullRequests(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, error) {
 	fs = openByDefault(fs)
 
-	klog.Infof("Searching %s/%s for PR's matching: %s - newer than %s", org, project, toYAML(fs), newerThan)
+	klog.V(1).Infof("Searching %s/%s for PR's matching: %s - newer than %s", org, project, toYAML(fs), logu.STime(newerThan))
 	filtered := []*Conversation{}
 
 	var wg sync.WaitGroup
@@ -225,12 +223,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		filtered = append(filtered, co)
 	}
 
-	// TODO: Make this only happen when caches are missed
-	if err := h.updateSimilarConversations(filtered); err != nil {
-		klog.Errorf("update similar: %v", err)
-	}
-
-	klog.Infof("%d of %d PR's within %s/%s matched filters:\n%s", len(filtered), len(prs), org, project, toYAML(fs))
+	klog.V(1).Infof("%d of %d PR's within %s/%s matched filters:\n%s", len(filtered), len(prs), org, project, toYAML(fs))
 	return filtered, nil
 }
 

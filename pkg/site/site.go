@@ -34,10 +34,10 @@ import (
 	"github.com/google/go-github/v31/github"
 	"gopkg.in/yaml.v2"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
-const VERSION = "v1.0.0-beta.0"
+const VERSION = "v1.0.0-beta.2"
 
 var (
 	nonWordRe  = regexp.MustCompile(`\W`)
@@ -96,6 +96,7 @@ type Page struct {
 	TotalShown  int
 	Types       string
 	UniqueItems []*hubbub.Conversation
+	ResultAge   time.Duration
 
 	Player        int
 	Players       int
@@ -197,7 +198,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 				return
 			}
 
-			klog.Infof("lookup %q result: %d items", id, len(result.RuleResults))
+			klog.V(2).Infof("lookup %q result: %d items", id, len(result.RuleResults))
 		}
 
 		warning := ""
@@ -276,6 +277,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 			Warning:          warning,
 			UniqueItems:      uniqueFiltered,
 			GetVars:          getVars,
+			ResultAge:        time.Since(result.Time),
 		}
 
 		for _, s := range sts {

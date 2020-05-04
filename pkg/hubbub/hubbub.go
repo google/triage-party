@@ -16,6 +16,7 @@
 package hubbub
 
 import (
+	"sync"
 	"time"
 
 	"github.com/google/go-github/v31/github"
@@ -29,8 +30,7 @@ type Config struct {
 	Repos  []string         // Repos is the repositories to search
 
 	// Cache expiration times
-	ItemExpiry      time.Duration
-	OrgMemberExpiry time.Duration
+	MemberRefresh time.Duration
 
 	// MinSimilarity is how close two items need to be to each other to be called similar
 	MinSimilarity float64
@@ -44,22 +44,19 @@ type Engine struct {
 	cache  initcache.Cacher
 	client *github.Client
 
-	itemExpiry      time.Duration
-	orgMemberExpiry time.Duration
+	// How often to refresh organizational membership information
+	memberRefresh time.Duration
 
 	// Must be settable from config
 	MinSimilarity float64
 
 	debugNumber int
 
+	titleToURLs   sync.Map
+	similarTitles sync.Map
+
 	// indexes used for similarity matching
 	seen map[string]*Conversation
-	// stored in-memory only
-	similarCache        map[string][]string
-	similarCacheUpdated time.Time
-
-	// when did we last see a new item?
-	lastItemUpdate time.Time
 
 	// are stale results acceptable?
 	acceptStaleResults bool
@@ -70,11 +67,9 @@ func New(cfg Config) *Engine {
 		cache:  cfg.Cache,
 		client: cfg.Client,
 
-		itemExpiry:      cfg.ItemExpiry,
-		orgMemberExpiry: cfg.OrgMemberExpiry,
+		memberRefresh: cfg.MemberRefresh,
 
 		seen:          map[string]*Conversation{},
-		similarCache:  map[string][]string{},
 		MinSimilarity: cfg.MinSimilarity,
 		debugNumber:   cfg.DebugNumber,
 	}
