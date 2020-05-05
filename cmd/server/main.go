@@ -133,7 +133,7 @@ func main() {
 
 	if *dryRun {
 		klog.Infof("Updating ...")
-		if err := u.RunOnce(ctx, true); err != nil {
+		if _, err := u.RunOnce(ctx, true); err != nil {
 			klog.Exitf("run failed: %v", err)
 		}
 		os.Exit(0)
