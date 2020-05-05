@@ -25,7 +25,7 @@ import (
 )
 
 // NewCloudSQL returns a new Google Cloud SQL store (MySQL)
-func NewCloudSQL(cfg *Config) (*MySQL, error) {
+func NewCloudSQL(cfg Config) (*MySQL, error) {
 	// DSN that works:
 	// $USER:$PASS@tcp($PROJECT/$REGION/$INSTANCE)/$DB"
 	dsn, err := mysql.ParseDSN(cfg.Path)

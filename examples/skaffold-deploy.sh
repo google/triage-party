@@ -34,6 +34,5 @@ gcloud beta run deploy "${SERVICE_NAME}" \
     --set-env-vars="GITHUB_TOKEN=${token}" \
     --allow-unauthenticated \
     --region us-central1 \
-    --max-instances 2 \
     --memory 384Mi \
     --platform managed

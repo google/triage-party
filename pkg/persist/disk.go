@@ -43,9 +43,12 @@ type Disk struct {
 }
 
 // NewDisk returns a new disk cache
-func NewDisk(cfg Config) *Disk {
-	gob.Register(&Thing{})
-	return &Disk{path: cfg.Path}
+func NewDisk(cfg Config) (*Disk, error) {
+	return &Disk{path: cfg.Path}, nil
+}
+
+func (d *Disk) String() string {
+	return d.path
 }
 
 func (d *Disk) Initialize() error {

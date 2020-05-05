@@ -17,6 +17,8 @@ package persist
 
 import (
 	"encoding/gob"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/google/go-github/v31/github"
@@ -40,6 +42,8 @@ type Thing struct {
 
 // Cacher is the cache interface we support
 type Cacher interface {
+	String() string
+
 	Set(string, *Thing) error
 	DeleteOlderThan(string, time.Time) error
 	GetNewerThan(string, time.Time) *Thing
@@ -48,11 +52,45 @@ type Cacher interface {
 	Save() error
 }
 
-func New(cfg Config) Cacher {
+func New(cfg Config) (Cacher, error) {
 	gob.Register(&Thing{})
-
-	if cfg.Type == "disk" {
+	switch cfg.Type {
+	case "mysql":
+		return NewMySQL(cfg)
+	case "cloudsql":
+		return NewCloudSQL(cfg)
+	case "disk", "":
 		return NewDisk(cfg)
+	case "memory":
+		return NewMemory(cfg)
+	default:
+		return nil, fmt.Errorf("unknown backend: %q", cfg.Type)
 	}
-	return nil
+}
+
+// FromEnv is shared magic between binaries
+func FromEnv(backend string, path string, configPath string, reposOverride string) (Cacher, error) {
+	if backend == "" {
+		backend = os.Getenv("PERSIST_BACKEND")
+	}
+	if backend == "" {
+		backend = "disk"
+	}
+
+	if path == "" {
+		path = os.Getenv("PERSIST_PATH")
+	}
+
+	if backend == "disk" && path == "" {
+		path = DefaultDiskPath(configPath, reposOverride)
+	}
+
+	c, err := New(Config{
+		Type: backend,
+		Path: path,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("new from %s: %s: %w", backend, path, err)
+	}
+	return c, nil
 }

@@ -29,52 +29,60 @@ import (
 var schema = `
 CREATE TABLE IF NOT EXISTS persist (
 	id INT AUTO_INCREMENT PRIMARY KEY,
-	key VARCHAR(255) NOT NULL,
-	ts TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-	content MEDIUMBLOB,
-
-	UNIQUE KEY unique_key (key),
-	INDEX ts_idx (ts),
-);
-`
+	saved TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+	k VARCHAR(255) NOT NULL,
+	v MEDIUMBLOB,
+	UNIQUE KEY unique_k (k),
+	INDEX saved_idx (saved)
+);`
 
 // sqlItem maps to schema
 type sqlItem struct {
-	ID      int64     `db:"id"`
-	Key     string    `db:"key"`
-	Created time.Time `db:"created"`
-	Saved   time.Time `db:"saved"`
-	Value   []byte    `db:"content"`
+	ID    int64     `db:"id"`
+	Saved time.Time `db:"saved"`
+	Key   string    `db:"k"`
+	Value []byte    `db:"v"`
 }
 
 type MySQL struct {
 	cache *cache.Cache
 	db    *sqlx.DB
+	path  string
 }
 
 // NewMySQL returns a new MySQL cache
 func NewMySQL(cfg Config) (*MySQL, error) {
-	dbx, err := sqlx.Connect("mysql", cfg.Path)
+	dbx, err := sqlx.Connect("mysql", cfg.Path+"?parseTime=true")
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := dbx.Exec(schema); err != nil {
-		return nil, err
-	}
-
 	m := &MySQL{
-		db:    dbx,
-	}
-
-	if err := m.loadItems(); err != nil {
-		return m, fmt.Errorf("load: %w", err)
+		db:   dbx,
+		path: cfg.Path,
 	}
 
 	return m, nil
 }
 
+func (m *MySQL) String() string {
+	return fmt.Sprintf("mysql://%s", m.path)
+}
+
+func (m *MySQL) Initialize() error {
+	if _, err := m.db.Exec(schema); err != nil {
+		return fmt.Errorf("exec schema: %w", err)
+	}
+
+	if err := m.loadItems(); err != nil {
+		return fmt.Errorf("load items: %w", err)
+	}
+
+	return nil
+}
+
 func (m *MySQL) loadItems() error {
+	klog.Infof("loading items from persist table ...")
 	rows, err := m.db.Queryx(`SELECT * FROM persist`)
 	if err != nil {
 		return fmt.Errorf("query: %w", err)
@@ -95,10 +103,6 @@ func (m *MySQL) loadItems() error {
 			return fmt.Errorf("decode: %w", err)
 		}
 		decoded[mi.Key] = item
-	}
-
-	if len(decoded) == 0 {
-		return fmt.Errorf("no items loaded from MySQL: %v", decoded)
 	}
 
 	klog.Infof("%d items loaded from MySQL", len(decoded))
@@ -139,33 +143,33 @@ func (m *MySQL) Save() error {
 			return fmt.Errorf("encode: %w", err)
 		}
 
-		// TODO: figure out how to get th.Created from v
-		x, ok := m.cache.Get(k)
-		if !ok {
-			klog.Errorf("expected %s to be in cache", k)
-			continue
-		}
-		th := x.(*Thing)
-
-		_, err := m.db.Exec(`
-			INSERT INTO persist (key, value, ts)
-			VALUES (:key, :value, :created, :saved)
-			ON DUPLICATE KEY UPDATE
-			  value = :value
-			  created = :created
-			  saved = :saved`,
-			sqlItem{Key: k, Value: b.Bytes(), Created: th.Created, Saved: start})
-
-		if err != nil {
+		if _, err := m.db.Exec(`
+			INSERT INTO persist (k, v, saved) VALUES (?, ?, ?)
+			ON DUPLICATE KEY UPDATE k=VALUES(k), v=VALUES(v)`,
+			k, b.Bytes(), start); err != nil {
 			return fmt.Errorf("sql exec: %v (len=%d)", err, len(b.Bytes()))
 		}
-
-		return nil
 	}
 
-	// Flush older cache items out
-	if _, err := m.db.Exec(`DELETE FROM persist WHERE saved < ?`, start); err != nil {
-		return err
+	return m.cleanup(start.Add(-1 * time.Hour))
+}
+
+// Cleanup deletes older cache items
+func (m *MySQL) cleanup(t time.Time) error {
+	res, err := m.db.Exec(`DELETE FROM persist WHERE saved < ?`, t)
+
+	if err != nil {
+		return fmt.Errorf("delete exec: %w", err)
 	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+
+	if rows > 0 {
+		klog.Infof("Deleted %d rows of stale data", rows)
+	}
+
 	return nil
 }

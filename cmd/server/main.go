@@ -12,6 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// It's the Triage Party server!
+//
+// ** Basic example:
+//
+// go run main.go --github-token-file ~/.token --config minikube.yaml
+//
+// ** Using MySQL persistence:
+//
+// --persist-backend=mysql --persist-path="root:rootz@tcp(127.0.0.1:3306)/teaparty"
+//
+
 package main
 
 import (
@@ -39,7 +50,7 @@ import (
 var (
 	// shared with tester
 	configPath     = flag.String("config", "", "configuration path")
-	persistBackend = flag.String("persist-backend", "disk", "Cache persistence backend (disk, mysql, cloudsql)")
+	persistBackend = flag.String("persist-backend", "", "Cache persistence backend (disk, mysql, cloudsql)")
 	persistPath    = flag.String("persist-path", "", "Where to persist cache to (automatic)")
 
 	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
@@ -76,20 +87,13 @@ func main() {
 		klog.Exitf("open %s: %v", *configPath, err)
 	}
 
-	cachePath := *persistPath
-	if *persistBackend == "disk" && cachePath == "" {
-		cachePath = persist.DefaultDiskPath(*configPath, *reposOverride)
+	c, err := persist.FromEnv(*persistBackend, *persistPath, *configPath, *reposOverride)
+	if err != nil {
+		klog.Exitf("unable to create persistence layer: %v", err)
 	}
 
-	klog.Infof("cache path: %s", cachePath)
-
-	c := persist.New(persist.Config{
-		Type: *persistBackend,
-		Path: cachePath,
-	})
-
 	if err := c.Initialize(); err != nil {
-		klog.Exitf("persist load to %s: %v", cachePath, err)
+		klog.Exitf("persist init with %s: %v", c, err)
 	}
 
 	cfg := triage.Config{
@@ -119,8 +123,9 @@ func main() {
 	}
 
 	// Make sure save works
+	klog.Infof("Validating persistence layer ...")
 	if err := c.Save(); err != nil {
-		klog.Exitf("persist save to %s: %v", cachePath, err)
+		klog.Exitf("persist save to %s: %v", c, err)
 	}
 
 	u := updater.New(updater.Config{
@@ -147,7 +152,7 @@ func main() {
 		for sig := range sigc {
 			klog.Infof("signal caught: %v", sig)
 			if err := c.Save(); err != nil {
-				klog.Errorf("save errro: %v", err)
+				klog.Errorf("unable to save: %v", err)
 			}
 			os.Exit(0)
 		}

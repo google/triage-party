@@ -50,8 +50,6 @@ func (h *Engine) updateSimilarityTables(rawTitle, url string) {
 		return
 	}
 
-	klog.Infof("new title: %q", rawTitle)
-
 	// Update us -> them title similarity
 	similarTo := []string{}
 

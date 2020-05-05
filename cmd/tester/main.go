@@ -32,9 +32,10 @@ import (
 )
 
 var (
-	// shared with tester
+	// shared with server
 	configPath      = flag.String("config", "", "configuration path")
-	persistPath     = flag.String("persist", "", "Where to load the initial cache from (optional)")
+	persistBackend  = flag.String("persist-backend", "", "Cache persistence backend (disk, mysql, cloudsql)")
+	persistPath     = flag.String("persist-path", "", "Where to persist cache to (automatic)")
 	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
 	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via GITHUB_TOKEN")
 
@@ -66,14 +67,13 @@ func main() {
 		klog.Exitf("open %s: %v", *configPath, err)
 	}
 
-	cachePath := *persistPath
-	if cachePath == "" {
-		cachePath = persist.DefaultDiskPath(*configPath, *reposOverride)
+	c, err := persist.FromEnv(*persistBackend, *persistPath, *configPath, *reposOverride)
+	if err != nil {
+		klog.Exitf("unable to create persistence layer: %v", err)
 	}
 
-	c := persist.New(persist.Config{Type: "disk", Path: cachePath})
 	if err := c.Initialize(); err != nil {
-		klog.Exitf("persist load to %s: %v", cachePath, err)
+		klog.Exitf("persist initialize from %s: %v", c, err)
 	}
 
 	cfg := triage.Config{
@@ -99,7 +99,7 @@ func main() {
 	}
 
 	if err := c.Save(); err != nil {
-		klog.Exitf("persist save to %s: %v", cachePath, err)
+		klog.Exitf("persist save to %s: %v", c, err)
 	}
 }
 

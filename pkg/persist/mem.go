@@ -19,58 +19,46 @@ package persist
 import (
 	"time"
 
-	"github.com/google/triage-party/pkg/logu"
 	"github.com/patrickmn/go-cache"
 	"k8s.io/klog"
 )
 
-var (
-	memExpireInterval  = 65 * 24 * time.Hour
-	memCleanupInterval = 15 * time.Minute
-)
-
-func createMem() *cache.Cache {
-	return cache.New(memExpireInterval, memCleanupInterval)
+type Memory struct {
+	cache *cache.Cache
 }
 
-func loadMem(items map[string]cache.Item) *cache.Cache {
-	return cache.NewFrom(memExpireInterval, memCleanupInterval, items)
+// NewMemory returns a new Memory cache
+func NewMemory(cfg Config) (*Memory, error) {
+	return &Memory{}, nil
 }
 
-func setMem(c *cache.Cache, key string, th *Thing) {
-	if th.Created.IsZero() {
-		th.Created = time.Now()
-	}
-
-	klog.V(1).Infof("Storing %s within in-memory cache", key)
-	c.Set(key, th, memExpireInterval)
+func (m *Memory) String() string {
+	return "memory"
 }
 
-func newerThanMem(c *cache.Cache, key string, t time.Time) *Thing {
-	x, ok := c.Get(key)
-	if !ok {
-		klog.Infof("%s is not within in-memory cache!", key)
-		return nil
-	}
-
-	th := x.(*Thing)
-
-	if th.Created.Before(t) {
-		klog.V(2).Infof("%s in cache, but %s is older than %s", key, logu.STime(th.Created), logu.STime(t))
-		return nil
-	}
-
-	return th
+func (m *Memory) Initialize() error {
+	m.cache = createMem()
+	return nil
 }
 
-func deleteOlderMem(c *cache.Cache, key string, t time.Time) {
-	i := newerThanMem(c, key, t)
+// Set stores a thing into memory
+func (m *Memory) Set(key string, t *Thing) error {
+	setMem(m.cache, key, t)
+	return nil
+}
 
-	// Still good.
-	if i != nil && i.Created.After(t) {
-		klog.Infof("no need to delete %s", key)
-		return
-	}
+// DeleteOlderThan deletes a thing older than a timestamp
+func (m *Memory) DeleteOlderThan(key string, t time.Time) error {
+	deleteOlderMem(m.cache, key, t)
+	return nil
+}
 
-	c.Delete(key)
+// GetNewerThan returns a thing older than a timestamp
+func (m *Memory) GetNewerThan(key string, t time.Time) *Thing {
+	return newerThanMem(m.cache, key, t)
+}
+
+func (m *Memory) Save() error {
+	klog.Warningf("Save is not implemented by the memory backend")
+	return nil
 }
