@@ -36,7 +36,8 @@ type Collection struct {
 
 // The result of Execute
 type CollectionResult struct {
-	Time        time.Time
+	Time time.Time
+
 	RuleResults []*RuleResult
 
 	Total             int
@@ -60,6 +61,7 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 	os := []*RuleResult{}
 	seen := map[string]*Rule{}
 	seenRule := map[string]bool{}
+	var latestInput time.Time
 
 	for _, tid := range s.RuleIDs {
 		if seenRule[tid] {
@@ -79,13 +81,21 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 			return nil, fmt.Errorf("rule %q: %v", t.Name, err)
 		}
 
+		if ro.LatestInput.After(latestInput) {
+			latestInput = ro.LatestInput
+		}
+
 		os = append(os, ro)
 	}
 
 	r := SummarizeCollectionResult(os)
 
-	// More accurate than time.Now()
-	r.Time = newerThan
+	// If we're starting from a stale cache, use the most recent underlying input
+	if newerThan.IsZero() {
+		r.Time = latestInput
+	} else {
+		r.Time = newerThan
+	}
 
 	klog.Infof("<<< Collection %q took %s to execute", s.ID, time.Since(start))
 	return r, nil

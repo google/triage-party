@@ -50,8 +50,6 @@ func (h *Engine) updateSimilarityTables(rawTitle, url string) {
 		return
 	}
 
-	klog.Infof("new title: %q", rawTitle)
-
 	// Update us -> them title similarity
 	similarTo := []string{}
 
@@ -62,7 +60,7 @@ func (h *Engine) updateSimilarityTables(rawTitle, url string) {
 		}
 
 		if godice.CompareString(title, otherTitle) > h.MinSimilarity {
-			klog.Infof("%q is similar to %q", rawTitle, otherTitle)
+			klog.V(1).Infof("%q is similar to %q", rawTitle, otherTitle)
 			similarTo = append(similarTo, otherTitle)
 		}
 		return true

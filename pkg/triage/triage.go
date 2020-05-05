@@ -22,14 +22,14 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/hubbub"
-	"github.com/google/triage-party/pkg/initcache"
+	"github.com/google/triage-party/pkg/persist"
 	"gopkg.in/yaml.v2"
 	"k8s.io/klog/v2"
 )
 
 type Config struct {
 	Client        *github.Client
-	Cache         initcache.Cacher
+	Cache         persist.Cacher
 	Repos         []string
 	MemberRefresh time.Duration
 	// DebugNumber is useful when you want to debug why a single issue is or is-not appearing
@@ -40,11 +40,10 @@ type Party struct {
 	engine        *hubbub.Engine
 	settings      Settings
 	collections   []Collection
+	cache         persist.Cacher
 	rules         map[string]Rule
 	reposOverride []string
 	debugNumber   int
-
-	acceptStaleResults bool
 }
 
 func New(cfg Config) *Party {
@@ -61,6 +60,7 @@ func New(cfg Config) *Party {
 
 	return &Party{
 		engine:        h,
+		cache:         cfg.Cache,
 		reposOverride: cfg.Repos,
 		debugNumber:   cfg.DebugNumber,
 	}
@@ -223,10 +223,4 @@ func processRules(raw map[string]Rule) (map[string]Rule, error) {
 	}
 
 	return rules, nil
-}
-
-// Toggle acceptability of stale results, useful for bootstrapping
-func (p *Party) AcceptStaleResults(b bool) {
-	p.acceptStaleResults = b
-	p.engine.AcceptStaleResults(b)
 }

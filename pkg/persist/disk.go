@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package initcache provides a bootstrap for the in-memory cache
+// Package persist provides a bootstrap for the in-memory cache
 
-package initcache
+package persist
 
 import (
 	"bufio"
@@ -28,7 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/triage-party/pkg/logu"
 	"github.com/patrickmn/go-cache"
 	"k8s.io/klog/v2"
 )
@@ -44,17 +43,22 @@ type Disk struct {
 }
 
 // NewDisk returns a new disk cache
-func NewDisk(cfg Config) *Disk {
-	gob.Register(&Hoard{})
-	return &Disk{path: cfg.Path}
+func NewDisk(cfg Config) (*Disk, error) {
+	return &Disk{path: cfg.Path}, nil
 }
 
-// Initialize creates or loads the disk cache
+func (d *Disk) String() string {
+	return d.path
+}
+
 func (d *Disk) Initialize() error {
 	klog.Infof("Initializing with %s ...", d.path)
 	if err := d.load(); err != nil {
 		klog.Infof("recreating cache due to load error: %v", err)
-		return d.create()
+		d.cache = createMem()
+		if err := d.Save(); err != nil {
+			return fmt.Errorf("save: %w", err)
+		}
 	}
 	return nil
 }
@@ -67,67 +71,37 @@ func (d *Disk) load() error {
 	defer f.Close()
 
 	decoded := map[string]cache.Item{}
-
 	gd := gob.NewDecoder(bufio.NewReader(f))
 
 	err = gd.Decode(&decoded)
 	if err != nil && err != io.EOF {
-		klog.Errorf("Decode failed: %v", err)
-		return d.create()
+		return fmt.Errorf("decode failed: %w", err)
 	}
 
 	if len(decoded) == 0 {
-		return fmt.Errorf("no items loaded from disk: %v", decoded)
+		return fmt.Errorf("no items on disk")
 	}
 
 	klog.Infof("%d items loaded from disk", len(decoded))
-	d.cache = cache.NewFrom(DiskExpireInterval, DiskCleanupInterval, decoded)
+	d.cache = loadMem(decoded)
 	return nil
 }
 
-// Set stores a hoard onto disk
-func (d *Disk) Set(key string, h *Hoard) error {
-	if h.Creation.IsZero() {
-		h.Creation = time.Now()
-	}
-
-	klog.V(1).Infof("Storing %s within in-memory cache", key)
-	d.cache.Set(key, h, DiskExpireInterval)
+// Set stores a thing into memory
+func (d *Disk) Set(key string, t *Thing) error {
+	setMem(d.cache, key, t)
 	return nil
 }
 
-// DeleteOlderThan deletes a hoard older than a timestamp
+// DeleteOlderThan deletes a thing older than a timestamp
 func (d *Disk) DeleteOlderThan(key string, t time.Time) error {
-	d.cache.Delete(key)
+	deleteOlderMem(d.cache, key, t)
 	return nil
 }
 
-// GetNewerThan returns a hoard older than a timestamp
-func (d *Disk) GetNewerThan(key string, t time.Time) *Hoard {
-	x, ok := d.cache.Get(key)
-	if !ok {
-		klog.Infof("%s is not within in-memory cache!", key)
-		return nil
-	}
-
-	h := x.(*Hoard)
-
-	if h.Creation.Before(t) {
-		klog.V(2).Infof("%s in cache, but %s is older than %s", key, logu.STime(h.Creation), logu.STime(t))
-		return nil
-	}
-
-	return h
-}
-
-func (d *Disk) create() error {
-	klog.Infof("Creating in-memory cache, expire interval: %s", DiskExpireInterval)
-
-	d.cache = cache.New(DiskExpireInterval, DiskCleanupInterval)
-	if err := d.Save(); err != nil {
-		return fmt.Errorf("save: %w", err)
-	}
-	return nil
+// GetNewerThan returns a thing older than a timestamp
+func (d *Disk) GetNewerThan(key string, t time.Time) *Thing {
+	return newerThanMem(d.cache, key, t)
 }
 
 func (d *Disk) Save() error {
@@ -144,15 +118,46 @@ func (d *Disk) Save() error {
 	if err := ge.Encode(items); err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
+
+	if err := os.MkdirAll(filepath.Dir(d.path), 0700); err != nil {
+		return err
+	}
+
 	return ioutil.WriteFile(d.path, b.Bytes(), 0644)
 }
 
-func DefaultDiskPath(configPath string, override string) string {
-	name := strings.Replace(filepath.Base(configPath), filepath.Ext(configPath), "", -1)
+func findCacheRoot() string {
+	if _, err := os.Stat("/app/pcache"); err == nil {
+		return "/app/pcache"
+	}
 
+	if _, err := os.Stat("pcache"); err == nil {
+		return "pcache"
+	}
+	if _, err := os.Stat("../pcache"); err == nil {
+		return "../pcache"
+	}
+	if _, err := os.Stat("../../pcache"); err == nil {
+		return "../../pcache"
+	}
+
+	cdir, err := os.UserCacheDir()
+	if err != nil {
+		return filepath.Join(os.TempDir(), "triage-party")
+	}
+
+	return filepath.Join(cdir, "triage-party")
+}
+
+func DefaultDiskPath(configPath string, override string) string {
+
+	name := filepath.Base(configPath)
 	if override != "" {
 		name = name + "_" + strings.Replace(override, "/", "_", -1)
 	}
 
-	return filepath.Join(fmt.Sprintf("/var/tmp/tparty_%s.cache", name))
+	dir := findCacheRoot()
+	path := filepath.Join(dir, name+".pc")
+	klog.Infof("default disk path: %s", path)
+	return path
 }

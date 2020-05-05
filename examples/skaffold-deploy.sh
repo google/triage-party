@@ -23,21 +23,16 @@ export IMAGE="gcr.io/k8s-skaffold/teaparty:$(date +%F-%s)"
 export SERVICE_NAME=skaffold-triage-party
 export CONFIG_FILE=examples/skaffold.yaml
 
-env DOCKER_BUILDKIT=1 docker build \
-  -t "${IMAGE}" \
-  --build-arg "CFG=${CONFIG_FILE}" \
-  --secret "id=github,src=${GITHUB_TOKEN_PATH}" .
+docker build -t "${IMAGE}" --build-arg "CFG=${CONFIG_FILE}" .
 
 docker push "${IMAGE}" || exit 2
 
 readonly token="$(cat ${GITHUB_TOKEN_PATH})"
-
 gcloud beta run deploy "${SERVICE_NAME}" \
     --project "${PROJECT}" \
     --image "${IMAGE}" \
     --set-env-vars="GITHUB_TOKEN=${token}" \
     --allow-unauthenticated \
     --region us-central1 \
-    --max-instances 2 \
     --memory 384Mi \
     --platform managed

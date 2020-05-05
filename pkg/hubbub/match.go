@@ -46,7 +46,7 @@ func preFetchMatch(i GitHubItem, labels []*github.Label, fs []Filter) bool {
 
 		if f.Created != "" {
 			if ok := matchDuration(i.GetCreatedAt(), f.Created); !ok {
-				klog.V(2).Infof("#%d creation at %s does not meet %s", i.GetNumber(), i.GetCreatedAt(), f.Created)
+				klog.V(2).Infof("#%d Created at %s does not meet %s", i.GetNumber(), i.GetCreatedAt(), f.Created)
 				return false
 			}
 		}

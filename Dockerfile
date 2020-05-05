@@ -13,33 +13,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang
+FROM golang AS builder
 WORKDIR /app
 
-# CFG is the path to your configuration file
+# CFG is the path to your Triage Party configuration
 ARG CFG
 
-# Set an env var that matches your github repo name, replace treeder/dockergo here with your repo name
+# Build the binary
 ENV SRC_DIR=/src/tparty
 ENV GO111MODULE=on
-
 RUN mkdir -p ${SRC_DIR}/cmd ${SRC_DIR}/third_party ${SRC_DIR}/pkg ${SRC_DIR}/site /app/third_party /app/site
 COPY go.* $SRC_DIR/
 COPY cmd ${SRC_DIR}/cmd/
 COPY pkg ${SRC_DIR}/pkg/
+WORKDIR $SRC_DIR
+RUN go mod download
+RUN go build cmd/server/main.go
 
-# Build the binary
-RUN cd $SRC_DIR && go mod download
-RUN cd $SRC_DIR/cmd/server && go build -o main
-RUN cp $SRC_DIR/cmd/server/main /app/
+# Populate disk cache data (optional)
+FROM alpine AS persist
+ARG CFG
+COPY pcache /pc
+RUN echo "failure is OK with this next step (cache population)"
+RUN mv /pc/$(basename $CFG).pc /config.yaml.pc || touch /config.yaml.pc
 
-# Setup our deployment
+# Setup the site data
+FROM gcr.io/distroless/base
+ARG CFG
+COPY --from=builder /src/tparty/main /app/
+COPY --from=persist /config.yaml.pc /app/pcache/config.yaml.pc
 COPY site /app/site/
 COPY third_party /app/third_party/
 COPY $CFG /app/config.yaml
-
-# Bad hack: pre-heat the cache in lieu of persistent storage
-RUN --mount=type=secret,id=github /app/main --github-token-file=/run/secrets/github --config /app/config.yaml --site /app/site --dry-run
 
 # Run the server at a reasonable refresh rate
 CMD ["/app/main", "--min-refresh=25s", "--max-refresh=20m", "--config=/app/config.yaml", "--site=/app/site", "--3p=/app/third_party"]

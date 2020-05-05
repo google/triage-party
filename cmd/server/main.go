@@ -12,6 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// It's the Triage Party server!
+//
+// ** Basic example:
+//
+// go run main.go --github-token-file ~/.token --config minikube.yaml
+//
+// ** Using MySQL persistence:
+//
+// --persist-backend=mysql --persist-path="root:rootz@tcp(127.0.0.1:3306)/teaparty"
+//
+
 package main
 
 import (
@@ -30,7 +41,7 @@ import (
 	"golang.org/x/oauth2"
 	"k8s.io/klog/v2"
 
-	"github.com/google/triage-party/pkg/initcache"
+	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/site"
 	"github.com/google/triage-party/pkg/triage"
 	"github.com/google/triage-party/pkg/updater"
@@ -38,8 +49,10 @@ import (
 
 var (
 	// shared with tester
-	configPath      = flag.String("config", "", "configuration path")
-	initCachePath   = flag.String("initcache", "", "Where to load the initial cache from (optional)")
+	configPath     = flag.String("config", "", "configuration path")
+	persistBackend = flag.String("persist-backend", "", "Cache persistence backend (disk, mysql, cloudsql)")
+	persistPath    = flag.String("persist-path", "", "Where to persist cache to (automatic)")
+
 	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
 	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via GITHUB_TOKEN")
 
@@ -74,15 +87,13 @@ func main() {
 		klog.Exitf("open %s: %v", *configPath, err)
 	}
 
-	cachePath := *initCachePath
-	if cachePath == "" {
-		cachePath = initcache.DefaultDiskPath(*configPath, *reposOverride)
+	c, err := persist.FromEnv(*persistBackend, *persistPath, *configPath, *reposOverride)
+	if err != nil {
+		klog.Exitf("unable to create persistence layer: %v", err)
 	}
-	klog.Infof("cache path: %s", cachePath)
 
-	c := initcache.New(initcache.Config{Type: "disk", Path: cachePath})
 	if err := c.Initialize(); err != nil {
-		klog.Exitf("initcache load to %s: %v", cachePath, err)
+		klog.Exitf("persist init with %s: %v", c, err)
 	}
 
 	cfg := triage.Config{
@@ -111,11 +122,6 @@ func main() {
 		sn = calculateSiteName(ts)
 	}
 
-	// Make sure save works
-	if err := c.Save(); err != nil {
-		klog.Exitf("initcache save to %s: %v", cachePath, err)
-	}
-
 	u := updater.New(updater.Config{
 		Party:      tp,
 		MinRefresh: *minRefresh,
@@ -140,7 +146,7 @@ func main() {
 		for sig := range sigc {
 			klog.Infof("signal caught: %v", sig)
 			if err := c.Save(); err != nil {
-				klog.Errorf("save errro: %v", err)
+				klog.Errorf("unable to save: %v", err)
 			}
 			os.Exit(0)
 		}
@@ -156,7 +162,7 @@ func main() {
 		BaseDirectory: findPath(*siteDir),
 		Updater:       u,
 		Party:         tp,
-		WarnAge:       2 * *maxRefresh,
+		WarnAge:       *maxRefresh + 5*(time.Minute),
 		Name:          sn,
 	})
 
