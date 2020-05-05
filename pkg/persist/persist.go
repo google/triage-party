@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package initcache provides a bootstrap for the in-memory cache
-package initcache
+// Package persist provides a bootstrap for the in-memory cache
+package persist
 
 import (
+	"encoding/gob"
 	"time"
 
 	"github.com/google/go-github/v31/github"
@@ -27,30 +28,29 @@ type Config struct {
 	Path string
 }
 
-type Hoard struct {
-	Creation time.Time
-	ID       string
+type Thing struct {
+	Created time.Time
 
-	PullRequests []*github.PullRequest
-	Issues       []*github.Issue
-
+	PullRequests        []*github.PullRequest
+	Issues              []*github.Issue
 	PullRequestComments []*github.PullRequestComment
 	IssueComments       []*github.IssueComment
-
-	StringBool map[string]bool
+	StringBool          map[string]bool
 }
 
 // Cacher is the cache interface we support
 type Cacher interface {
-	Set(string, *Hoard) error
+	Set(string, *Thing) error
 	DeleteOlderThan(string, time.Time) error
-	GetNewerThan(string, time.Time) *Hoard
+	GetNewerThan(string, time.Time) *Thing
 
 	Initialize() error
 	Save() error
 }
 
 func New(cfg Config) Cacher {
+	gob.Register(&Thing{})
+
 	if cfg.Type == "disk" {
 		return NewDisk(cfg)
 	}

@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/google/triage-party/pkg/initcache"
 	"github.com/google/triage-party/pkg/logu"
+	"github.com/google/triage-party/pkg/persist"
 	"k8s.io/klog/v2"
 )
 
@@ -53,7 +53,7 @@ func (h *Engine) cachedOrgMembers(ctx context.Context, org string, newerThan tim
 		opt.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(key, &initcache.Hoard{StringBool: members}); err != nil {
+	if err := h.cache.Set(key, &persist.Thing{StringBool: members}); err != nil {
 		klog.Errorf("set %q failed: %v", key, err)
 	}
 

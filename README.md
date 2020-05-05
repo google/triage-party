@@ -161,13 +161,8 @@ For full example configurations, see `examples/*.yaml`. There are two that are p
 Docker:
 
 ```shell
-env DOCKER_BUILDKIT=1 \
-  GITHUB_TOKEN_PATH=<path to your github token> \
-  docker build --tag=tp \
-  --build-arg CFG=examples/generic-project.yaml \
-  --secret id=github,src=$GITHUB_TOKEN_PATH .
-
-docker run -p 8080:8080 tp
+docker build --tag=tp --build-arg CFG=examples/generic-project.yaml .
+docker run -e GITHUB_TOKEN=<your token> -p 8080:8080 tp
 ```
 
 Cloud Run:

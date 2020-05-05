@@ -30,7 +30,7 @@ import (
 	"golang.org/x/oauth2"
 	"k8s.io/klog/v2"
 
-	"github.com/google/triage-party/pkg/initcache"
+	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/site"
 	"github.com/google/triage-party/pkg/triage"
 	"github.com/google/triage-party/pkg/updater"
@@ -38,8 +38,10 @@ import (
 
 var (
 	// shared with tester
-	configPath      = flag.String("config", "", "configuration path")
-	initCachePath   = flag.String("initcache", "", "Where to load the initial cache from (optional)")
+	configPath     = flag.String("config", "", "configuration path")
+	persistBackend = flag.String("persist-backend", "disk", "Cache persistence backend (disk, mysql, cloudsql)")
+	persistPath    = flag.String("persist-path", "", "Where to persist cache to (automatic)")
+
 	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
 	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via GITHUB_TOKEN")
 
@@ -74,15 +76,20 @@ func main() {
 		klog.Exitf("open %s: %v", *configPath, err)
 	}
 
-	cachePath := *initCachePath
-	if cachePath == "" {
-		cachePath = initcache.DefaultDiskPath(*configPath, *reposOverride)
+	cachePath := *persistPath
+	if *persistBackend == "disk" && cachePath == "" {
+		cachePath = persist.DefaultDiskPath(*configPath, *reposOverride)
 	}
+
 	klog.Infof("cache path: %s", cachePath)
 
-	c := initcache.New(initcache.Config{Type: "disk", Path: cachePath})
+	c := persist.New(persist.Config{
+		Type: *persistBackend,
+		Path: cachePath,
+	})
+
 	if err := c.Initialize(); err != nil {
-		klog.Exitf("initcache load to %s: %v", cachePath, err)
+		klog.Exitf("persist load to %s: %v", cachePath, err)
 	}
 
 	cfg := triage.Config{
@@ -113,7 +120,7 @@ func main() {
 
 	// Make sure save works
 	if err := c.Save(); err != nil {
-		klog.Exitf("initcache save to %s: %v", cachePath, err)
+		klog.Exitf("persist save to %s: %v", cachePath, err)
 	}
 
 	u := updater.New(updater.Config{

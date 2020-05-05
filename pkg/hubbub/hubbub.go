@@ -20,14 +20,14 @@ import (
 	"time"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/google/triage-party/pkg/initcache"
+	"github.com/google/triage-party/pkg/persist"
 )
 
 // Config is how to configure a new hubbub engine
 type Config struct {
-	Client *github.Client   // Client is a GitHub client
-	Cache  initcache.Cacher // Cacher is a cache interface
-	Repos  []string         // Repos is the repositories to search
+	Client *github.Client // Client is a GitHub client
+	Cache  persist.Cacher // Cacher is a cache interface
+	Repos  []string       // Repos is the repositories to search
 
 	// Cache expiration times
 	MemberRefresh time.Duration
@@ -41,7 +41,7 @@ type Config struct {
 
 // Engine is the search engine interface for hubbub
 type Engine struct {
-	cache  initcache.Cacher
+	cache  persist.Cacher
 	client *github.Client
 
 	// How often to refresh organizational membership information

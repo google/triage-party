@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/google/triage-party/pkg/initcache"
+	"github.com/google/triage-party/pkg/persist"
 	"k8s.io/klog/v2"
 )
 
@@ -78,7 +78,7 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 		opt.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(key, &initcache.Hoard{PullRequests: allPRs}); err != nil {
+	if err := h.cache.Set(key, &persist.Thing{PullRequests: allPRs}); err != nil {
 		klog.Errorf("set %q failed: %v", key, err)
 	}
 
@@ -119,7 +119,7 @@ func (h *Engine) updatePRComments(ctx context.Context, org string, project strin
 		opt.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(key, &initcache.Hoard{PullRequestComments: allComments}); err != nil {
+	if err := h.cache.Set(key, &persist.Thing{PullRequestComments: allComments}); err != nil {
 		klog.Errorf("set %q failed: %v", key, err)
 	}
 

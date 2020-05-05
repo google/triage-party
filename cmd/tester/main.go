@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/triage-party/pkg/initcache"
+	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/triage"
 
 	"github.com/google/go-github/v31/github"
@@ -34,7 +34,7 @@ import (
 var (
 	// shared with tester
 	configPath      = flag.String("config", "", "configuration path")
-	initCachePath   = flag.String("initcache", "", "Where to load the initial cache from (optional)")
+	persistPath     = flag.String("persist", "", "Where to load the initial cache from (optional)")
 	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
 	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via GITHUB_TOKEN")
 
@@ -66,14 +66,14 @@ func main() {
 		klog.Exitf("open %s: %v", *configPath, err)
 	}
 
-	cachePath := *initCachePath
+	cachePath := *persistPath
 	if cachePath == "" {
-		cachePath = initcache.DefaultDiskPath(*configPath, *reposOverride)
+		cachePath = persist.DefaultDiskPath(*configPath, *reposOverride)
 	}
 
-	c := initcache.New(initcache.Config{Type: "disk", Path: cachePath})
+	c := persist.New(persist.Config{Type: "disk", Path: cachePath})
 	if err := c.Initialize(); err != nil {
-		klog.Exitf("initcache load to %s: %v", cachePath, err)
+		klog.Exitf("persist load to %s: %v", cachePath, err)
 	}
 
 	cfg := triage.Config{
@@ -99,7 +99,7 @@ func main() {
 	}
 
 	if err := c.Save(); err != nil {
-		klog.Exitf("initcache save to %s: %v", cachePath, err)
+		klog.Exitf("persist save to %s: %v", cachePath, err)
 	}
 }
 

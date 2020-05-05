@@ -23,15 +23,11 @@ export IMAGE=gcr.io/k8s-minikube/triage-party
 export SERVICE_NAME=teaparty
 export CONFIG_FILE=examples/minikube.yaml
 
-env DOCKER_BUILDKIT=1 docker build \
-  -t "${IMAGE}" \
-  --build-arg "CFG=${CONFIG_FILE}" \
-  --secret "id=github,src=${GITHUB_TOKEN_PATH}" .
+docker build -t "${IMAGE}" --build-arg "CFG=${CONFIG_FILE}" .
 
 docker push "${IMAGE}" || exit 2
 
 readonly token="$(cat ${GITHUB_TOKEN_PATH})"
-
 gcloud beta run deploy "${SERVICE_NAME}" \
     --project "${PROJECT}" \
     --image "${IMAGE}" \
