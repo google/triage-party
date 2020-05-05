@@ -105,13 +105,8 @@ func (d *Disk) GetNewerThan(key string, t time.Time) *Thing {
 }
 
 func (d *Disk) Save() error {
-	start := time.Now()
 	items := d.cache.Items()
-
 	klog.Infof("*** Saving %d items to disk cache at %s", len(items), d.path)
-	defer func() {
-		klog.Infof("*** disk.Save took %s", time.Since(start))
-	}()
 
 	b := new(bytes.Buffer)
 	ge := gob.NewEncoder(b)
