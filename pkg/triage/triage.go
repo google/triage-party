@@ -40,6 +40,7 @@ type Party struct {
 	engine        *hubbub.Engine
 	settings      Settings
 	collections   []Collection
+	cache         persist.Cacher
 	rules         map[string]Rule
 	reposOverride []string
 	debugNumber   int
@@ -59,6 +60,7 @@ func New(cfg Config) *Party {
 
 	return &Party{
 		engine:        h,
+		cache:         cfg.Cache,
 		reposOverride: cfg.Repos,
 		debugNumber:   cfg.DebugNumber,
 	}

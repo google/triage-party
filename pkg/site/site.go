@@ -55,21 +55,23 @@ type Config struct {
 
 func New(c *Config) *Handlers {
 	return &Handlers{
-		baseDir:  c.BaseDirectory,
-		updater:  c.Updater,
-		party:    c.Party,
-		siteName: c.Name,
-		warnAge:  c.WarnAge,
+		baseDir:   c.BaseDirectory,
+		updater:   c.Updater,
+		party:     c.Party,
+		siteName:  c.Name,
+		warnAge:   c.WarnAge,
+		startTime: time.Now(),
 	}
 }
 
 // Handlers is a mix of config and client interfaces to connect with.
 type Handlers struct {
-	baseDir  string
-	updater  *updater.Updater
-	party    *triage.Party
-	siteName string
-	warnAge  time.Duration
+	baseDir   string
+	updater   *updater.Updater
+	party     *triage.Party
+	siteName  string
+	warnAge   time.Duration
+	startTime time.Time
 }
 
 // Root redirects to leaderboard.
@@ -202,8 +204,10 @@ func (h *Handlers) Collection() http.HandlerFunc {
 		}
 
 		warning := ""
-		if time.Since(result.Time) > h.warnAge {
-			warning = fmt.Sprintf("Serving stale results (%s old) - refreshing results in background. Use Shift-Reload to force data to refresh at any time.", time.Since(result.Time))
+		if result.Time.IsZero() {
+			warning = fmt.Sprintf("Triage Party started %s ago, and is serving stale results while refreshing in the background", humanDuration(time.Since(h.startTime)))
+		} else if time.Since(result.Time) > h.warnAge {
+			warning = fmt.Sprintf("Serving stale results (%s old) - refreshing results in background. Use Shift-Reload to force data to refresh at any time.", humanDuration(time.Since(result.Time)))
 		}
 
 		total := 0
@@ -376,7 +380,6 @@ func avatar(u *github.User) template.HTML {
 func playerFilter(result *triage.CollectionResult, player int, players int) *triage.CollectionResult {
 	klog.Infof("Filtering for player %d of %d ...", player, players)
 	os := []*triage.RuleResult{}
-
 	seen := map[string]*triage.Rule{}
 
 	for _, o := range result.RuleResults {
@@ -390,7 +393,7 @@ func playerFilter(result *triage.CollectionResult, player int, players int) *tri
 		}
 
 		os = append(os, triage.SummarizeRuleResult(o.Rule, cs, seen))
-
 	}
+
 	return triage.SummarizeCollectionResult(os)
 }

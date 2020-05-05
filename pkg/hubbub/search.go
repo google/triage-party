@@ -15,22 +15,26 @@ import (
 )
 
 // Search for GitHub issues or PR's
-func (h *Engine) SearchAny(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, error) {
-	cs, err := h.SearchIssues(ctx, org, project, fs, newerThan)
+func (h *Engine) SearchAny(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, time.Time, error) {
+	cs, ts, err := h.SearchIssues(ctx, org, project, fs, newerThan)
 	if err != nil {
-		return cs, err
+		return cs, ts, err
 	}
 
-	pcs, err := h.SearchPullRequests(ctx, org, project, fs, newerThan)
+	pcs, pts, err := h.SearchPullRequests(ctx, org, project, fs, newerThan)
 	if err != nil {
-		return cs, err
+		return cs, ts, err
 	}
 
-	return append(cs, pcs...), nil
+	if pts.After(ts) {
+		ts = pts
+	}
+
+	return append(cs, pcs...), ts, nil
 }
 
 // Search for GitHub issues or PR's
-func (h *Engine) SearchIssues(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, error) {
+func (h *Engine) SearchIssues(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, time.Time, error) {
 	fs = openByDefault(fs)
 	klog.V(1).Infof("Gathering raw data for %s/%s search %s - newer than %s", org, project, toYAML(fs), logu.STime(newerThan))
 	var wg sync.WaitGroup
@@ -80,9 +84,14 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	wg.Wait()
 
 	var is []*github.Issue
+	var latest time.Time
 	seen := map[string]bool{}
 
 	for _, i := range append(open, closed...) {
+		if i.GetUpdatedAt().After(latest) {
+			latest = i.GetUpdatedAt()
+		}
+
 		if h.debugNumber != 0 {
 			if i.GetNumber() == h.debugNumber {
 				klog.Errorf("*** Found debug issue #%d:\n%s", i.GetNumber(), formatStruct(*i))
@@ -140,10 +149,10 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	}
 
 	klog.V(1).Infof("%d of %d issues within %s/%s matched filters %s", len(filtered), len(is), org, project, toYAML(fs))
-	return filtered, nil
+	return filtered, latest, nil
 }
 
-func (h *Engine) SearchPullRequests(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, error) {
+func (h *Engine) SearchPullRequests(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, time.Time, error) {
 	fs = openByDefault(fs)
 
 	klog.V(1).Infof("Searching %s/%s for PR's matching: %s - newer than %s", org, project, toYAML(fs), logu.STime(newerThan))
@@ -179,8 +188,13 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 
 	wg.Wait()
 
+	var latest time.Time
 	prs := []*github.PullRequest{}
 	for _, pr := range append(open, closed...) {
+		if pr.GetUpdatedAt().After(latest) {
+			latest = pr.GetUpdatedAt()
+		}
+
 		if h.debugNumber != 0 {
 			if pr.GetNumber() == h.debugNumber {
 				klog.Errorf("*** Found debug PR #%d:\n%s", pr.GetNumber(), formatStruct(*pr))
@@ -225,7 +239,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 	}
 
 	klog.V(1).Infof("%d of %d PR's within %s/%s matched filters:\n%s", len(filtered), len(prs), org, project, toYAML(fs))
-	return filtered, nil
+	return filtered, latest, nil
 }
 
 func formatStruct(x interface{}) string {
