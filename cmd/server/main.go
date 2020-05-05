@@ -122,12 +122,6 @@ func main() {
 		sn = calculateSiteName(ts)
 	}
 
-	// Make sure save works
-	klog.Infof("Validating persistence layer ...")
-	if err := c.Save(); err != nil {
-		klog.Exitf("persist save to %s: %v", c, err)
-	}
-
 	u := updater.New(updater.Config{
 		Party:      tp,
 		MinRefresh: *minRefresh,

@@ -18,6 +18,7 @@ package updater
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -63,7 +64,8 @@ type Updater struct {
 	cache             map[string]*triage.CollectionResult
 	lastRequest       sync.Map
 	secondLastRequest sync.Map
-	lastSave          time.Time
+	lastPersist       time.Time
+	lastRun           time.Time
 	startTime         time.Time
 	loopEvery         time.Duration
 	mutex             *sync.Mutex
@@ -189,15 +191,14 @@ func (u *Updater) secondLastRequested(id string) time.Time {
 }
 
 func (u *Updater) update(ctx context.Context, s triage.Collection) error {
-	if u.lastSave.IsZero() {
+	cutoff := time.Now().Add(minFlushAge * -1)
+	if u.lastPersist.IsZero() {
 		klog.Infof("have not yet saved content - will accept stale results")
-		u.party.AcceptStaleResults(true)
-	} else {
-		u.party.AcceptStaleResults(false)
+		cutoff = time.Time{}
 	}
 
 	klog.Infof(">>> updating %q >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", s.ID)
-	r, err := u.party.ExecuteCollection(ctx, s, time.Now())
+	r, err := u.party.ExecuteCollection(ctx, s, cutoff)
 	if err != nil {
 		return err
 	}
@@ -230,8 +231,23 @@ func (u *Updater) RunSingle(ctx context.Context, id string, force bool) (bool, e
 	return updated, nil
 }
 
+// Persist saves results to the persistence layer
+func (u *Updater) Persist() error {
+	u.lastPersist = time.Now()
+
+	if err := u.persistFunc(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Run once, optionally forcing an update
 func (u *Updater) RunOnce(ctx context.Context, force bool) error {
+	defer func() {
+		u.lastRun = time.Now()
+	}()
+
 	updated := false
 	if force {
 		klog.Warningf(">>> RunOnce has force enabled")
@@ -241,6 +257,11 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) error {
 	sts, err := u.party.ListCollections()
 	if err != nil {
 		return err
+	}
+
+	if u.lastRun.IsZero() {
+		u.startTime = time.Now()
+		force = true
 	}
 
 	var failed []string
@@ -255,12 +276,16 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) error {
 		}
 	}
 
-	if updated && time.Since(u.lastSave) > u.maxRefresh {
-		if err := u.persistFunc(); err != nil {
-			klog.Errorf("persist failed: %v", err)
-		} else {
-			u.lastSave = time.Now()
-		}
+	cutoff := u.maxRefresh + time.Duration(rand.Intn(int(u.maxRefresh.Seconds())))*time.Second
+	sinceSave := time.Since(u.lastPersist)
+
+	if updated && sinceSave > cutoff {
+		klog.Infof("%s since cache has been saved (cutoff=%s)", cutoff, sinceSave)
+		go func() {
+			if err := u.Persist(); err != nil {
+				klog.Errorf("persist failed: %v", err)
+			}
+		}()
 	}
 
 	if len(failed) > 0 {
@@ -272,21 +297,8 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) error {
 
 // Update loop
 func (u *Updater) Loop(ctx context.Context) error {
-	klog.Infof("Looping: data will be updated between %s and %s", u.minRefresh, u.maxRefresh)
-
-	klog.Infof("Generating results from stale data ...")
-	if err := u.RunOnce(ctx, false); err != nil {
-		return err
-	}
-
-	klog.Infof("Generating results from fresh data ...")
-	u.startTime = time.Now()
-	if err := u.RunOnce(ctx, true); err != nil {
-		return err
-	}
-
 	// Loop if everything goes to plan
-	klog.Infof("Results are now fresh, starting refresh loop ...")
+	klog.Infof("Looping: data will be updated between %s and %s", u.minRefresh, u.maxRefresh)
 	ticker := time.NewTicker(u.loopEvery)
 	defer ticker.Stop()
 	for range ticker.C {

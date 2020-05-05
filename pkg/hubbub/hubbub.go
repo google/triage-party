@@ -57,9 +57,6 @@ type Engine struct {
 
 	// indexes used for similarity matching
 	seen map[string]*Conversation
-
-	// are stale results acceptable?
-	acceptStaleResults bool
 }
 
 func New(cfg Config) *Engine {

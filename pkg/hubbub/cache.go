@@ -7,18 +7,8 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// Toggle acceptability of stale results, useful for bootstrapping
-func (e *Engine) AcceptStaleResults(b bool) {
-	klog.V(1).Infof("Setting stale results=%v", b)
-	e.acceptStaleResults = b
-}
-
 // FlushSearchCache invalidates the in-memory search cache
 func (h *Engine) FlushSearchCache(org string, project string, olderThan time.Time) error {
-	if h.acceptStaleResults {
-		return fmt.Errorf("stale results enabled, refusing to flush")
-	}
-
 	h.flushIssueSearchCache(org, project, olderThan)
 	h.flushPRSearchCache(org, project, olderThan)
 	return nil

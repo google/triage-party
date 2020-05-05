@@ -77,7 +77,6 @@ collections:
 
 The first rule, `discuss`, include all items labelled as `triage/discuss`, whether they are pull requests or issues, open or closed.
 
-
 ```yaml
 rules:
   discuss:
@@ -172,3 +171,17 @@ See [examples/minikube-deploy.sh](examples/minikube-deploy.sh)
 Kubernetes:
 
 See [examples/generic-kubernetes.yaml](examples/generic-kubernetes.yaml)
+
+## Configuring Persistence
+
+Triage Party uses an in-memory cache with an optional persistence layer to decrease the load on GitHub API. By default, Triage Party persists occasionally to disk, but it is configurable via:
+
+* Type: `--persist-backend` flag or `PERSIST_BACKEND` environment variable
+* Path: `--persist-path` flag or `PERSIST_PATH` environment flag.
+
+Examples:
+
+* **Custom disk path**: `--persist-path=/var/tmp/tp`
+* **MySQL**: `--persist-backend=mysql --persist-path="user:password@tcp(127.0.0.1:3306)/tp"`
+* **CloudSQL (MySQL)**: `--persist-backend=cloudsql --persist-path="user:password@tcp(project/us-central1/triage-party)/db"`
+  * May require configuring [GOOGLE_APPLICATION_CREDENTIALS](https://cloud.google.com/docs/authentication/getting-started)

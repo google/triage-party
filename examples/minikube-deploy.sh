@@ -31,7 +31,7 @@ readonly token="$(cat ${GITHUB_TOKEN_PATH})"
 gcloud beta run deploy "${SERVICE_NAME}" \
     --project "${PROJECT}" \
     --image "${IMAGE}" \
-    --set-env-vars="GITHUB_TOKEN=${token}" \
+    --set-env-vars="GITHUB_TOKEN=${token},PERSIST_BACKEND=cloudsql,PERSIST_PATH=tp:${DB_PASS}@tcp(k8s-minikube/us-central1/triage-party)/tp" \
     --allow-unauthenticated \
     --region us-central1 \
     --memory 384Mi \

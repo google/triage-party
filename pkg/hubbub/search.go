@@ -41,8 +41,9 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	var err error
 
 	orgCutoff := time.Now().Add(h.memberRefresh * -1)
-	if h.acceptStaleResults {
-		orgCutoff = time.Time{}
+	if orgCutoff.After(newerThan) {
+		klog.Infof("Setting org cutoff to %s", newerThan)
+		orgCutoff = newerThan
 	}
 
 	wg.Add(1)

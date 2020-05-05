@@ -43,8 +43,6 @@ type Party struct {
 	rules         map[string]Rule
 	reposOverride []string
 	debugNumber   int
-
-	acceptStaleResults bool
 }
 
 func New(cfg Config) *Party {
@@ -223,10 +221,4 @@ func processRules(raw map[string]Rule) (map[string]Rule, error) {
 	}
 
 	return rules, nil
-}
-
-// Toggle acceptability of stale results, useful for bootstrapping
-func (p *Party) AcceptStaleResults(b bool) {
-	p.acceptStaleResults = b
-	p.engine.AcceptStaleResults(b)
 }
