@@ -59,6 +59,8 @@ func New(cfg Config) (Cacher, error) {
 		return NewMySQL(cfg)
 	case "cloudsql":
 		return NewCloudSQL(cfg)
+	case "postgres":
+		return NewPostgres(cfg)
 	case "disk", "":
 		return NewDisk(cfg)
 	case "memory":

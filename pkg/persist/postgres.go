@@ -22,42 +22,36 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"github.com/patrickmn/go-cache"
-	"k8s.io/klog/v2"
+	"k8s.io/klog"
 )
 
-var mysqlSchema = `
+var pgSchema = `
 CREATE TABLE IF NOT EXISTS persist (
-	id INT AUTO_INCREMENT PRIMARY KEY,
+	id SERIAL PRIMARY KEY,
 	saved TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-	k VARCHAR(255) NOT NULL,
-	v MEDIUMBLOB,
-	UNIQUE KEY unique_k (k),
-	INDEX saved_idx (saved)
-);`
+	k VARCHAR UNIQUE,
+	v BYTEA
+);
 
-// sqlItem maps to schema
-type sqlItem struct {
-	ID    int64     `db:"id"`
-	Saved time.Time `db:"saved"`
-	Key   string    `db:"k"`
-	Value []byte    `db:"v"`
-}
+CREATE INDEX IF NOT EXISTS saved_idx ON persist (saved);
+`
 
-type MySQL struct {
+type Postgres struct {
 	cache *cache.Cache
 	db    *sqlx.DB
 	path  string
 }
 
-// NewMySQL returns a new MySQL cache
-func NewMySQL(cfg Config) (*MySQL, error) {
-	dbx, err := sqlx.Connect("mysql", cfg.Path+"?parseTime=true")
+// NewPostgres returns a new Postgres cache
+func NewPostgres(cfg Config) (*Postgres, error) {
+	dbx, err := sqlx.Connect("postgres", cfg.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	m := &MySQL{
+	m := &Postgres{
 		db:   dbx,
 		path: cfg.Path,
 	}
@@ -65,12 +59,13 @@ func NewMySQL(cfg Config) (*MySQL, error) {
 	return m, nil
 }
 
-func (m *MySQL) String() string {
-	return fmt.Sprintf("mysql://%s", m.path)
+func (m *Postgres) String() string {
+	return fmt.Sprintf("postgres://%s", m.path)
 }
 
-func (m *MySQL) Initialize() error {
-	if _, err := m.db.Exec(mysqlSchema); err != nil {
+func (m *Postgres) Initialize() error {
+	klog.Infof("schema: %s", pgSchema)
+	if _, err := m.db.Exec(pgSchema); err != nil {
 		return fmt.Errorf("exec schema: %w", err)
 	}
 
@@ -81,7 +76,7 @@ func (m *MySQL) Initialize() error {
 	return nil
 }
 
-func (m *MySQL) loadItems() error {
+func (m *Postgres) loadItems() error {
 	klog.Infof("loading items from persist table ...")
 	rows, err := m.db.Queryx(`SELECT * FROM persist`)
 	if err != nil {
@@ -105,35 +100,35 @@ func (m *MySQL) loadItems() error {
 		decoded[mi.Key] = item
 	}
 
-	klog.Infof("%d items loaded from MySQL", len(decoded))
+	klog.Infof("%d items loaded from Postgres", len(decoded))
 	m.cache = loadMem(decoded)
 	return nil
 }
 
 // Set stores a thing
-func (m *MySQL) Set(key string, th *Thing) error {
+func (m *Postgres) Set(key string, th *Thing) error {
 	setMem(m.cache, key, th)
 	return nil
 }
 
 // DeleteOlderThan deletes a thing older than a timestamp
-func (m *MySQL) DeleteOlderThan(key string, t time.Time) error {
+func (m *Postgres) DeleteOlderThan(key string, t time.Time) error {
 	deleteOlderMem(m.cache, key, t)
 	return nil
 }
 
 // GetNewerThan returns a Item older than a timestamp
-func (m *MySQL) GetNewerThan(key string, t time.Time) *Thing {
+func (m *Postgres) GetNewerThan(key string, t time.Time) *Thing {
 	return newerThanMem(m.cache, key, t)
 }
 
-func (m *MySQL) Save() error {
+func (m *Postgres) Save() error {
 	start := time.Now()
 	items := m.cache.Items()
 
-	klog.Infof("*** Saving %d items to MySQL", len(items))
+	klog.Infof("*** Saving %d items to Postgres", len(items))
 	defer func() {
-		klog.Infof("*** mysql.Save took %s", time.Since(start))
+		klog.Infof("*** Postgres.Save took %s", time.Since(start))
 	}()
 
 	for k, v := range items {
@@ -144,8 +139,9 @@ func (m *MySQL) Save() error {
 		}
 
 		if _, err := m.db.Exec(`
-			INSERT INTO persist (k, v, saved) VALUES (?, ?, ?)
-			ON DUPLICATE KEY UPDATE k=VALUES(k), v=VALUES(v)`,
+			INSERT INTO persist (k, v, saved) VALUES ($1, $2, $3)
+			ON CONFLICT (k)
+			DO UPDATE SET v=EXCLUDED.v, saved=EXCLUDED.saved`,
 			k, b.Bytes(), start); err != nil {
 			return fmt.Errorf("sql exec: %v (len=%d)", err, len(b.Bytes()))
 		}
@@ -155,8 +151,8 @@ func (m *MySQL) Save() error {
 }
 
 // Cleanup deletes older cache items
-func (m *MySQL) cleanup(t time.Time) error {
-	res, err := m.db.Exec(`DELETE FROM persist WHERE saved < ?`, t)
+func (m *Postgres) cleanup(t time.Time) error {
+	res, err := m.db.Exec(`DELETE FROM persist WHERE saved < $1`, t)
 
 	if err != nil {
 		return fmt.Errorf("delete exec: %w", err)
