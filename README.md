@@ -54,9 +54,9 @@ go run cmd/server/main.go \
   --repos kubernetes/sig-release
 ```
 
-The first time a new repository is used, it will require some time (~45s in this case) to download the necessary data before minikube will render pages.
+You will now see a constant stream of output as Triage Party is pulling content from GitHub. The first time a new repository is used, it will require some time (~45s in this case) to download the necessary data before minikube will render pages.
 
-While Triage Party is busy downloading from GitHub, visit [http://localhost:8080/](http://localhost:8080/). The page load will block until the initial required data is available, but will render all future page loads from memory (~5ms).
+The site is now available at [http://localhost:8080/](http://localhost:8080/), but will initially block page loads until content has been locally cached. After the first run, pages are rendered from memory within ~5ms.
 
 ## Usage Tips
 
@@ -72,12 +72,10 @@ Triage Party can be configured to accept any triage workflow you can imagine. He
 
 ## Configuration
 
-See the [docs/config.md](configuration guide).
-
-Spoiler alert: it's YAML.
+YAML-based. See the [configuration guide](docs/config.md).
 
 ## Deployments
 
 Triage Party can be deployed on anything from [Google Cloud Run](https://cloud.google.com/run) to [https://kubernetes.io/](Kubernetes), or even a [Raspberry Pi](https://www.raspberrypi.org/) running [https://www.netbsd.org/](NetBSD).
 
-See the [docs/deploy.md](deployment guide) for more information.
+See the [deployment guide](docs/deploy.md) for more information.
