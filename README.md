@@ -22,7 +22,7 @@ Triage Party is a stateless Go web application, configured via YAML. While it ha
   * duplicate detection
   * ... and more!
 * Multi-player mode: Supports up to 20 simultaneous players in group triage
-* Easily open groups of issues into browser tabs (must allow pop-ups)
+* Easily open an entire group of issues into browser tabs (must accept pop-up dialog)
 * Queries across multiple repositories
 * "Shift-Reload" for live data pull
 
@@ -36,152 +36,48 @@ See these fine examples in the wild:
 
 ## Requirements
 
-* [GitHub API token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
+* [GitHub API token with read access](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
 * Go v1.14 or higher
 
-## Try it locally
+## Try it!
 
-See what Triage Party would look like for an arbitrary repository:
+Store a GitHub token some place on disk:
+
+`echo YOUR_GENERATED_TOKEN > $HOME/.github-token`
+
+Run:
 
 ```shell
 go run cmd/server/main.go \
-  --github-token-file=<path to a file containing your github token> \
+  --github-token-file=$HOME/.github-token \
   --config examples/generic-kubernetes.yaml \
   --repos kubernetes/sig-release
 ```
 
-Then visit [http://localhost:8080/](http://localhost:8080/)
+The first time a new repository is used, it will require some time (~45s in this case) to download the necessary data before minikube will render pages.
 
-The first time you run Triage Party against a new repository, there will be a long delay as it will download data from GitHub. This data will be cached for subsequent runs. We're working to improve this latency.
+While Triage Party is busy downloading from GitHub, visit [http://localhost:8080/](http://localhost:8080/). The page load will block until the initial required data is available, but will render all future page loads from memory (~5ms).
+
+## Usage Tips
+
+Triage Party can be configured to accept any triage workflow you can imagine. Here are some tips:
+
+* Use the drop-down labelled `Solo` on the top-right to enable multi-player mode
+* Use the blue `box with arrow` icon to open issues/pull requests into a new tab
+  * The first time you click this, your browser will block pop-ups!
+  * The notification to allow-popups may be hidden in the URL bar.
+* Rules work best when there is a documented resolution to remove it from the list
+* Pages work best if the process is defined so that the page is empty when triage is complete
+* If an non-actionable issue is shown as part of a daily or weekly triage, step back to tune your rules and/or define an appropriate resolution.
 
 ## Configuration
 
-### Creating a Github token file
+See the [docs/config.md](configuration guide).
 
-1. Create a GitHub token: https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line
-2. Store token by pasting it into a text-file:
-`echo YOUR_GENERATED_TOKEN > /path/to/file`
+Spoiler alert: it's YAML.
 
-### Configuring collections and rules
+## Deployments
 
-Each page within Triage Party is represented by a `collection`. Each collection references a list of `rules` that can be shared across collections. Here is a simple collection, which creates a page named `I like soup!`, containing two rules:
+Triage Party can be deployed on anything from [Google Cloud Run](https://cloud.google.com/run) to [https://kubernetes.io/](Kubernetes), or even a [Raspberry Pi](https://www.raspberrypi.org/) running [https://www.netbsd.org/](NetBSD).
 
-```yaml
-collections:
-  - id: soup
-    name: I like soup!
-    rules:
-      - discuss
-      - many-reactions
-```
-
-The first rule, `discuss`, include all items labelled as `triage/discuss`, whether they are pull requests or issues, open or closed.
-
-```yaml
-rules:
-  discuss:
-    name: "Items for discussion"
-    resolution: "Discuss and remove label"
-    filters:
-      - label: triage/discuss
-      - state: "all"
-```
-
-The second rule, `many-reactions`, is more fine-grained. It is only focused on issues that have seen more than 3 comments, with an average of over 1 reaction per month, is not prioritized highly, and has not seen a response by a member of the project within 2 months:
-
-``` yaml
-  many-reactions:
-    name: "many reactions, low priority, no recent comment"
-    resolution: "Bump the priority, add a comment"
-    type: issue
-    filters:
-      - reactions: ">3"
-      - reactions-per-month: ">1"
-      - label: "!priority/p0"
-      - label: "!priority/p1"
-      - responded: +60d
-```
-
-For full example configurations, see `examples/*.yaml`. There are two that are particularly useful to get started:
-
-* [generic-project](examples/generic-project.yaml): uses label regular expressions that work for most GitHub projects
-* [generic-kubernetes](examples/generic-project.yaml): for projects that use Kubernetes-style labels, particularly  prioritization
-
-## Filter language
-
-```yaml
-# issue state (default is "open")
-- state:(open|closed|all)
-
-# GitHub label
-- label: [!]regex
-
-# Issue or PR title
-- title: [!]regex
-
-# Internal tagging: particularly useful tags are:
-# - recv: updated by author more recently than a project member
-# - recv-q: updated by author with a question
-# - send: updated by a project member more recently than the author
-- tag: [!]regex
-
-# GitHub milestone
-- milestone: string
-
-# Duration since item was created
-- created: [-+]duration   # example: +30d
-# Duration since item was updated
-- updated: [-+]duration
-# Duration since item was responded to by a project member
-- responded: [-+]duration
-
-# Number of reactions this item has received
-- reactions: [><=]int  # example: +5
-# Number of reactions per month on average
-- reactions-per-month: [><=]float
-
-# Number of comments this item has received
-- comments: [><=]int
-# Number of comments per month on average
-- comments-per-month: [><=]int
-# Number of comments this item has received while closed!
-- comments-while-closed: [><=]int
-
-# Number of commenters on this item
-- commenters: [><=]int
-# Number of commenters who have interactive with this item while closed
-- commenters-while-closed: [><=]int
-# Number of commenters tthis item has had per month on average
-- commenters-per-month: [><=]float
-```
-
-## Deploying Triage Party
-
-Docker:
-
-```shell
-docker build --tag=tp --build-arg CFG=examples/generic-project.yaml .
-docker run -e GITHUB_TOKEN=<your token> -p 8080:8080 tp
-```
-
-Cloud Run:
-
-See [examples/minikube-deploy.sh](examples/minikube-deploy.sh)
-
-Kubernetes:
-
-See [examples/generic-kubernetes.yaml](examples/generic-kubernetes.yaml)
-
-## Configuring Persistence
-
-Triage Party uses an in-memory cache with an optional persistence layer to decrease the load on GitHub API. By default, Triage Party persists occasionally to disk, but it is configurable via:
-
-* Type: `--persist-backend` flag or `PERSIST_BACKEND` environment variable
-* Path: `--persist-path` flag or `PERSIST_PATH` environment flag.
-
-Examples:
-
-* **Custom disk path**: `--persist-path=/var/tmp/tp`
-* **MySQL**: `--persist-backend=mysql --persist-path="user:password@tcp(127.0.0.1:3306)/tp"`
-* **CloudSQL (MySQL)**: `--persist-backend=cloudsql --persist-path="user:password@tcp(project/us-central1/triage-party)/db"`
-  * May require configuring [GOOGLE_APPLICATION_CREDENTIALS](https://cloud.google.com/docs/authentication/getting-started)
+See the [docs/deploy.md](deployment guide) for more information.
