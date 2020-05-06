@@ -4,8 +4,8 @@
 
 Triage Party includes with two example configurations that are useful to get started:
 
-* [generic-project](examples/generic-project.yaml): uses label regular expressions that work for most GitHub projects
-* [generic-kubernetes](examples/generic-project.yaml): for projects that use Kubernetes-style labels, particularly prioritization
+* [generic-project](../examples/generic-project.yaml): uses label regular expressions that work for most GitHub projects
+* [generic-kubernetes](../examples/generic-project.yaml): for projects that use Kubernetes-style labels, particularly prioritization
 
 ## Collections
 
