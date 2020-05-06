@@ -37,7 +37,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/go-github/v31/github"
 	"golang.org/x/oauth2"
 	"k8s.io/klog/v2"
 
@@ -48,6 +47,9 @@ import (
 )
 
 var (
+	// custom GitHub API URLs
+	githubAPIRawURL = flag.String("github-api-url", "", "GitHub API url to connect.  Please set this when you use GitHub Enterprise. This often is your GitHub Enterprise hostname. If the URL does not have the suffix \"/api/v3/\", it will be added automatically.")
+
 	// shared with tester
 	configPath     = flag.String("config", "", "configuration path")
 	persistBackend = flag.String("persist-backend", "", "Cache persistence backend (disk, mysql, cloudsql)")
@@ -78,7 +80,7 @@ func main() {
 
 	ctx := context.Background()
 
-	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(
+	client := triage.MustCreateGithubClient(*githubAPIRawURL, oauth2.NewClient(ctx, oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: triage.MustReadToken(*githubTokenFile, "GITHUB_TOKEN")},
 	)))
 
