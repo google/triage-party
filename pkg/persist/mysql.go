@@ -130,11 +130,7 @@ func (m *MySQL) GetNewerThan(key string, t time.Time) *Thing {
 func (m *MySQL) Save() error {
 	start := time.Now()
 	items := m.cache.Items()
-
 	klog.Infof("*** Saving %d items to MySQL", len(items))
-	defer func() {
-		klog.Infof("*** mysql.Save took %s", time.Since(start))
-	}()
 
 	for k, v := range items {
 		b := new(bytes.Buffer)
