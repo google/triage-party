@@ -38,9 +38,19 @@ Triage Party uses an in-memory cache with an optional persistence layer to decre
 * Type: `--persist-backend` flag or `PERSIST_BACKEND` environment variable
 * Path: `--persist-path` flag or `PERSIST_PATH` environment flag.
 
+Supported persistence backends include:
+
+* `disk`
+* `mem`
+* `mysql` (also supports MariaDB)
+* `cloudsql` (using MySQL)
+* `postgres` (supports PostgreSQL or CockroachDB)
+
 Examples:
 
 * **Custom disk path**: `--persist-path=/var/tmp/tp`
 * **MySQL**: `--persist-backend=mysql --persist-path="user:password@tcp(127.0.0.1:3306)/tp"`
 * **CloudSQL (MySQL)**: `--persist-backend=cloudsql --persist-path="user:password@tcp(project/us-central1/triage-party)/db"`
   * May require configuring [GOOGLE_APPLICATION_CREDENTIALS](https://cloud.google.com/docs/authentication/getting-started)
+* **PostgreSQL**: `--persist-backend=postgres --persist-path="dbname=tp"`
+* **CockroachDB**: `--persist-backend=postgres postgresql://root@127.0.0.1:26257?sslmode=disable`
