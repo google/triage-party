@@ -44,14 +44,20 @@ type Conversation struct {
 	// Latest comment or event
 	Updated time.Time `json:"updated"`
 
+	// When did this item reach the current priority?
+	Prioritized time.Time `json:"prioritized"`
+
 	SelfInflicted bool `json:"self_inflicted"`
 
 	Mergeable bool `json:"mergeable"`
 
-	LatestAuthorResponse time.Time     `json:"latest_author_response"`
-	LatestMemberResponse time.Time     `json:"latest_member_response"`
-	AccumulatedHoldTime  time.Duration `json:"accumulated_hold_time"`
-	CurrentHoldTime      time.Duration `json:"current_hold_time"`
+	LatestAuthorResponse time.Time `json:"latest_author_response"`
+	LatestMemberResponse time.Time `json:"latest_member_response"`
+	LatestCommit         time.Time `json:"latest_commit"`
+	LatestReview         time.Time `json:"latest_review"`
+
+	AccumulatedHoldTime time.Duration `json:"accumulated_hold_time"`
+	CurrentHoldTime     time.Duration `json:"current_hold_time"`
 
 	Assignees []*github.User  `json:"assignees"`
 	Labels    []*github.Label `json:"labels"`

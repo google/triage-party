@@ -74,6 +74,8 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+
+		// TODO: only fetch if a filter seems like it requires closed issues
 		closed, err = h.cachedIssues(ctx, org, project, "closed", closedIssueDays, newerThan)
 		if err != nil {
 			klog.Errorf("closed issues: %v", err)
@@ -138,14 +140,29 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		co.Labels = labels
 		h.seen[co.URL] = co
 
-		if !postFetchMatch(co, fs) {
-			klog.V(1).Infof("#%d - %q did not match conversation filter: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
-			continue
-		}
-
 		co.Similar = h.FindSimilar(co)
 		if len(co.Similar) > 0 {
 			co.Tags = append(co.Tags, Tag{ID: "similar", Description: "Title appears similar to another PR or issue"})
+		}
+
+		if !postFetchMatch(co, fs) {
+			klog.V(1).Infof("#%d - %q did not match post-fetch filter: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
+			continue
+		}
+
+		if needsEvents(fs) {
+			timeline, err := h.cachedTimeline(ctx, org, project, i.GetNumber(), newerThan)
+			if err != nil {
+				klog.Errorf("timeline: %v", err)
+				continue
+			}
+
+			h.addEvents(co, timeline)
+
+			if !postEventsMatch(co, fs) {
+				klog.V(1).Infof("#%d - %q did not match post-events filter: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
+				continue
+			}
 		}
 
 		filtered = append(filtered, co)
@@ -153,6 +170,16 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 	klog.V(1).Infof("%d of %d issues within %s/%s matched filters %s", len(filtered), len(is), org, project, toYAML(fs))
 	return filtered, latest, nil
+}
+
+// needsEvents returns whether the set of filters needs events data
+func needsEvents(fs []Filter) bool {
+	for _, f := range fs {
+		if f.Prioritized != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *Engine) SearchPullRequests(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time) ([]*Conversation, time.Time, error) {
@@ -229,7 +256,16 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 			klog.Infof("skipping comment download for #%d - not updated", pr.GetNumber())
 		}
 
-		co := h.PRSummary(pr, comments)
+		timeline, err := h.cachedTimeline(ctx, org, project, pr.GetNumber(), newerThan)
+		if err != nil {
+			klog.Errorf("timeline: %v", err)
+			continue
+		}
+		if pr.GetNumber() == h.debugNumber {
+			klog.Errorf("*** Debug PR timeline #%d:\n%s", pr.GetNumber(), formatStruct(timeline))
+		}
+
+		co := h.PRSummary(pr, comments, timeline)
 		co.Labels = pr.Labels
 		co.Similar = h.FindSimilar(co)
 		if len(co.Similar) > 0 {
@@ -237,9 +273,13 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		}
 
 		h.seen[co.URL] = co
-
 		if !postFetchMatch(co, fs) {
 			klog.V(4).Infof("PR #%d did not pass postFetchMatch with filter: %v", pr.GetNumber(), fs)
+			continue
+		}
+
+		if !postEventsMatch(co, fs) {
+			klog.V(1).Infof("#%d - %q did not match post-events filter: %s", pr.GetNumber(), pr.GetTitle(), toYAML(fs))
 			continue
 		}
 

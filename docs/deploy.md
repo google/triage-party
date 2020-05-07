@@ -11,7 +11,12 @@ docker run -e GITHUB_TOKEN=<your token> -p 8080:8080 tp
 
 ### Google Cloud Run
 
-Triage Party was designed to run great with Google Cloud Run. Once a container is built, you can deploy it using the UI, or via gcloud. As Cloud Run aggressively spins down idle containers and provides no persistant storage, it is highly recommended to persist cache to an external database. Here is an example for persisting to Cloud SQL:
+Triage Party was designed to run with Google Cloud Run. That said, Google Cloud Run agressively spins down containers which are not serving incoming requests, which means:
+
+* Results may sometimes be stale (a warning will be shown in the UI)
+* For faster start-up, you'll want to configure an external persistent cache, such as Cloud SQL
+
+Here is a command-line example that deploys to Cloud Run with Cloud SQL persistence:
 
 ```shell
 gcloud beta run deploy "${SERVICE_NAME}" \
@@ -29,7 +34,7 @@ For a real-world example deployment script, see [examples/minikube-deploy.sh](ex
 
 See [examples/generic-kubernetes.yaml](examples/generic-kubernetes.yaml)
 
-For mid-to-large repositories, you will want to persist cache to a PersistentVolume or external database in case a pod is rescheduled.
+For faster start-up, you will want to persist cache externally to a PersistentVolume or database in case a pod is rescheduled.
 
 ## Configuring Persistence
 

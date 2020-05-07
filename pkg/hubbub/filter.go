@@ -46,6 +46,7 @@ type Filter struct {
 
 	Created            string `yaml:"created,omitempty"`
 	Updated            string `yaml:"updated,omitempty"`
+	Prioritized        string `yaml:"prioritized,omitempty"`
 	Responded          string `yaml:"responded,omitempty"`
 	Reactions          string `yaml:"reactions,omitempty"`
 	ReactionsPerMonth  string `yaml:"reactions-per-month,omitempty"`

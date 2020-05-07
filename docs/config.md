@@ -70,12 +70,14 @@ The second rule, `many-reactions`, is more fine-grained. It is only focused on i
 # GitHub milestone
 - milestone: string
 
-# Duration since item was created
+# Elapsed time since item was created
 - created: [-+]duration   # example: +30d
-# Duration since item was updated
+# Elapsed time since item was updated
 - updated: [-+]duration
-# Duration since item was responded to by a project member
+# Elapsed time since item was responded to by a project member
 - responded: [-+]duration
+# Elapsed time since item was given the current priority
+- prioritized: [-+]duration
 
 # Number of reactions this item has received
 - reactions: [><=]int  # example: +5
@@ -109,3 +111,4 @@ Triage Party has an automatic tagging mechanism that adds annotations which can 
 * `author-last`: the original author was the last commenter
 * `closed`: the issue or PR has been closed
 * `similar`: the issue or PR appears to be similar to another
+* `new-commits`: the PR has new commits since the last member response

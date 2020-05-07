@@ -98,7 +98,7 @@ func preFetchMatch(i GitHubItem, labels []*github.Label, fs []Filter) bool {
 // Check if an issue matches the summarized version
 func postFetchMatch(co *Conversation, fs []Filter) bool {
 	for _, f := range fs {
-		klog.V(2).Infof("post-matching item #%d against filter: %+v", co.ID, toYAML(f))
+		klog.V(2).Infof("post-fetch matching item #%d against filter: %+v", co.ID, toYAML(f))
 
 		if f.TagRegex() != nil {
 			if ok := matchTag(co.Tags, f.TagRegex(), f.TagNegate()); !ok {
@@ -159,6 +159,19 @@ func postFetchMatch(co *Conversation, fs []Filter) bool {
 			}
 		}
 
+	}
+	return true
+}
+
+// Check if an issue matches the summarized version, after events have been loaded
+func postEventsMatch(co *Conversation, fs []Filter) bool {
+	for _, f := range fs {
+		if f.Prioritized != "" {
+			if ok := matchDuration(co.Prioritized, f.Prioritized); !ok {
+				klog.V(4).Infof("#%d did not pass prioritized duration: %s vs %s", co.ID, co.LatestMemberResponse, f.Prioritized)
+				return false
+			}
+		}
 	}
 	return true
 }

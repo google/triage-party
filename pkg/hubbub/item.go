@@ -155,6 +155,25 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike, authorIsMember boo
 	return co
 }
 
+// Add events to the conversation summary if useful
+func (h *Engine) addEvents(co *Conversation, timeline []*github.Timeline) {
+	priority := ""
+	for _, l := range co.Labels {
+		if strings.HasPrefix(l.GetName(), "priority") {
+			klog.V(1).Infof("found priority: %s", l.GetName())
+			priority = l.GetName()
+			break
+		}
+	}
+
+	for _, t := range timeline {
+		if t.GetEvent() == "labeled" && t.GetLabel().GetName() == priority {
+			klog.Infof("prioritized at %s", t.GetCreatedAt())
+			co.Prioritized = t.GetCreatedAt()
+		}
+	}
+}
+
 func commentedTag() Tag {
 	return Tag{
 		ID:          "commented",
