@@ -2,7 +2,6 @@ package hubbub
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -56,9 +55,9 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike, authorIsMember boo
 	}
 
 	lastQuestion := time.Time{}
-	tags := map[string]bool{}
 	seenCommenters := map[string]bool{}
 	seenClosedCommenters := map[string]bool{}
+	seenMemberComment := false
 
 	for _, c := range cs {
 		// We don't like their kind around here
@@ -88,7 +87,10 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike, authorIsMember boo
 				co.AccumulatedHoldTime += c.GetCreatedAt().Sub(co.LatestAuthorResponse)
 			}
 			co.LatestMemberResponse = c.GetCreatedAt()
-			tags["commented"] = true
+			if !seenMemberComment {
+				co.Tags = append(co.Tags, commentedTag())
+				seenMemberComment = true
+			}
 		}
 
 		if strings.Contains(c.GetBody(), "?") {
@@ -110,16 +112,16 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike, authorIsMember boo
 	}
 
 	if co.LatestMemberResponse.After(co.LatestAuthorResponse) {
-		tags["send"] = true
+		co.Tags = append(co.Tags, sendTag())
 		co.CurrentHoldTime = 0
 	} else if !authorIsMember {
-		tags["recv"] = true
+		co.Tags = append(co.Tags, recvTag())
 		co.CurrentHoldTime += time.Since(co.LatestAuthorResponse)
 		co.AccumulatedHoldTime += time.Since(co.LatestAuthorResponse)
 	}
 
 	if lastQuestion.After(co.LatestMemberResponse) {
-		tags["recv-q"] = true
+		co.Tags = append(co.Tags, recvQTag())
 	}
 
 	if len(cs) > 0 {
@@ -127,24 +129,18 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike, authorIsMember boo
 		assoc := strings.ToLower(last.GetAuthorAssociation())
 		if assoc == "none" {
 			if last.GetUser().GetLogin() == i.GetUser().GetLogin() {
-				tags["author-last"] = true
-			} else {
-				tags["other-last"] = true
+				co.Tags = append(co.Tags, authorLast())
 			}
 		} else {
-			tags[fmt.Sprintf("%s-last", assoc)] = true
+			co.Tags = append(co.Tags, assocLast(assoc))
 		}
 		co.Updated = last.GetUpdatedAt()
 	}
 
 	if co.State == "closed" {
-		tags["closed"] = true
+		co.Tags = append(co.Tags, closedTag())
 	}
 
-	for k := range tags {
-		co.Tags = append(co.Tags, k)
-	}
-	sort.Strings(co.Tags)
 	co.CommentersTotal = len(seenCommenters)
 	co.ClosedCommentersTotal = len(seenClosedCommenters)
 
@@ -157,4 +153,53 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike, authorIsMember boo
 	co.CommentersPerMonth = float64(co.CommentersTotal) / float64(months)
 	co.ReactionsPerMonth = float64(co.ReactionsTotal) / float64(months)
 	return co
+}
+
+func commentedTag() Tag {
+	return Tag{
+		ID:          "commented",
+		Description: "A project member has commented on this",
+	}
+}
+
+func sendTag() Tag {
+	return Tag{
+		ID:          "send",
+		Description: "A project member commented more recently than the author",
+	}
+}
+
+func recvTag() Tag {
+	return Tag{
+		ID:          "recv",
+		Description: "The author commented more recently than a project member",
+	}
+}
+
+func recvQTag() Tag {
+	return Tag{
+		ID:          "recv-q",
+		Description: "The author has asked a question since the last project member commented",
+	}
+}
+
+func authorLast() Tag {
+	return Tag{
+		ID:          "author-last",
+		Description: "The last commenter was the original author",
+	}
+}
+
+func assocLast(role string) Tag {
+	return Tag{
+		ID:          fmt.Sprintf("%s-last", role),
+		Description: fmt.Sprintf("The last commenter was a project %s", role),
+	}
+}
+
+func closedTag() Tag {
+	return Tag{
+		ID:          "closed",
+		Description: "This item has been closed",
+	}
 }

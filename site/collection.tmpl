@@ -109,7 +109,7 @@
               <a href="{{ .URL }}" title="{{ .LastCommentBody }}"><strong>{{ .Title }}</strong></a>
               {{ if .Similar }}<div class="similar"><ul>
               {{ range .Similar }}
-                <li><a href="{{ .URL }}" title="Issue title is similar to #{{ .ID }}">#{{ .ID }} &mdash; {{ .Title }}</a></li>
+                <li><a href="{{ .URL }}" title="Title is similar to #{{ .ID }}">Similar to {{ if eq .Type "pull_request" }}PR{{ end }}#{{ .ID }}: {{ .Title }}</a></li>
               {{ end }}
               </div>
               {{ end }}
@@ -132,17 +132,18 @@
               {{ end }}
             </td>
             <td class="cell-tags">
-              {{ range .Tags }}<div class="gh-tag tag-{{ . }}">{{ . }}</div> {{ end }}
+              {{ range .Tags }}<div class="gh-tag tag-{{ .ID }}" title="{{ .Description }}">{{ .ID }}</div> {{ end }}
             </td>
           </tr>
           {{ end }}
         {{ end }}
         {{ if gt .Duplicates 2 }}
           <tr class="dupes"><td colspan="12">{{ .Duplicates }} previously listed 
-          {{ if eq .Duplicates 1 }}item{{ else }}items{{ end }} are hidden from this table:
-          {{ range .Items }}
-            {{ if .Hidden }}
-              <a href="{{ .URL }}" title="{{ .Title }}">#{{ .ID }}</a>
+          {{ if eq .Duplicates 1 }}item{{ else }}items{{ end }} omitted{{ if lt .Duplicates 20 }}:
+            {{ range .Items }}
+              {{ if .Hidden }}
+                <a href="{{ .URL }}" title="{{ .Title }}">#{{ .ID }}</a>
+              {{ end }}
             {{ end }}
           {{ end }}
           </td></tr>

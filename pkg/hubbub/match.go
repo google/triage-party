@@ -187,9 +187,9 @@ func matchNegateRegex(value string, re *regexp.Regexp, negate bool) bool {
 	return negate
 }
 
-func matchTag(tags []string, re *regexp.Regexp, negate bool) bool {
+func matchTag(tags []Tag, re *regexp.Regexp, negate bool) bool {
 	for _, s := range tags {
-		if re.MatchString(s) {
+		if re.MatchString(s.ID) {
 			return !negate
 		}
 	}

@@ -144,6 +144,9 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		}
 
 		co.Similar = h.FindSimilar(co)
+		if len(co.Similar) > 0 {
+			co.Tags = append(co.Tags, Tag{ID: "similar", Description: "Title appears similar to another PR or issue"})
+		}
 
 		filtered = append(filtered, co)
 	}
@@ -228,6 +231,11 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 
 		co := h.PRSummary(pr, comments)
 		co.Labels = pr.Labels
+		co.Similar = h.FindSimilar(co)
+		if len(co.Similar) > 0 {
+			co.Tags = append(co.Tags, Tag{ID: "similar", Description: "Title appears similar to another PR or issue"})
+		}
+
 		h.seen[co.URL] = co
 
 		if !postFetchMatch(co, fs) {

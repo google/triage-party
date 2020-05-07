@@ -107,5 +107,5 @@ Triage Party has an automatic tagging mechanism that adds annotations which can 
 * `recv-q`: the original author commented with a question more recently than a member of the project has commented (may be waiting on an answer from a project member)
 * `member-last`: a member of the organization was the last commenter
 * `author-last`: the original author was the last commenter
-* `other-last`: an unrelated individual was the last commenter
 * `closed`: the issue or PR has been closed
+* `similar`: the issue or PR appears to be similar to another

@@ -170,7 +170,7 @@ func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 
 		oco := h.seen[url]
 		if oco == nil {
-			klog.Warningf("find similar: no conversation found for %s", url)
+			klog.V(1).Infof("find similar: no conversation found for %s -- must have been filtered out", url)
 			continue
 		}
 		klog.V(2).Infof("found %s: %q", url, oco.Title)
