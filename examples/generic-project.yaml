@@ -14,7 +14,7 @@
 
 settings:
   name: generic
-  min_similarity: 0.7
+  min_similarity: 0.75
   repos:
     -  https://github.com/photoprism/photoprism
 
