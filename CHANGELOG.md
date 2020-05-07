@@ -1,5 +1,14 @@
 # Release Notes
 
+## Version 1.0.0-beta.3 - 2020-05-06
+
+* Add 'postgres' persistence backend for PostgreSQL & CockroachDB [#65](https://github.com/google/triage-party/pull/65)
+* Improve examples: tighten similarity, fix yaml errors [#70](https://github.com/google/triage-party/pull/70)
+* UI: add titles to tags, improve similarity/omit display [#68](https://github.com/google/triage-party/pull/68)
+* Improve refresh performance through better caching  [#67](https://github.com/google/triage-party/pull/67)
+* Improve similarity scoring by removing junk words [#66](https://github.com/google/triage-party/pull/66)
+* Separate persist loop from content update loop [#60](https://github.com/google/triage-party/pull/60)
+
 ## Version 1.0.0-beta.2 - 2020-05-05
 
 Improvements:
