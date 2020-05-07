@@ -47,4 +47,4 @@ COPY third_party /app/third_party/
 COPY $CFG /app/config.yaml
 
 # Run the server at a reasonable refresh rate
-CMD ["/app/main", "--min-refresh=25s", "--max-refresh=20m", "--config=/app/config.yaml", "--site=/app/site", "--3p=/app/third_party"]
+CMD ["/app/main", "--min-refresh=30s", "--max-refresh=7m30s", "--config=/app/config.yaml", "--site=/app/site", "--3p=/app/third_party"]

@@ -46,7 +46,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 	orgCutoff := time.Now().Add(h.memberRefresh * -1)
 	if orgCutoff.After(newerThan) {
-		klog.Infof("Setting org cutoff to %s", newerThan)
+		klog.V(1).Infof("Setting org cutoff to %s", newerThan)
 		orgCutoff = newerThan
 	}
 

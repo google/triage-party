@@ -2,47 +2,7 @@ package hubbub
 
 import (
 	"fmt"
-	"time"
-
-	"k8s.io/klog/v2"
 )
-
-// FlushSearchCache invalidates the in-memory search cache
-func (h *Engine) FlushSearchCache(org string, project string, olderThan time.Time) error {
-	h.flushIssueSearchCache(org, project, olderThan)
-	h.flushPRSearchCache(org, project, olderThan)
-	return nil
-}
-
-func (h *Engine) flushIssueSearchCache(org string, project string, olderThan time.Time) {
-	klog.Infof("flushIssues older than %s: %s/%s", olderThan, org, project)
-
-	keys := []string{
-		issueSearchKey(org, project, "open", 0),
-		issueSearchKey(org, project, "closed", closedIssueDays),
-	}
-
-	for _, key := range keys {
-		if err := h.cache.DeleteOlderThan(key, olderThan); err != nil {
-			klog.Warningf("delete %q: %v", key, err)
-		}
-	}
-}
-
-func (h *Engine) flushPRSearchCache(org string, project string, olderThan time.Time) {
-	klog.Infof("flushPRs older than %s: %s/%s", olderThan, org, project)
-
-	keys := []string{
-		issueSearchKey(org, project, "open", 0),
-		issueSearchKey(org, project, "closed", closedPRDays),
-	}
-
-	for _, key := range keys {
-		if err := h.cache.DeleteOlderThan(key, olderThan); err != nil {
-			klog.Warningf("delete %q: %v", key, err)
-		}
-	}
-}
 
 // issueSearchKey is the cache key used for issues
 func issueSearchKey(org string, project string, state string, days int) string {

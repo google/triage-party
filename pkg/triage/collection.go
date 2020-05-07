@@ -55,7 +55,7 @@ type CollectionResult struct {
 
 // ExecuteCollection executes a collection.
 func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan time.Time) (*CollectionResult, error) {
-	klog.Infof("> Executing collection %q: %s", s.ID, s.RuleIDs)
+	klog.V(1).Infof("executing collection %q: %s", s.ID, s.RuleIDs)
 	start := time.Now()
 
 	os := []*RuleResult{}
@@ -89,15 +89,14 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 	}
 
 	r := SummarizeCollectionResult(os)
+	r.Time = newerThan
 
-	// If we're starting from a stale cache, use the most recent underlying input
-	if newerThan.IsZero() {
+	// If we are lucky, our results may be newer than we asked for!
+	if latestInput.After(r.Time) {
 		r.Time = latestInput
-	} else {
-		r.Time = newerThan
 	}
 
-	klog.Infof("<<< Collection %q took %s to execute", s.ID, time.Since(start))
+	klog.V(1).Infof("collection %q took %s", s.ID, time.Since(start))
 	return r, nil
 }
 
@@ -135,36 +134,6 @@ func SummarizeCollectionResult(os []*RuleResult) *CollectionResult {
 
 func avgDayDuration(total float64, count int) time.Duration {
 	return time.Duration(int64(total/float64(count)*24)) * time.Hour
-}
-
-// Flush the search cache for a collection
-func (p *Party) FlushSearchCache(id string, olderThan time.Time) error {
-	s, err := p.LookupCollection(id)
-	if err != nil {
-		return err
-	}
-
-	flushed := map[string]bool{}
-	for _, tid := range s.RuleIDs {
-		t, err := p.LookupRule(tid)
-		if err != nil {
-			return err
-		}
-		for _, r := range t.Repos {
-			if !flushed[r] {
-				klog.Infof("Flushing search cache for %s ...", r)
-				org, project, err := parseRepo(r)
-				if err != nil {
-					return err
-				}
-				if err := p.engine.FlushSearchCache(org, project, olderThan); err != nil {
-					klog.Warningf("flush for %s/%s: %v", org, project, err)
-				}
-				flushed[r] = true
-			}
-		}
-	}
-	return nil
 }
 
 // ListCollections a fully resolved collections
