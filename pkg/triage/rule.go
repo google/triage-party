@@ -106,7 +106,7 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 
 // ExecuteRule executes a rule. seen is optional.
 func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, newerThan time.Time) (*RuleResult, error) {
-	klog.Infof("executing rule %q for results newer than %s", t.ID, logu.STime(newerThan))
+	klog.V(1).Infof("executing rule %q for results newer than %s", t.ID, logu.STime(newerThan))
 	rcs := []*hubbub.Conversation{}
 	var latest time.Time
 

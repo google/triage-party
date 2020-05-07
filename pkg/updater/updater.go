@@ -90,7 +90,7 @@ func (u *Updater) Lookup(ctx context.Context, id string, blocking bool) *triage.
 	if r == nil {
 		if blocking {
 			klog.Warningf("%s is not available in the cache, blocking page load!", id)
-			if _, err := u.RunSingle(ctx, id, true); err != nil {
+			if _, err := u.RefreshCollection(ctx, id, time.Time{}, true); err != nil {
 				klog.Errorf("unable to run %s: %v", id, err)
 			}
 		} else {
@@ -111,12 +111,12 @@ func (u *Updater) ForceRefresh(ctx context.Context, id string) *triage.Collectio
 	}
 
 	start := time.Now()
-	klog.Infof("Forcing refresh for %s", id)
-	if err := u.party.FlushSearchCache(id, time.Now().Add(minFlushAge*-1)); err != nil {
-		klog.Errorf("unable to flush cache: %v", err)
-	}
 
-	if _, err := u.RunSingle(ctx, id, true); err != nil {
+	// At the risk of ignoring the user, this seems like a reasonable delta
+	newerThan := start.Add(-1 * time.Second)
+
+	klog.Infof("Forcing %s to refresh with data from %s or newer", id, newerThan)
+	if _, err := u.RefreshCollection(ctx, id, newerThan, true); err != nil {
 		klog.Errorf("update failed: %v", err)
 	}
 	klog.Infof("refresh complete for %s after %s", id, time.Since(start))
@@ -132,7 +132,7 @@ func (u *Updater) shouldUpdate(id string, force bool) error {
 
 	resultAge := time.Since(result.Time)
 	if resultAge > u.maxRefresh {
-		return fmt.Errorf("%s at %s is older than max refresh age (%s), should update", id, result.Time, resultAge)
+		return fmt.Errorf("%s at %s is older than max refresh age (%s), should update", id, logu.STime(result.Time), resultAge)
 	}
 
 	if force {
@@ -192,28 +192,21 @@ func (u *Updater) secondLastRequested(id string) time.Time {
 	return lr
 }
 
-func (u *Updater) update(ctx context.Context, s triage.Collection) error {
-	cutoff := time.Now().Add(minFlushAge * -1)
-
-	if u.updateCycles == 0 {
-		klog.Infof("have not yet completed a cycle - will accept stale results")
-		cutoff = time.Time{}
-	}
-
-	klog.Infof(">>> updating %q >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", s.ID)
-	r, err := u.party.ExecuteCollection(ctx, s, cutoff)
+func (u *Updater) update(ctx context.Context, s triage.Collection, newerThan time.Time) error {
+	klog.Infof(">>> updating %q with data newer than %s >>>", s.ID, logu.STime(newerThan))
+	r, err := u.party.ExecuteCollection(ctx, s, newerThan)
 	if err != nil {
 		return err
 	}
 	u.cache[s.ID] = r
-	klog.Infof("<<< updated %q to %s <<<<<<<<<<<<<<<<<<<<", s.ID, logu.STime(r.Time))
+	klog.Infof("<<< updated %q to %s <<<", s.ID, logu.STime(r.Time))
 	return nil
 }
 
 // Run a single collection, optionally forcing an update
-func (u *Updater) RunSingle(ctx context.Context, id string, force bool) (bool, error) {
+func (u *Updater) RefreshCollection(ctx context.Context, id string, newerThan time.Time, force bool) (bool, error) {
 	updated := false
-	klog.V(3).Infof("RunSingle: %s, force=%v (locking mutex)", id, force)
+	klog.V(3).Infof("RefreshCollection: %s newer than %s, force=%v (locking mutex)", id, newerThan, force)
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
@@ -225,7 +218,7 @@ func (u *Updater) RunSingle(ctx context.Context, id string, force bool) (bool, e
 	if err := u.shouldUpdate(s.ID, force); err != nil {
 		klog.Infof("reason for updating %q: %v", s.ID, err)
 
-		err := u.update(ctx, s)
+		err := u.update(ctx, s, newerThan)
 		if err != nil {
 			return updated, err
 		}
@@ -313,9 +306,16 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) (bool, error) {
 		force = true
 	}
 
+	newerThan := start.Add(-2 * minFlushAge)
+	if u.updateCycles == 0 {
+		klog.Infof("have not yet completed a cycle - will accept stale results")
+		newerThan = time.Time{}
+	}
+
 	var failed []string
 	for _, s := range sts {
-		runUpdated, err := u.RunSingle(ctx, s.ID, force)
+		// Run all collections with the same timestamp for maximum cache sharing
+		runUpdated, err := u.RefreshCollection(ctx, s.ID, newerThan, force)
 		if err != nil {
 			klog.Errorf("%s failed to update: %v", s.ID, err)
 			failed = append(failed, s.ID)

@@ -55,9 +55,9 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 		klog.Infof("Downloading %s pull requests for %s/%s (page %d)...", state, org, project, opt.Page)
 		prs, resp, err := h.client.PullRequests.List(ctx, org, project, opt)
 		if err != nil {
-			klog.Errorf("err")
 			return prs, err
 		}
+		h.logRate(resp.Rate)
 
 		for _, pr := range prs {
 			// Because PR searches do not support opt.Since
@@ -108,10 +108,12 @@ func (h *Engine) updatePRComments(ctx context.Context, org string, project strin
 	for {
 		klog.V(2).Infof("Downloading PR comments for %s/%s #%d (page %d)...", org, project, num, opt.Page)
 		cs, resp, err := h.client.PullRequests.ListComments(ctx, org, project, num, opt)
-		klog.V(2).Infof("Received %d comments", len(cs))
 		if err != nil {
 			return cs, err
 		}
+		h.logRate(resp.Rate)
+
+		klog.V(2).Infof("Received %d comments", len(cs))
 		allComments = append(allComments, cs...)
 		if resp.NextPage == 0 {
 			break

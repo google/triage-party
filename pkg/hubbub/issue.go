@@ -62,6 +62,7 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 		if err != nil {
 			return is, err
 		}
+		h.logRate(resp.Rate)
 
 		for _, i := range is {
 			if i.IsPullRequest() {
@@ -114,6 +115,8 @@ func (h *Engine) updateIssueComments(ctx context.Context, org string, project st
 		if err != nil {
 			return cs, err
 		}
+		h.logRate(resp.Rate)
+
 		allComments = append(allComments, cs...)
 		if resp.NextPage == 0 {
 			break
