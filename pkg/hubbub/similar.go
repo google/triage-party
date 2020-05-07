@@ -2,6 +2,7 @@ package hubbub
 
 import (
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v31/github"
@@ -10,6 +11,44 @@ import (
 )
 
 var nonLetter = regexp.MustCompile(`[^a-zA-Z]`)
+var removeWords = map[string]bool{
+	"a":       true,
+	"an":      true,
+	"and":     true,
+	"are":     true,
+	"as":      true,
+	"be":      true,
+	"by":      true,
+	"can":     true,
+	"does":    true,
+	"has":     true,
+	"have":    true,
+	"how":     true,
+	"if":      true,
+	"in":      true,
+	"is":      true,
+	"of":      true,
+	"on":      true,
+	"or":      true,
+	"the":     true,
+	"that":    true,
+	"to":      true,
+	"use":     true,
+	"very":    true,
+	"via":     true,
+	"too":     true,
+	"why":     true,
+	"add":     true,
+	"feature": true,
+	"fix":     true,
+	"bug":     true,
+	"fr":      true,
+	"it":      true,
+	"you":     true,
+	"with":    true,
+	"do":      true,
+	"we":      true,
+}
 
 // A subset of Conversation for related items (requires less memory than a Conversation)
 type RelatedConversation struct {
@@ -24,12 +63,27 @@ type RelatedConversation struct {
 	Created time.Time    `json:"created"`
 }
 
-func compressTitle(t string) string {
-	return nonLetter.ReplaceAllString(t, "")
+// normalize titles for a higher hit-rate
+func normalizeTitle(t string) string {
+	keep := []string{}
+	for _, word := range strings.Split(t, " ") {
+		word = nonLetter.ReplaceAllString(word, "")
+		if len(word) == 0 {
+			continue
+		}
+		word = strings.ToLower(word)
+		if removeWords[word] {
+			continue
+		}
+		keep = append(keep, word)
+	}
+
+	klog.V(3).Infof("normalized: %s", strings.Join(keep, " "))
+	return strings.Join(keep, " ")
 }
 
 func (h *Engine) updateSimilarityTables(rawTitle, url string) {
-	title := compressTitle(rawTitle)
+	title := normalizeTitle(rawTitle)
 
 	result, existing := h.titleToURLs.LoadOrStore(title, []string{url})
 	if existing {
@@ -80,7 +134,7 @@ func (h *Engine) updateSimilarityTables(rawTitle, url string) {
 
 func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 	simco := []*RelatedConversation{}
-	title := compressTitle(co.Title)
+	title := normalizeTitle(co.Title)
 	similarURLs := []string{}
 
 	tres, ok := h.similarTitles.Load(title)
