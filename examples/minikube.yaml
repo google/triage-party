@@ -14,7 +14,7 @@
 
 settings:
   name: minikube
-  min_similarity: 0.65
+  min_similarity: 0.72
   repos:
     - https://github.com/kubernetes/minikube
 
