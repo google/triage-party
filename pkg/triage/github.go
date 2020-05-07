@@ -2,7 +2,9 @@ package triage
 
 import (
 	"fmt"
+	"github.com/google/go-github/v31/github"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -44,4 +46,15 @@ func MustReadToken(path string, env string) string {
 		klog.Exitf("github token impossibly small: %q", token)
 	}
 	return token
+}
+
+func MustCreateGithubClient(githubAPIRawURL string, httpClient *http.Client) *github.Client {
+	if githubAPIRawURL != "" {
+		client, err := github.NewEnterpriseClient(githubAPIRawURL, githubAPIRawURL, httpClient)
+		if err != nil {
+			klog.Exitf("unable to create GitHub client: %v", err)
+		}
+		return client
+	}
+	return github.NewClient(httpClient)
 }

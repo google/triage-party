@@ -25,6 +25,7 @@ Triage Party is a stateless Go web application, configured via YAML. While it ha
 * Easily open an entire group of issues into browser tabs (must accept pop-up dialog)
 * Queries across multiple repositories
 * "Shift-Reload" for live data pull
+* GitHub Enterprise support (via `--github-api-url` cli flag)
 
 ## Triage Party in production
 

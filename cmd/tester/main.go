@@ -26,12 +26,14 @@ import (
 	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/triage"
 
-	"github.com/google/go-github/v31/github"
 	"golang.org/x/oauth2"
 	"k8s.io/klog/v2"
 )
 
 var (
+	// custom GitHub API URLs
+	githubAPIRawURL = flag.String("github-api-url", "", "base URL for GitHub API.  Please set this when you use GitHub Enterprise. This often is your GitHub Enterprise hostname. If the base URL does not have the suffix \"/api/v3/\", it will be added automatically.")
+
 	// shared with server
 	configPath      = flag.String("config", "", "configuration path")
 	persistBackend  = flag.String("persist-backend", "", "Cache persistence backend (disk, mysql, cloudsql)")
@@ -58,7 +60,7 @@ func main() {
 	}
 
 	ctx := context.Background()
-	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(
+	client := triage.MustCreateGithubClient(*githubAPIRawURL, oauth2.NewClient(ctx, oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: triage.MustReadToken(*githubTokenFile, "GITHUB_TOKEN")},
 	)))
 
