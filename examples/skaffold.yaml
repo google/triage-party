@@ -172,38 +172,38 @@ rules:
       - label: "kind/bug"
 
   issue-p0-fix-slo:
-    name: "p0 bug, older than a week -- exceeds limit"
+    name: "p0 bug, prioritized for more than a week -- exceeds limit"
     resolution: "Downgrade to p1"
     type: issue
     filters:
       - label: "priority/p0"
-      - created: +1w
+      - prioritized: +1w
       - responded: +1d
       - label: "kind/bug"
 
   issue-p1-fix-slo:
-    name: "p1 bug, older than 6 weeks -- exceeds limit"
+    name: "p1 bug, prioritized more than 6 weeks -- exceeds limit"
     resolution: "Downgrade to p2"
     type: issue
     filters:
       - label: "priority/p1"
       - responded: +1d
-      - created: +6w
+      - prioritized: +6w
       - label: "kind/bug"
 
   issue-p2-fix-slo:
-    name: "p2 bug, older than 1 quarter -- exceeds limit"
+    name: "p2 bug, prioritized more than 1 quarter -- exceeds limit"
     resolution: "Downgrade to p3"
     type: issue
     filters:
       - label: "priority/p2"
-      - created: +12w
+      - prioritized: +12w
       - responded: +1d
       - label: "kind/bug"
 
   # Don't leave code reviews hanging
   pr-reviewable:
-    name: "Pull Requests: Review Ready"
+    name: "Needs Review, older than 1 day"
     resolution: "Review requests or mark them as do-not-merge/work-in-progress"
     type: pull_request
     filters:
@@ -216,8 +216,6 @@ rules:
       - tag: "!requested-changes"
       - tag: "!send"
       - tag: "!commented"
-      
-      # Temporarily workaround inability to track PR eligibility
       - updated: +1d
 
   # Issues missing initial feedback
@@ -319,35 +317,35 @@ rules:
       - label: "kind/bug"
 
   issue-near-p0-fix-slo:
-    name: "p0 bug, older than 5d (near SLO boundary)"
+    name: "p0 bug, prioritized for longer than 5d (near SLO boundary)"
     resolution: "Downgrade to p1"
     type: issue
     filters:
       - label: "priority/p0"
-      - created: +5d
-      - created: -7d
+      - prioritized: +5d
+      - prioritized: -7d
       - responded: +1d
       - label: "kind/bug"
 
   issue-near-p1-fix-slo:
-    name: "p1 bug, older than 5 weeks (near SLO boundary)"
+    name: "p1 bug, prioritized for longer than 5 weeks (near SLO boundary)"
     resolution: "Downgrade to p2"
     type: issue
     filters:
       - label: "priority/p1"
-      - created: +5w
-      - created: -6w
+      - prioritized: +5w
+      - prioritized: -6w
       - label: "kind/bug"
       - responded: +1w
 
   issue-near-p2-fix-slo:
-    name: "p2 bug, older than 10 weeks (near SLO boundary)"
+    name: "p2 bug, prioritized for longer than 10 weeks (near SLO boundary)"
     resolution: "Downgrade to p3"
     type: issue
     filters:
       - label: "priority/p2"
-      - created: +10w
-      - created: -12w
+      - prioritized: +10w
+      - prioritized: -12w
       - label: "kind/bug"
       - responded: +1w
 

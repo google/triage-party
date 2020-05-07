@@ -18,5 +18,12 @@ vendor/
 # persist cache output
 *.pc
 
+# patches
+*.rej
+*.orig
+
+# vim
+*~
+
 # binaries
 main

@@ -61,10 +61,11 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 		klog.Infof("Downloading %s issues for %s/%s (page %d)...", state, org, project, opt.Page)
 		is, resp, err := h.client.Issues.ListByRepo(ctx, org, project, opt)
 
+		if _, ok := err.(*github.RateLimitError); ok {
+			klog.Errorf("oh snap! I reached the GitHub search API limit: %v", err)
+		}
+
 		if err != nil {
-			if _, ok := err.(*github.RateLimitError); ok {
-				klog.Errorf("oh snap! We reached the GitHub search API limit: %v", err)
-			}
 			return is, err
 		}
 		h.logRate(resp.Rate)
@@ -188,6 +189,10 @@ func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment, author
 }
 
 func isBot(u *github.User) bool {
+	if u.GetType() == "bot" {
+		return true
+	}
+
 	if strings.Contains(u.GetBio(), "stale issues") {
 		return true
 	}

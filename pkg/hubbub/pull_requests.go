@@ -134,17 +134,34 @@ func (h *Engine) updatePRComments(ctx context.Context, org string, project strin
 	return allComments, nil
 }
 
-func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComment) *Conversation {
+func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComment, timeline []*github.Timeline) *Conversation {
 	cl := []CommentLike{}
-	reviewed := false
+	latestReview := time.Time{}
 	for _, c := range cs {
 		cl = append(cl, CommentLike(c))
 		if c.GetPullRequestReviewID() != 0 {
-			reviewed = true
+			latestReview = c.GetCreatedAt()
 		}
 	}
+
 	co := h.conversation(pr, cl, isMember(pr.GetAuthorAssociation()))
-	if reviewed {
+	h.addEvents(co, timeline)
+
+	for _, t := range timeline {
+		if t.GetEvent() == "committed" || t.GetEvent() == "head_ref_force_pushed" {
+			co.LatestCommit = t.GetCreatedAt()
+			if t.GetCreatedAt().After(co.Updated) {
+				co.Updated = t.GetCreatedAt()
+			}
+		}
+	}
+
+	if co.LatestCommit.After(co.LatestReview) {
+		co.Tags = append(co.Tags, Tag{ID: "new-commits", Description: "PR has commits since the last review"})
+	}
+
+	if !latestReview.IsZero() {
+		co.LatestReview = latestReview
 		co.Tags = append(co.Tags, Tag{ID: "reviewed", Description: "PR has been reviewed at least once"})
 	}
 
