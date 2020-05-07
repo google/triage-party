@@ -60,7 +60,11 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 	for {
 		klog.Infof("Downloading %s issues for %s/%s (page %d)...", state, org, project, opt.Page)
 		is, resp, err := h.client.Issues.ListByRepo(ctx, org, project, opt)
+
 		if err != nil {
+			if _, ok := err.(*github.RateLimitError); ok {
+				klog.Errorf("oh snap! We reached the GitHub search API limit: %v", err)
+			}
 			return is, err
 		}
 		h.logRate(resp.Rate)

@@ -55,7 +55,11 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 	for {
 		klog.Infof("Downloading %s pull requests for %s/%s (page %d)...", state, org, project, opt.Page)
 		prs, resp, err := h.client.PullRequests.List(ctx, org, project, opt)
+
 		if err != nil {
+			if _, ok := err.(*github.RateLimitError); ok {
+				klog.Errorf("oh snap! We reached the GitHub search API limit: %v", err)
+			}
 			return prs, err
 		}
 		h.logRate(resp.Rate)
