@@ -14,7 +14,7 @@
 
 settings:
   name: generic
-  min_similarity: 0.7
+  min_similarity: 0.8
   repos:
     - https://github.com/kubernetes/community
 
@@ -72,11 +72,11 @@ collections:
     description: Once every quarter, look for stale issues, reprioritize, and de-duplicate.
     rules:
       - lifecycle-stale
-      - features-recv
+      - features-old-recv
       - features-old
-      - bugs-recv
+      - bugs-old-recv
       - bugs-old
-      - other-recv
+      - other-old-recv
       - other-old
 
   - id: recv
@@ -349,7 +349,7 @@ rules:
       - responded: +6d
 
   ## Bug Scrub ##
-  bugs-recv:
+  bugs-old-recv:
     name: "Bugs that deserve a follow-up comment"
     resolution: "Comment or close the issue"
     type: issue
@@ -359,7 +359,7 @@ rules:
       - created: +60d
       - label: "kind/bug"
 
-  features-recv:
+  features-old-recv:
     name: "Features that deserve a follow-up comment"
     resolution: "Comment or close the issue"
     type: issue
@@ -369,7 +369,7 @@ rules:
       - created: +30d
       - label: "kind/feature"
 
-  other-recv:
+  other-old-recv:
     name: "Items that deserve a follow-up comment"
     resolution: "Comment or close the issue"
     type: issue
