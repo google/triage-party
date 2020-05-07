@@ -72,10 +72,16 @@ type Conversation struct {
 	ClosedAt              time.Time    `json:"closed_at"`
 	ClosedBy              *github.User `json:"closed_by"`
 
-	Tags []string `json:"tags"`
+	Tags []Tag `json:"tags"`
 
 	// Similar issues to this one
 	Similar []*RelatedConversation `json:"similar"`
 
 	Milestone string `json:"milestone"`
+}
+
+// Tag is used for automatically labelling issues
+type Tag struct {
+	ID          string `json:"id"`
+	Description string `json:"description"`
 }

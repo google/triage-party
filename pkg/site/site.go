@@ -37,7 +37,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-const VERSION = "v1.0.0-beta.2"
+const VERSION = "v1.0.0-beta.3"
 
 var (
 	nonWordRe  = regexp.MustCompile(`\W`)
@@ -151,10 +151,13 @@ func (h *Handlers) Collection() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		defer func() {
-			klog.Infof("Collection request complete in %s", time.Since(start))
-		}()
+		dataAge := time.Time{}
 		id := strings.TrimPrefix(r.URL.Path, "/s/")
+
+		defer func() {
+			klog.Infof("Served %q request within %s from data %s old", id, time.Since(start), time.Since(dataAge))
+		}()
+
 		playerChoices := []string{"Select a player"}
 		players := getInt(r.URL, "players", 1)
 		player := getInt(r.URL, "player", 0)
@@ -203,6 +206,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 			klog.V(2).Infof("lookup %q result: %d items", id, len(result.RuleResults))
 		}
 
+		dataAge = result.Time
 		warning := ""
 		if result.Time.IsZero() {
 			warning = fmt.Sprintf("Triage Party started %s ago, and is serving stale results while refreshing in the background", humanDuration(time.Since(h.startTime)))

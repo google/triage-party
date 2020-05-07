@@ -17,6 +17,7 @@ package hubbub
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/google/go-github/v31/github"
@@ -68,6 +69,7 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 				}
 			}
 
+			// TODO: update tables for cached entries too!
 			h.updateSimilarityTables(pr.GetTitle(), pr.GetHTMLURL())
 			allPRs = append(allPRs, pr)
 		}
@@ -139,15 +141,16 @@ func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComme
 	}
 	co := h.conversation(pr, cl, isMember(pr.GetAuthorAssociation()))
 	if reviewed {
-		co.Tags = append(co.Tags, "reviewed")
+		co.Tags = append(co.Tags, Tag{ID: "reviewed", Description: "PR has been reviewed at least once"})
 	}
 
 	if pr.GetDraft() {
-		co.Tags = append(co.Tags, "draft")
+		co.Tags = append(co.Tags, Tag{ID: "draft", Description: "Draft PR"})
 	}
 
 	// Technically not the same thing, but close enough for me.
 	co.ClosedBy = pr.GetMergedBy()
 
+	sort.Slice(co.Tags, func(i, j int) bool { return co.Tags[i].ID < co.Tags[j].ID })
 	return co
 }
