@@ -65,6 +65,8 @@ func New(cfg Config) (Cacher, error) {
 		return NewDisk(cfg)
 	case "memory":
 		return NewMemory(cfg)
+	case "tikv":
+		return NewTikV(cfg)
 	default:
 		return nil, fmt.Errorf("unknown backend: %q", cfg.Type)
 	}
