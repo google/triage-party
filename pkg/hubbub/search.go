@@ -74,9 +74,13 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		age := closedAge(fs)
+		if age == 0 {
+			return
+		}
 
 		// TODO: only fetch if a filter seems like it requires closed issues
-		closed, err = h.cachedIssues(ctx, org, project, "closed", closedIssueDays, newerThan)
+		closed, err = h.cachedIssues(ctx, org, project, "closed", age, newerThan)
 		if err != nil {
 			klog.Errorf("closed issues: %v", err)
 		}
@@ -172,7 +176,60 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	return filtered, latest, nil
 }
 
-// needsEvents returns whether the set of filters needs events data
+// closedAge returns how old we need to look back for our filters
+func closedAge(fs []Filter) time.Duration {
+	oldest := time.Duration(0)
+	needClosed := false
+
+	// First-pass filter: do any filters require closed data?
+	for _, f := range fs {
+		if f.ClosedCommenters != "" {
+			klog.Infof("will need closed items due to ClosedCommenters=%s", f.ClosedCommenters)
+			needClosed = true
+			break
+		}
+		if f.ClosedComments != "" {
+			klog.Infof("will need closed items due to ClosedComments=%s", f.ClosedComments)
+			needClosed = true
+			break
+		}
+		if f.State != "" && f.State != "open" {
+			klog.Infof("will need closed items due to State=%s", f.State)
+			needClosed = true
+			break
+		}
+	}
+
+	if !needClosed {
+		return 0
+	}
+
+	for _, f := range fs {
+		for _, fd := range []string{f.Created, f.Updated, f.Closed, f.Responded} {
+			if fd == "" {
+				continue
+			}
+
+			d, within, _ := parseDuration(fd)
+			if !within {
+				continue
+			}
+
+			if d > oldest {
+				oldest = d
+			}
+		}
+	}
+
+	if oldest == 0 {
+		klog.Warningf("I need closed data, but I'm not sure how old: picking 4 days")
+		return time.Duration(24 * 4 * time.Hour)
+	}
+
+	return oldest
+}
+
+// needsEvents returns whether the filters require events data
 func needsEvents(fs []Filter) bool {
 	for _, f := range fs {
 		if f.Prioritized != "" {
@@ -208,7 +265,12 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		closed, err = h.cachedPRs(ctx, org, project, "closed", closedPRDays, newerThan)
+		age := closedAge(fs)
+		if age == 0 {
+			return
+		}
+
+		closed, err = h.cachedPRs(ctx, org, project, "closed", age, newerThan)
 		if err != nil {
 			klog.Errorf("closed prs: %v", err)
 			return

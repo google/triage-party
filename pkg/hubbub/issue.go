@@ -28,37 +28,39 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// closedIssueDays is how old of a closed issue to consider
-const closedIssueDays = 14
-
 // cachedIssues returns issues, cached if possible
-func (h *Engine) cachedIssues(ctx context.Context, org string, project string, state string, updatedDays int, newerThan time.Time) ([]*github.Issue, error) {
-	key := issueSearchKey(org, project, state, updatedDays)
+func (h *Engine) cachedIssues(ctx context.Context, org string, project string, state string, updateAge time.Duration, newerThan time.Time) ([]*github.Issue, error) {
+	key := issueSearchKey(org, project, state, updateAge)
 
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
 		return x.Issues, nil
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", key, logu.STime(newerThan))
-	return h.updateIssues(ctx, org, project, state, updatedDays, key)
+	return h.updateIssues(ctx, org, project, state, updateAge, key)
 }
 
 // updateIssues updates the issues in cache
-func (h *Engine) updateIssues(ctx context.Context, org string, project string, state string, updatedDays int, key string) ([]*github.Issue, error) {
+func (h *Engine) updateIssues(ctx context.Context, org string, project string, state string, updateAge time.Duration, key string) ([]*github.Issue, error) {
 	opt := &github.IssueListByRepoOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
 		State:       state,
 	}
 	klog.V(2).Infof("%s issue list opts for %s: %+v", state, key, opt)
 
-	if updatedDays > 0 {
-		opt.Since = time.Now().Add(time.Duration(updatedDays*-24) * time.Hour)
+	if updateAge != 0 {
+		opt.Since = time.Now().Add(-1 * updateAge)
 	}
 
 	var allIssues []*github.Issue
 
 	for {
-		klog.Infof("Downloading %s issues for %s/%s (page %d)...", state, org, project, opt.Page)
+		if updateAge == 0 {
+			klog.Infof("Downloading %s issues for %s/%s (page %d)...", state, org, project, opt.Page)
+		} else {
+			klog.Infof("Downloading %s issues for %s/%s updated within %s (page %d)...", state, org, project, updateAge, opt.Page)
+		}
+
 		is, resp, err := h.client.Issues.ListByRepo(ctx, org, project, opt)
 
 		if _, ok := err.(*github.RateLimitError); ok {

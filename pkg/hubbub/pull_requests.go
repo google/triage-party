@@ -25,22 +25,19 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// closedPRDays is how old of a closed PR to consider
-const closedPRDays = 14
-
 // cachedPRs returns a list of cached PR's if possible
-func (h *Engine) cachedPRs(ctx context.Context, org string, project string, state string, updatedDays int, newerThan time.Time) ([]*github.PullRequest, error) {
-	key := prSearchKey(org, project, state, updatedDays)
+func (h *Engine) cachedPRs(ctx context.Context, org string, project string, state string, updateAge time.Duration, newerThan time.Time) ([]*github.PullRequest, error) {
+	key := prSearchKey(org, project, state, updateAge)
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
 		return x.PullRequests, nil
 	}
 
 	klog.V(1).Infof("cache miss: %s newer than %s", key, newerThan)
-	return h.updatePRs(ctx, org, project, state, updatedDays, key)
+	return h.updatePRs(ctx, org, project, state, updateAge, key)
 }
 
 // updatePRs returns and caches live PR's
-func (h *Engine) updatePRs(ctx context.Context, org string, project string, state string, updatedDays int, key string) ([]*github.PullRequest, error) {
+func (h *Engine) updatePRs(ctx context.Context, org string, project string, state string, updateAge time.Duration, key string) ([]*github.PullRequest, error) {
 	opt := &github.PullRequestListOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
 		State:       state,
@@ -49,11 +46,15 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 	}
 	klog.V(1).Infof("%s PR list opts for %s: %+v", state, key, opt)
 
-	since := time.Now().Add(time.Duration(updatedDays*-24) * time.Hour)
 	foundOldest := false
 	var allPRs []*github.PullRequest
 	for {
-		klog.Infof("Downloading %s pull requests for %s/%s (page %d)...", state, org, project, opt.Page)
+		if updateAge == 0 {
+			klog.Infof("Downloading %s pull requests for %s/%s (page %d)...", state, org, project, opt.Page)
+		} else {
+			klog.Infof("Downloading %s pull requests for %s/%s updated within %s (page %d)...", state, org, project, updateAge, opt.Page)
+		}
+
 		prs, resp, err := h.client.PullRequests.List(ctx, org, project, opt)
 
 		if err != nil {
@@ -66,8 +67,8 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 
 		for _, pr := range prs {
 			// Because PR searches do not support opt.Since
-			if updatedDays != 0 {
-				if pr.GetUpdatedAt().Before(since) {
+			if updateAge != 0 {
+				if time.Since(pr.GetUpdatedAt()) > updateAge {
 					foundOldest = true
 					break
 				}

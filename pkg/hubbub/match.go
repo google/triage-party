@@ -30,6 +30,13 @@ func preFetchMatch(i GitHubItem, labels []*github.Label, fs []Filter) bool {
 			}
 		}
 
+		if f.Closed != "" {
+			if ok := matchDuration(i.GetClosedAt(), f.Closed); !ok {
+				klog.V(2).Infof("#%d closed at %s does not meet %s", i.GetNumber(), i.GetClosedAt(), f.Closed)
+				return false
+			}
+		}
+
 		if f.Updated != "" {
 			if ok := matchDuration(i.GetUpdatedAt(), f.Updated); !ok {
 				klog.V(2).Infof("#%d update at %s does not meet %s", i.GetNumber(), i.GetUpdatedAt(), f.Updated)
@@ -210,15 +217,14 @@ func matchTag(tags []Tag, re *regexp.Regexp, negate bool) bool {
 	return negate
 }
 
-func matchDuration(t time.Time, ds string) bool {
-	klog.V(2).Infof("match duration: %s vs %s", t, ds)
+func parseDuration(ds string) (time.Duration, bool, bool) {
 	// fscking stdlib
 	matches := dayRegexp.FindStringSubmatch(ds)
 	if len(matches) > 0 {
 		d, err := strconv.ParseInt(matches[1], 10, 64)
 		if err != nil {
 			klog.Errorf("unable to parse duration: %s", matches[1])
-			return false
+			return 0, false, false
 		}
 		ds = dayRegexp.ReplaceAllString(ds, fmt.Sprintf("%dh", 24*d))
 	}
@@ -228,7 +234,7 @@ func matchDuration(t time.Time, ds string) bool {
 		w, err := strconv.ParseInt(matches[1], 10, 64)
 		if err != nil {
 			klog.Errorf("unable to parse duration: %s", matches[1])
-			return false
+			return 0, false, false
 		}
 		ds = weekRegexp.ReplaceAllString(ds, fmt.Sprintf("%dh", 24*7*w))
 	}
@@ -249,8 +255,14 @@ func matchDuration(t time.Time, ds string) bool {
 	d, err := time.ParseDuration(ds)
 	if err != nil {
 		klog.Errorf("unable to parse duration %s: %v", ds, err)
-		return false
+		return 0, false, false
 	}
+	return d, within, over
+}
+
+func matchDuration(t time.Time, ds string) bool {
+	klog.V(2).Infof("match duration: %s vs %s", t, ds)
+	d, within, over := parseDuration(ds)
 
 	if within && time.Since(t) < d {
 		return true
