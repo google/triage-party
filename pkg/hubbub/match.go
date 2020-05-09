@@ -217,7 +217,7 @@ func matchTag(tags []Tag, re *regexp.Regexp, negate bool) bool {
 	return negate
 }
 
-func parseDuration(ds string) (time.Duration, bool, bool) {
+func ParseDuration(ds string) (time.Duration, bool, bool) {
 	// fscking stdlib
 	matches := dayRegexp.FindStringSubmatch(ds)
 	if len(matches) > 0 {
@@ -262,7 +262,7 @@ func parseDuration(ds string) (time.Duration, bool, bool) {
 
 func matchDuration(t time.Time, ds string) bool {
 	klog.V(2).Infof("match duration: %s vs %s", t, ds)
-	d, within, over := parseDuration(ds)
+	d, within, over := ParseDuration(ds)
 
 	if within && time.Since(t) < d {
 		return true

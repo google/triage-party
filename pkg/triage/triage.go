@@ -44,6 +44,7 @@ type Party struct {
 	rules         map[string]Rule
 	reposOverride []string
 	debugNumber   int
+	maxClosedAge  time.Duration
 }
 
 func New(cfg Config) *Party {
@@ -111,6 +112,15 @@ func (p *Party) Load(r io.Reader) error {
 	p.rules = rules
 	p.settings = dc.Settings
 
+	// Why calculate here? So we can share a closed cache among all queries
+	for _, r := range p.rules {
+		ca := closedAge(r.Filters)
+		if ca > p.engine.MaxClosedUpdateAge {
+			p.engine.MaxClosedUpdateAge = ca
+		}
+	}
+	klog.Infof("oldest we need to search closed items is %s", p.engine.MaxClosedUpdateAge)
+
 	p.engine.MinSimilarity = dc.Settings.MinSimilarity
 
 	p.logLoaded()
@@ -118,6 +128,38 @@ func (p *Party) Load(r io.Reader) error {
 		return fmt.Errorf("validate config: %w", err)
 	}
 	return nil
+}
+
+// closedAge returns how old we need to look back for a set of filters
+func closedAge(fs []hubbub.Filter) time.Duration {
+	oldest := time.Duration(0)
+	if !hubbub.NeedsClosed(fs) {
+		return oldest
+	}
+
+	for _, f := range fs {
+		for _, fd := range []string{f.Created, f.Updated, f.Closed, f.Responded} {
+			if fd == "" {
+				continue
+			}
+
+			d, within, _ := hubbub.ParseDuration(fd)
+			if !within {
+				continue
+			}
+
+			if d > oldest {
+				oldest = d
+			}
+		}
+	}
+
+	if oldest == 0 {
+		klog.Warningf("I need closed data, but I'm not sure how old: picking 4 days")
+		return time.Duration(24 * 4 * time.Hour)
+	}
+
+	return oldest
 }
 
 func (p *Party) validateLoadedConfig() error {
