@@ -35,6 +35,9 @@ type Config struct {
 	// MinSimilarity is how close two items need to be to each other to be called similar
 	MinSimilarity float64
 
+	// The furthest we will query back for information on closed issues
+	MaxClosedUpdateAge time.Duration
+
 	// DebugNumber is used when you want to debug why a single item is being handled in a certain wait
 	DebugNumber int
 }
@@ -50,6 +53,9 @@ type Engine struct {
 	// Must be settable from config
 	MinSimilarity float64
 
+	// The furthest we will query back for information on closed issues
+	MaxClosedUpdateAge time.Duration
+
 	debugNumber int
 
 	titleToURLs   sync.Map
@@ -64,11 +70,17 @@ func New(cfg Config) *Engine {
 		cache:  cfg.Cache,
 		client: cfg.Client,
 
-		memberRefresh: cfg.MemberRefresh,
-
-		seen:          map[string]*Conversation{},
-		MinSimilarity: cfg.MinSimilarity,
-		debugNumber:   cfg.DebugNumber,
+		memberRefresh:      cfg.MemberRefresh,
+		MaxClosedUpdateAge: cfg.MaxClosedUpdateAge,
+		seen:               map[string]*Conversation{},
+		MinSimilarity:      cfg.MinSimilarity,
+		debugNumber:        cfg.DebugNumber,
 	}
+
+	// This value is typically programmed on the fly, but lets give it a good enough default
+	if e.MaxClosedUpdateAge == 0 {
+		e.MaxClosedUpdateAge = time.Duration(24 * 3 * time.Hour)
+	}
+
 	return e
 }
