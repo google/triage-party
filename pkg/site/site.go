@@ -208,10 +208,9 @@ func (h *Handlers) Collection() http.HandlerFunc {
 
 		dataAge = result.Time
 		warning := ""
-		if result.Time.IsZero() {
-			warning = fmt.Sprintf("Triage Party started %s ago, and is serving stale results while refreshing in the background", humanDuration(time.Since(h.startTime)))
-		} else if time.Since(result.Time) > h.warnAge {
-			warning = fmt.Sprintf("Serving stale results (%s old) - refreshing results in background. Use Shift-Reload to force data to refresh at any time.", humanDuration(time.Since(result.Time)))
+
+		if time.Since(result.Time) > h.warnAge {
+			warning = fmt.Sprintf("Serving results from %s ago. Service started %s ago and is downloading new data. Use Shift-Reload to force refresh at any time.", humanDuration(time.Since(result.Time)), humanDuration(time.Since(h.startTime)))
 		}
 
 		total := 0

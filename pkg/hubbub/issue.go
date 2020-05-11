@@ -35,6 +35,7 @@ func (h *Engine) cachedIssues(ctx context.Context, org string, project string, s
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
 		// Normally the similarity tables are only updated when fresh data is encountered.
 		if newerThan.IsZero() {
+			klog.Infof("Building similarity tables from issue cache (%d items)", len(x.Issues))
 			for _, i := range x.Issues {
 				h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())
 			}
