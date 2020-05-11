@@ -235,7 +235,7 @@ td:last-child { padding-right: 0.2em !important; }
 /* Tables */
 
 .cell-desc {
-  width: 45%;
+  width: 43%;
 }
 
 /* labels are flexible */
@@ -252,6 +252,9 @@ td:last-child { padding-right: 0.2em !important; }
 .cell-response {
   width: 2.1em;
 }
+.cell-reactions {
+  width: 3em;
+}
 .cell-assignee {
   width: 3em;
 }
@@ -259,7 +262,7 @@ td:last-child { padding-right: 0.2em !important; }
   width: 10%;
 }
 .cell-author {
-  width: 2.2em;
+  width: 2.3em;
 }
 .cell-id {
   width: 3em;

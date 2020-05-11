@@ -86,13 +86,13 @@
       <thead>
         <tr>
           <td class="col-id">ID</td>
-          <td class="col-author" title="Author">Aut</td>
+          <td class="col-author" title="Author">Au</td>
           <td class="col-desc" title="Description">Desc</td>
-          <td class="col-reactions" title="Reactions">Reac</td>
+          <td class="col-assignee" title="Assignee">As</td>
+          <td class="col-reactions" title="Reactions">Rea</td>
           <td class="col-create" title="When issue was created">Cr</td>
           <td class="col-update" title="When issue was last updated">Up</td>
           <td class="col-response" title="When issue was last responded to">Re</td>
-          <td class="col-assignee" title="Assignee">Asi</td>
           <td class="col-comments" title="Commenters">Cmntrs</td>
           <td class="col-labels">Labels</td>
           <td class="col-tags">Tags</td>
@@ -114,6 +114,9 @@
               </div>
               {{ end }}
             </td>
+
+            <td class="cell-assignee" data-order="{{ range .Assignees }}{{ .GetLogin }}{{ end }}">{{ range .Assignees }}{{ . |  Avatar}}{{ end }}
+
             <td class="cell-reactions" data-order="{{ .ReactionsTotal }}">
             {{ range $value, $count := .Reactions }}
               {{ if gt $count 1 }}
@@ -124,7 +127,6 @@
             <td class="cell-create" data-order="{{ .Created | UnixNano }}">{{ .Created | HumanTime }}</td>
             <td class="cell-update" data-order="{{ .Updated | UnixNano }}">{{ .Updated | HumanTime }}</td>
             <td class="cell-response" data-order="{{ .LatestMemberResponse | UnixNano }}">{{ .LatestMemberResponse | HumanTime }}</td>
-            <td class="cell-assignee" data-order="{{ range .Assignees }}{{ .GetLogin }}{{ end }}">{{ range .Assignees }}{{ . |  Avatar}}{{ end }}
             <td class="cell-comments" data-order="{{ .CommentersTotal }}">{{ range .Commenters }}{{ . |  Avatar}}{{ end }}</td>
             <td class="cell-labels">
               {{ range .Labels }}
