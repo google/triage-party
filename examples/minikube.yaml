@@ -110,7 +110,7 @@ collections:
 
   - id: similar
     name: Similar
-    description: Items with similar titles to one another
+    description: Items which appear similar to one other. Review for duplicates or vague titles.
     rules:
       - similar-prs
       - similar-issues
