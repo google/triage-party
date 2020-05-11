@@ -33,6 +33,13 @@ func (h *Engine) cachedIssues(ctx context.Context, org string, project string, s
 	key := issueSearchKey(org, project, state, updateAge)
 
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+		// Normally the similarity tables are only updated when fresh data is encountered.
+		if newerThan.IsZero() {
+			for _, i := range x.Issues {
+				h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())
+			}
+		}
+
 		return x.Issues, x.Created, nil
 	}
 

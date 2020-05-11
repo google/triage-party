@@ -130,6 +130,13 @@ collections:
       - fixit-bugs
       - fixit-other
 
+  - id: similar
+    name: Similar
+    description: Items which appear similar to one other. Review for duplicates or vague titles.
+    rules:
+      - similar-prs
+      - similar-issues
+
   - id: open
     name: All open PR's and Issues that should be considered for repository stats (hidden)
     used_for_statistics: true
@@ -646,6 +653,21 @@ rules:
       - label: "fixit"
       - label: "!kind/feature-request"
       - label: "!kind/bug"
+
+  ## Similar
+  similar-prs:
+    name: "Similar Pull Requests"
+    type: pull_request
+    resolution: Close as duplicate or give a better title
+    filters:
+      - tag: similar
+
+  similar-issues:
+    name: "Similar Issues"
+    type: issue
+    resolution: Close as duplicate or give a better title
+    filters:
+      - tag: similar
 
   # for stastistics generation
   open-issues:
