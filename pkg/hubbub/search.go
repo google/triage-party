@@ -44,6 +44,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	var closed []*github.Issue
 	var err error
 
+	age := time.Now()
 	orgCutoff := time.Now().Add(h.memberRefresh * -1)
 	if orgCutoff.After(newerThan) {
 		klog.V(1).Infof("Setting org cutoff to %s", newerThan)
@@ -53,7 +54,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		members, err = h.cachedOrgMembers(ctx, org, orgCutoff)
+		members, _, err = h.cachedOrgMembers(ctx, org, orgCutoff)
 		if err != nil {
 			klog.Errorf("members: %v", err)
 			return
@@ -63,11 +64,15 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		open, err = h.cachedIssues(ctx, org, project, "open", 0, newerThan)
+		oi, ots, err := h.cachedIssues(ctx, org, project, "open", 0, newerThan)
 		if err != nil {
 			klog.Errorf("open issues: %v", err)
 			return
 		}
+		if ots.Before(age) {
+			age = ots
+		}
+		open = oi
 		klog.V(1).Infof("%s/%s open issue count: %d", org, project, len(open))
 	}()
 
@@ -78,24 +83,25 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 			return
 		}
 
-		closed, err = h.cachedIssues(ctx, org, project, "closed", h.MaxClosedUpdateAge, newerThan)
+		ci, cts, err := h.cachedIssues(ctx, org, project, "closed", h.MaxClosedUpdateAge, newerThan)
 		if err != nil {
 			klog.Errorf("closed issues: %v", err)
 		}
+
+		if cts.Before(age) {
+			age = cts
+		}
+		closed = ci
+
 		klog.V(1).Infof("%s/%s closed issue count: %d", org, project, len(closed))
 	}()
 
 	wg.Wait()
 
 	var is []*github.Issue
-	var latest time.Time
 	seen := map[string]bool{}
 
 	for _, i := range append(open, closed...) {
-		if i.GetUpdatedAt().After(latest) {
-			latest = i.GetUpdatedAt()
-		}
-
 		if h.debugNumber != 0 {
 			if i.GetNumber() == h.debugNumber {
 				klog.Errorf("*** Found debug issue #%d:\n%s", i.GetNumber(), formatStruct(*i))
@@ -132,7 +138,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		comments := []*github.IssueComment{}
 		if i.GetComments() > 0 {
 			klog.V(1).Infof("#%d - %q: need comments for final filtering", i.GetNumber(), i.GetTitle())
-			comments, err = h.cachedIssueComments(ctx, org, project, i.GetNumber(), i.GetUpdatedAt())
+			comments, _, err = h.cachedIssueComments(ctx, org, project, i.GetNumber(), i.GetUpdatedAt())
 			if err != nil {
 				klog.Errorf("comments: %v", err)
 			}
@@ -171,7 +177,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	}
 
 	klog.V(1).Infof("%d of %d issues within %s/%s matched filters %s", len(filtered), len(is), org, project, toYAML(fs))
-	return filtered, latest, nil
+	return filtered, age, nil
 }
 
 // NeedsClosed returns whether or not the filters require closed items
@@ -215,15 +221,20 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 	var open []*github.PullRequest
 	var closed []*github.PullRequest
 	var err error
+	age := time.Now()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		open, err = h.cachedPRs(ctx, org, project, "open", 0, newerThan)
+		op, ots, err := h.cachedPRs(ctx, org, project, "open", 0, newerThan)
 		if err != nil {
 			klog.Errorf("open prs: %v", err)
 			return
 		}
+		if ots.Before(age) {
+			age = ots
+		}
+		open = op
 		klog.V(1).Infof("open PR count: %d", len(open))
 	}()
 
@@ -233,11 +244,17 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		if !NeedsClosed(fs) {
 			return
 		}
-		closed, err = h.cachedPRs(ctx, org, project, "closed", h.MaxClosedUpdateAge, newerThan)
+		cp, cts, err := h.cachedPRs(ctx, org, project, "closed", h.MaxClosedUpdateAge, newerThan)
 		if err != nil {
 			klog.Errorf("closed prs: %v", err)
 			return
 		}
+
+		if cts.Before(age) {
+			age = cts
+		}
+		closed = cp
+
 		klog.V(1).Infof("closed PR count: %d", len(closed))
 	}()
 
@@ -270,7 +287,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		comments := []*github.PullRequestComment{}
 		// pr.GetComments() always returns 0 :(
 		if pr.GetState() == "open" && pr.GetUpdatedAt().After(pr.GetCreatedAt()) {
-			comments, err = h.cachedPRComments(ctx, org, project, pr.GetNumber(), pr.GetUpdatedAt())
+			comments, _, err = h.cachedPRComments(ctx, org, project, pr.GetNumber(), pr.GetUpdatedAt())
 			if err != nil {
 				klog.Errorf("comments: %v", err)
 			}

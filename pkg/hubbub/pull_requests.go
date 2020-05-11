@@ -26,10 +26,10 @@ import (
 )
 
 // cachedPRs returns a list of cached PR's if possible
-func (h *Engine) cachedPRs(ctx context.Context, org string, project string, state string, updateAge time.Duration, newerThan time.Time) ([]*github.PullRequest, error) {
+func (h *Engine) cachedPRs(ctx context.Context, org string, project string, state string, updateAge time.Duration, newerThan time.Time) ([]*github.PullRequest, time.Time, error) {
 	key := prSearchKey(org, project, state, updateAge)
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
-		return x.PullRequests, nil
+		return x.PullRequests, x.Created, nil
 	}
 
 	klog.V(1).Infof("cache miss: %s newer than %s", key, newerThan)
@@ -37,7 +37,8 @@ func (h *Engine) cachedPRs(ctx context.Context, org string, project string, stat
 }
 
 // updatePRs returns and caches live PR's
-func (h *Engine) updatePRs(ctx context.Context, org string, project string, state string, updateAge time.Duration, key string) ([]*github.PullRequest, error) {
+func (h *Engine) updatePRs(ctx context.Context, org string, project string, state string, updateAge time.Duration, key string) ([]*github.PullRequest, time.Time, error) {
+	start := time.Now()
 	opt := &github.PullRequestListOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
 		State:       state,
@@ -61,7 +62,7 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 			if _, ok := err.(*github.RateLimitError); ok {
 				klog.Errorf("oh snap! We reached the GitHub search API limit: %v", err)
 			}
-			return prs, err
+			return prs, start, err
 		}
 		h.logRate(resp.Rate)
 
@@ -91,22 +92,23 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 
 	klog.V(1).Infof("updatePRs %s returning %d PRs", key, len(allPRs))
 
-	return allPRs, nil
+	return allPRs, start, nil
 }
 
-func (h *Engine) cachedPRComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.PullRequestComment, error) {
+func (h *Engine) cachedPRComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.PullRequestComment, time.Time, error) {
 	key := fmt.Sprintf("%s-%s-%d-pr-comments", org, project, num)
 
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
-		return x.PullRequestComments, nil
+		return x.PullRequestComments, x.Created, nil
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", key, newerThan)
 	return h.updatePRComments(ctx, org, project, num, key)
 }
 
-func (h *Engine) updatePRComments(ctx context.Context, org string, project string, num int, key string) ([]*github.PullRequestComment, error) {
+func (h *Engine) updatePRComments(ctx context.Context, org string, project string, num int, key string) ([]*github.PullRequestComment, time.Time, error) {
 	klog.V(1).Infof("Downloading PR comments for %s/%s #%d", org, project, num)
+	start := time.Now()
 
 	opt := &github.PullRequestListCommentsOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
@@ -116,7 +118,7 @@ func (h *Engine) updatePRComments(ctx context.Context, org string, project strin
 		klog.V(2).Infof("Downloading PR comments for %s/%s #%d (page %d)...", org, project, num, opt.Page)
 		cs, resp, err := h.client.PullRequests.ListComments(ctx, org, project, num, opt)
 		if err != nil {
-			return cs, err
+			return cs, start, err
 		}
 		h.logRate(resp.Rate)
 
@@ -132,7 +134,7 @@ func (h *Engine) updatePRComments(ctx context.Context, org string, project strin
 		klog.Errorf("set %q failed: %v", key, err)
 	}
 
-	return allComments, nil
+	return allComments, start, nil
 }
 
 func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComment, timeline []*github.Timeline) *Conversation {

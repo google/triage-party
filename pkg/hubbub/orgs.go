@@ -25,24 +25,25 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func (h *Engine) cachedOrgMembers(ctx context.Context, org string, newerThan time.Time) (map[string]bool, error) {
+func (h *Engine) cachedOrgMembers(ctx context.Context, org string, newerThan time.Time) (map[string]bool, time.Time, error) {
 	key := fmt.Sprintf("%s-members", org)
 
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
-		return x.StringBool, nil
+		return x.StringBool, x.Created, nil
 	}
 
 	klog.Infof("members miss: %s newer than %s", key, logu.STime(newerThan))
 	opt := &github.ListMembersOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
 	}
+	start := time.Now()
 
 	members := map[string]bool{}
 	for {
 		klog.Infof("Downloading members of %q org (page %d)...", org, opt.Page)
 		mem, resp, err := h.client.Organizations.ListMembers(ctx, org, opt)
 		if err != nil {
-			return nil, err
+			return nil, start, err
 		}
 		for _, m := range mem {
 			members[m.GetLogin()] = true
@@ -58,5 +59,5 @@ func (h *Engine) cachedOrgMembers(ctx context.Context, org string, newerThan tim
 	}
 
 	klog.Infof("%s has %d members", org, len(members))
-	return members, nil
+	return members, start, nil
 }

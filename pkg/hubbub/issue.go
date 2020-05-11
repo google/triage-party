@@ -29,11 +29,11 @@ import (
 )
 
 // cachedIssues returns issues, cached if possible
-func (h *Engine) cachedIssues(ctx context.Context, org string, project string, state string, updateAge time.Duration, newerThan time.Time) ([]*github.Issue, error) {
+func (h *Engine) cachedIssues(ctx context.Context, org string, project string, state string, updateAge time.Duration, newerThan time.Time) ([]*github.Issue, time.Time, error) {
 	key := issueSearchKey(org, project, state, updateAge)
 
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
-		return x.Issues, nil
+		return x.Issues, x.Created, nil
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", key, logu.STime(newerThan))
@@ -41,11 +41,14 @@ func (h *Engine) cachedIssues(ctx context.Context, org string, project string, s
 }
 
 // updateIssues updates the issues in cache
-func (h *Engine) updateIssues(ctx context.Context, org string, project string, state string, updateAge time.Duration, key string) ([]*github.Issue, error) {
+func (h *Engine) updateIssues(ctx context.Context, org string, project string, state string, updateAge time.Duration, key string) ([]*github.Issue, time.Time, error) {
+	start := time.Now()
+
 	opt := &github.IssueListByRepoOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
 		State:       state,
 	}
+
 	klog.V(2).Infof("%s issue list opts for %s: %+v", state, key, opt)
 
 	if updateAge != 0 {
@@ -68,7 +71,7 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 		}
 
 		if err != nil {
-			return is, err
+			return is, start, err
 		}
 		h.logRate(resp.Rate)
 
@@ -92,22 +95,23 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 	}
 
 	klog.V(1).Infof("updateIssues %s returning %d issues", key, len(allIssues))
-	return allIssues, nil
+	return allIssues, start, nil
 }
 
-func (h *Engine) cachedIssueComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.IssueComment, error) {
+func (h *Engine) cachedIssueComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.IssueComment, time.Time, error) {
 	key := fmt.Sprintf("%s-%s-%d-issue-comments", org, project, num)
 
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
-		return x.IssueComments, nil
+		return x.IssueComments, x.Created, nil
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", key, logu.STime(newerThan))
 	return h.updateIssueComments(ctx, org, project, num, key)
 }
 
-func (h *Engine) updateIssueComments(ctx context.Context, org string, project string, num int, key string) ([]*github.IssueComment, error) {
+func (h *Engine) updateIssueComments(ctx context.Context, org string, project string, num int, key string) ([]*github.IssueComment, time.Time, error) {
 	klog.V(1).Infof("Downloading issue comments for %s/%s #%d", org, project, num)
+	start := time.Now()
 
 	opt := &github.IssueListCommentsOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
@@ -121,7 +125,7 @@ func (h *Engine) updateIssueComments(ctx context.Context, org string, project st
 		klog.V(2).Infof("response: %+v", resp)
 
 		if err != nil {
-			return cs, err
+			return cs, start, err
 		}
 		h.logRate(resp.Rate)
 
@@ -136,7 +140,7 @@ func (h *Engine) updateIssueComments(ctx context.Context, org string, project st
 		klog.Errorf("set %q failed: %v", key, err)
 	}
 
-	return allComments, nil
+	return allComments, start, nil
 }
 
 func toYAML(v interface{}) string {
