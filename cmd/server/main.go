@@ -95,7 +95,7 @@ func main() {
 	}
 
 	if err := c.Initialize(); err != nil {
-		klog.Exitf("persist init with %s: %v", c, err)
+		klog.Exitf("persist initialize for %s: %v", c, err)
 	}
 
 	cfg := triage.Config{

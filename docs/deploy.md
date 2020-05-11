@@ -65,5 +65,7 @@ Examples flag settings:
 * **MySQL**: `--persist-backend=mysql --persist-path="user:password@tcp(127.0.0.1:3306)/tp"`
 * **PostgreSQL**: `--persist-backend=postgres --persist-path="dbname=tp"`
 * **CockroachDB**: `--persist-backend=postgres postgresql://root@127.0.0.1:26257?sslmode=disable`
-* **CloudSQL (MySQL)**: `--persist-backend=cloudsql --persist-path="user:password@tcp(project/us-central1/triage-party)/db"`
-  * May require configuring [GOOGLE_APPLICATION_CREDENTIALS](https://cloud.google.com/docs/authentication/getting-started)
+* **CloudSQL - MySQL**: `--persist-backend=cloudsql --persist-path="user:password@tcp(project/us-central1/triage-party)/db"`
+* **CloudSQL - Postgres**: `--persist-backend=cloudsql --persist-path="host=projectname:us-central1:dbname user=postgres password=pw"`
+
+NOTE: Local development with CloudSQL backends may require setting up [GOOGLE_APPLICATION_CREDENTIALS](https://cloud.google.com/docs/authentication/getting-started)
