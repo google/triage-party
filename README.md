@@ -63,13 +63,26 @@ The site is now available at [http://localhost:8080/](http://localhost:8080/), b
 
 Triage Party can be configured to accept any triage workflow you can imagine. Here are some tips:
 
-* Use the drop-down labelled `Solo` on the top-right to enable multi-player mode
-* Use the blue `box with arrow` icon to open issues/pull requests into a new tab
-  * The first time you click this, your browser will block pop-ups!
-  * The notification to allow-popups may be hidden in the URL bar.
+* Use the blue `box-with-arrow` icon to open issues/pull requests into a new tab
+  * If nothing happens when clicked, your browser may be blocking pop-ups
+  * The notification to allow-popups for Triage Party may be hidden in the URL bar.
 * Rules work best when there is a documented resolution to remove it from the list
 * Pages work best if the process is defined so that the page is empty when triage is complete
 * If an non-actionable issue is shown as part of a daily or weekly triage, step back to tune your rules and/or define an appropriate resolution.
+
+## Multi-player mode
+
+Use the drop-down labelled `Solo` on the top-right of any page to enable multi-player mode. In multi-player mode, the number of issues are split among the number of players you have configured. Since Triage Party is state-less, players are assigned via the remainder of the issue or PR divided by the total number of players. Here is a workflow that we have seen work well for triage parties:
+
+1. Wait for attendees to show up
+1. The meeting host selects the appropriate number of players, and shares the resulting Triage Party URL
+1. If someone is showing up later, we may leave a slot open and re-shard later if they do not appear
+1. The meeting host assigns each attendee a player number
+1. Players move section by section, using the "open items in new tabs" feature to quickly work through issues
+1. When a player does not have the context necessary to resolve an item, they present their screen and discuss it with the other players
+1. When a player leaves, the meeting host "re-shards", and all players select the updated player count in the drop-down
+
+NOTE: Multi-player works best if the "Resolution" field of each rule has a clear action to resolve the item and remove it from the list.
 
 ## Configuration
 
