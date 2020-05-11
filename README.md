@@ -79,8 +79,8 @@ Use the drop-down labelled `Solo` on the top-right of any page to enable multi-p
 1. If someone is showing up later, we may leave a slot open and re-shard later if they do not appear
 1. The meeting host assigns each attendee a player number
 1. Players move section by section, using the "open items in new tabs" feature to quickly work through issues
+1. When a player does not have the context necessary to resolve an item, they present their screen and discuss it with the other players
 1. When a player leaves, the meeting host "re-shards", and all players select the updated player count in the drop-down
-1. If a player does not have the background necessary to resolve an item, they present the item to discuss with the rest of the players
 
 NOTE: Multi-player works best if the "Resolution" field of each rule has a clear action to resolve the item and remove it from the list.
 
