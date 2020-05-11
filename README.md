@@ -63,9 +63,9 @@ The site is now available at [http://localhost:8080/](http://localhost:8080/), b
 
 Triage Party can be configured to accept any triage workflow you can imagine. Here are some tips:
 
-* Use the blue `box with arrow` icon to open issues/pull requests into a new tab
-  * The first time you click this, your browser will block pop-ups!
-  * The notification to allow-popups may be hidden in the URL bar.
+* Use the blue `box-with-arrow` icon to open issues/pull requests into a new tab
+  * If nothing happens when clicked, your browser may be blocking pop-ups
+  * The notification to allow-popups for Triage Party may be hidden in the URL bar.
 * Rules work best when there is a documented resolution to remove it from the list
 * Pages work best if the process is defined so that the page is empty when triage is complete
 * If an non-actionable issue is shown as part of a daily or weekly triage, step back to tune your rules and/or define an appropriate resolution.
@@ -76,11 +76,13 @@ Use the drop-down labelled `Solo` on the top-right of any page to enable multi-p
 
 1. Wait for attendees to show up
 1. The meeting host selects the appropriate number of players, and shares the resulting Triage Party URL
-  * If someone is showing up later, we may leave a slot open and re-shard later if they do not appear
+1. If someone is showing up later, we may leave a slot open and re-shard later if they do not appear
 1. The meeting host assigns each attendee a player number
 1. Players move section by section, using the "open items in new tabs" feature to quickly work through issues
 1. When a player leaves, the meeting host "re-shards", and all players select the updated player count in the drop-down
-  * Re-shards work best when the rules have a clear documented resolution
+1. If a player does not have the background necessary to resolve an item, they present the item to discuss with the rest of the players
+
+NOTE: Multi-player works best if the "Resolution" field of each rule has a clear action to resolve the item and remove it from the list.
 
 ## Configuration
 
