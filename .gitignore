@@ -25,5 +25,8 @@ vendor/
 # vim
 *~
 
+# macOS
+.DS_Store
+
 # binaries
 main
