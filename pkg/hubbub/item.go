@@ -11,6 +11,7 @@ import (
 
 // GitHubItem is an interface that matches both GitHub Issues and PullRequests
 type GitHubItem interface {
+	GetRepository() *github.Repository
 	GetAssignee() *github.User
 	GetBody() string
 	GetComments() int

@@ -65,6 +65,13 @@ func preFetchMatch(i GitHubItem, labels []*github.Label, fs []Filter) bool {
 			}
 		}
 
+		if f.RepoRegex() != nil && i.GetRepository() != nil {
+			if ok := matchNegateRegex(i.GetRepository().GetFullName(), f.RepoRegex(), f.RepoNegate()); !ok {
+				klog.V(2).Infof("#%d repo do not meet %s", i.GetNumber(), f.LabelRegex())
+				return false
+			}
+		}
+
 		if f.LabelRegex() != nil {
 			if ok := matchLabel(labels, f.LabelRegex(), f.LabelNegate()); !ok {
 				klog.V(2).Infof("#%d labels do not meet %s", i.GetNumber(), f.LabelRegex())

@@ -61,6 +61,9 @@ The second rule, `many-reactions`, is more fine-grained. It is only focused on i
 # Issue or PR title
 - title: [!]regex
 
+# GitHub repo full name (i.e. "org_name/repo_name")
+- repo: [!]regex
+
 # Internal tagging: particularly useful tags are:
 # - recv: updated by author more recently than a project member
 # - recv-q: updated by author with a question

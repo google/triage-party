@@ -30,6 +30,10 @@ var (
 
 // Filter lets you do less.
 type Filter struct {
+	RawRepo     string `yaml:"repo,omitempty"`
+	repoRegex *regexp.Regexp
+	repoNegate bool
+
 	RawLabel    string `yaml:"label,omitempty"`
 	labelRegex  *regexp.Regexp
 	labelNegate bool
@@ -58,6 +62,31 @@ type Filter struct {
 	ClosedCommenters   string `yaml:"commenters-while-closed,omitempty"`
 	State              string `yaml:"state,omitempty"`
 }
+
+
+// LoadRepoRegex loads a new repo regex
+func (f *Filter) LoadRepoRegex() error {
+	repo, negateRepo := negativeMatch(f.RawRepo)
+
+	re, err := regex(repo)
+	if err != nil {
+		return err
+	}
+
+	f.repoRegex = re
+	f.repoNegate = negateRepo
+
+	return nil
+}
+
+func (f *Filter) RepoRegex() *regexp.Regexp {
+	return f.repoRegex
+}
+
+func (f *Filter) RepoNegate() bool {
+	return f.repoNegate
+}
+
 
 // LoadLabelRegex loads a new label reegx
 func (f *Filter) LoadLabelRegex() error {

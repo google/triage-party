@@ -262,7 +262,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 
 	for _, pr := range prs {
 		klog.V(3).Infof("Found PR #%d with labels: %+v", pr.GetNumber(), pr.Labels)
-		if !preFetchMatch(pr, pr.Labels, fs) {
+		if !preFetchMatch(&pullRequest{pr}, pr.Labels, fs) {
 			klog.V(4).Infof("PR #%d did not pass preFetchMatch :(", pr.GetNumber())
 			continue
 		}

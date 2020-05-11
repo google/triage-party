@@ -145,7 +145,7 @@ func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComme
 		}
 	}
 
-	co := h.conversation(pr, cl, isMember(pr.GetAuthorAssociation()))
+	co := h.conversation(&pullRequest{pr}, cl, isMember(pr.GetAuthorAssociation()))
 	h.addEvents(co, timeline)
 
 	for _, t := range timeline {
@@ -175,4 +175,15 @@ func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComme
 
 	sort.Slice(co.Tags, func(i, j int) bool { return co.Tags[i].ID < co.Tags[j].ID })
 	return co
+}
+
+type pullRequest struct {
+	*github.PullRequest
+}
+
+func (pr *pullRequest) GetRepository() *github.Repository {
+	if pr.GetBase() == nil {
+		return nil
+	}
+	return pr.GetBase().GetRepo()
 }

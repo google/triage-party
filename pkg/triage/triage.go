@@ -230,6 +230,12 @@ func processRules(raw map[string]Rule) (map[string]Rule, error) {
 		newfs := []hubbub.Filter{}
 
 		for _, f := range raw[id].Filters {
+			if f.RawRepo != "" {
+				err := f.LoadRepoRegex()
+				if err != nil {
+					return rules, fmt.Errorf("%q repo: %w", id, err)
+				}
+			}
 			if f.RawLabel != "" {
 				err := f.LoadLabelRegex()
 				if err != nil {
