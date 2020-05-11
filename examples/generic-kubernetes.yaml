@@ -106,6 +106,13 @@ collections:
       - soon-bugs
       - soon-other
   
+  - id: similar
+    name: Similar
+    description: Items with similar titles to one another
+    rules:
+      - similar-prs
+      - similar-issues
+
   - id: open
     name: All open PR's and Issues that should be considered for repository stats (hidden)
     used_for_statistics: true
@@ -501,7 +508,22 @@ rules:
     filters:
       - label: "priority/important-soon"
 
-  # for stastistics generation
+  ## Similar
+  similar-prs:
+    name: "Similar Pull Requests"
+    type: pull_request
+    resolution: Close as duplicate or give a better title
+    filters:
+      - tag: similar
+
+  similar-issues:
+    name: "Similar Issues"
+    type: issue
+    resolution: Close as duplicate or give a better title
+    filters:
+      - tag: similar
+
+  # for statistics generation
   open-issues:
     name: "Open Issues"
     type: issue

@@ -29,6 +29,12 @@ import (
 func (h *Engine) cachedPRs(ctx context.Context, org string, project string, state string, updateAge time.Duration, newerThan time.Time) ([]*github.PullRequest, time.Time, error) {
 	key := prSearchKey(org, project, state, updateAge)
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+		// Normally the similarity tables are only updated when fresh data is encountered.
+		if newerThan.IsZero() {
+			for _, pr := range x.PullRequests {
+				h.updateSimilarityTables(pr.GetTitle(), pr.GetHTMLURL())
+			}
+		}
 		return x.PullRequests, x.Created, nil
 	}
 
@@ -148,6 +154,8 @@ func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComme
 	}
 
 	co := h.conversation(pr, cl, isMember(pr.GetAuthorAssociation()))
+	co.Type = PullRequest
+
 	h.addEvents(co, timeline)
 
 	for _, t := range timeline {

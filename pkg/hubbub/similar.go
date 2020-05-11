@@ -136,6 +136,7 @@ func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 	simco := []*RelatedConversation{}
 	title := normalizeTitle(co.Title)
 	similarURLs := []string{}
+	klog.V(1).Infof("finding similar items to #%d (%s)", co.ID, co.Type)
 
 	tres, ok := h.similarTitles.Load(title)
 	if !ok {
@@ -173,7 +174,13 @@ func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 			klog.V(1).Infof("find similar: no conversation found for %s -- must have been filtered out", url)
 			continue
 		}
-		klog.V(2).Infof("found %s: %q", url, oco.Title)
+
+		if oco.Type != co.Type {
+			klog.V(2).Infof("Found similar item, but it's a %s and I am a %s", oco.Type, co.Type)
+			continue
+		}
+
+		klog.V(1).Infof("found similar %s %s: %q", oco.Type, oco.Title, url)
 		simco = append(simco, makeRelated(h.seen[url]))
 		added[url] = true
 	}

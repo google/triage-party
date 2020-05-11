@@ -108,6 +108,13 @@ collections:
       - flaky-tests
       - other-testing
 
+  - id: similar
+    name: Similar
+    description: Items with similar titles to one another
+    rules:
+      - similar-prs
+      - similar-issues
+
   - id: open
     name: All open PR's and Issues that should be considered for repository stats (hidden)
     used_for_statistics: true
@@ -115,7 +122,6 @@ collections:
     rules:
       - open-prs
       - open-issues
-
 
 rules:
   ### Daily Triage ####
@@ -455,6 +461,21 @@ rules:
     resolution: Close em
     filters:
       - milestone: v1.10.0
+
+  ## Similar
+  similar-prs:
+    name: "Similar Pull Requests"
+    type: pull_request
+    resolution: Close as duplicate or give a better title
+    filters:
+      - tag: similar
+
+  similar-issues:
+    name: "Similar Issues"
+    type: issue
+    resolution: Close as duplicate or give a better title
+    filters:
+      - tag: similar
 
   ## Tests
   failing-tests:
