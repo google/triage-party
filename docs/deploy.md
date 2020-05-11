@@ -9,6 +9,14 @@ docker build --tag=tp --build-arg CFG=examples/generic-project.yaml .
 docker run -e GITHUB_TOKEN=<your token> -p 8080:8080 tp
 ```
 
+### Google Cloud Build
+
+```shell
+gcloud builds submit . --substitutions=_CFG=path/to/my/config.yaml
+```
+
+The built image is tagged with `gcr.io/$PROJECT_ID/triage-party:latest`. See the [cloudbuild.yaml](../cloudbuild.yaml) file for more options.
+
 ### Google Cloud Run
 
 Triage Party was designed to run with Google Cloud Run. That said, Google Cloud Run agressively spins down containers which are not serving incoming requests, which means:
