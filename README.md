@@ -4,7 +4,7 @@
 
 Triage Party is a tool for triaging incoming GitHub issues for large open-source projects, built with the GitHub API.
 
-![screenshot](screenshot.png)
+![screenshot](docs/images/screenshot.png)
 
 Triage Party focuses on reducing response latency for incoming GitHub issues and PR's, and ensure that conversations are not lost in the ether. It was built from the [Google Container DevEx team](https://github.com/GoogleContainerTools)'s experience contributing to popular open-source projects, such as [minikube](https://github.com/kubernetes/minikube), [Skaffold](https://github.com/GoogleContainerTools/skaffold/), and [Kaniko](https://github.com/GoogleContainerTools/kaniko/).
 
@@ -38,9 +38,8 @@ See these fine examples in the wild:
 ## Requirements
 
 * [GitHub API token with read access](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
-* Go v1.14 or higher
 
-## Try it!
+## Try it
 
 Store a GitHub token some place on disk:
 
@@ -55,13 +54,20 @@ go run cmd/server/main.go \
   --repos kubernetes/sig-release
 ```
 
-You will now see a constant stream of output as Triage Party is pulling content from GitHub. The first time a new repository is used, it will require some time (~45s in this case) to download the necessary data before minikube will render pages.
+If you do not have [Go](https://golang.org/) installed, you can run Triage Party using Docker:
 
-The site is now available at [http://localhost:8080/](http://localhost:8080/), but will initially block page loads until content has been locally cached. After the first run, pages are rendered from memory within ~5ms.
+```shell
+docker build --tag=tp --build-arg CFG=examples/generic-project.yaml .
+docker run -e GITHUB_TOKEN=$(cat $HOME/.github-token) -p 8080:8080 tp
+```
+
+You'll see logs emitted as Triage Party pulls content from GitHub. The first time a new repository is used, it will require some time (~45s in this case) to download the necessary data before minikube will render pages. Your new Triage Party site is now available at [http://localhost:8080/](http://localhost:8080/), but will initially block page loads until the required content has been downloaded. After the first run, pages are rendered from memory within ~5ms.
 
 ## Usage Tips
 
 Triage Party can be configured to accept any triage workflow you can imagine. Here are some tips:
+
+![box-with-arrow screenshot](docs/images/open-tab.png)
 
 * Use the blue `box-with-arrow` icon to open issues/pull requests into a new tab
   * If nothing happens when clicked, your browser may be blocking pop-ups
@@ -71,6 +77,8 @@ Triage Party can be configured to accept any triage workflow you can imagine. He
 * If an non-actionable issue is shown as part of a daily or weekly triage, step back to tune your rules and/or define an appropriate resolution.
 
 ## Multi-player mode
+
+![multi-player mode](docs/images/multiplayer.png)
 
 Use the drop-down labelled `Solo` on the top-right of any page to enable multi-player mode. In multi-player mode, the number of issues are split among the number of players you have configured. Since Triage Party is state-less, players are assigned via the remainder of the issue or PR divided by the total number of players. Here is a workflow that we have seen work well for triage parties:
 
@@ -84,12 +92,20 @@ Use the drop-down labelled `Solo` on the top-right of any page to enable multi-p
 
 NOTE: Multi-player works best if the "Resolution" field of each rule has a clear action to resolve the item and remove it from the list.
 
+## Data freshness
+
+![age screenshot](docs/images/age.png)
+
+With the default `Dockerfile`, Triage Party guarantees that all pages are updated at least every 8 minutes, settable using the `--max-refresh` flag. Triage Party will give popular pages a higher refresh rate, up to every 30 seconds by default (settable using `--min-refresh` flag).
+
+Live data can be requested at any time by using forcing a refresh in their browser, typically by holding the Shift button as you reload the page. See   [forced refresh for your browser](https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache).
+
+You can see how fresh a pages data is by mousing-over the "unique items" text in the top-center of the page.
+
 ## Configuration
 
 YAML-based. See the [configuration guide](docs/config.md).
 
 ## Deployments
 
-Triage Party can be deployed on anything from [Google Cloud Run](https://cloud.google.com/run) to [https://kubernetes.io/](Kubernetes), or even a [Raspberry Pi](https://www.raspberrypi.org/) running [https://www.netbsd.org/](NetBSD).
-
-See the [deployment guide](docs/deploy.md) for more information.
+Triage Party is state-less and designed to be deployable anywhere: see the [deployment guide](docs/deploy.md).
