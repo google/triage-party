@@ -36,7 +36,7 @@ func (h *Engine) cachedTimeline(ctx context.Context, org string, project string,
 }
 
 func (h *Engine) updateTimeline(ctx context.Context, org string, project string, num int, key string) ([]*github.Timeline, error) {
-	klog.V(1).Infof("Downloading timeline for %s/%s #%d", org, project, num)
+	klog.Infof("Downloading event timeline for %s/%s #%d", org, project, num)
 
 	opt := &github.ListOptions{
 		PerPage: 100,
