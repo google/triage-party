@@ -48,7 +48,7 @@ type Postgres struct {
 func NewPostgres(cfg Config) (*Postgres, error) {
 	dbx, err := sqlx.Connect("postgres", cfg.Path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("connect: %w", err)
 	}
 
 	m := &Postgres{

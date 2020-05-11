@@ -16,24 +16,35 @@
 package persist
 
 import (
+	"fmt"
 	"strings"
 
-	cloudsql "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/mysql"
+	cmysql "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/mysql"
+	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/postgres"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"k8s.io/klog/v2"
 )
 
 // NewCloudSQL returns a new Google Cloud SQL store (MySQL)
-func NewCloudSQL(cfg Config) (*MySQL, error) {
-	// DSN that works:
-	// $USER:$PASS@tcp($PROJECT/$REGION/$INSTANCE)/$DB"
-	dsn, err := mysql.ParseDSN(cfg.Path)
-	if err != nil {
-		return nil, err
+func NewCloudSQL(cfg Config) (Cacher, error) {
+
+	// This heuristic may be totally wrong. My apologies.
+	if strings.Contains(cfg.Path, "(") {
+		return newCloudMySQL(cfg)
 	}
 
-	mcfg := cloudsql.Cfg(dsn.Addr, dsn.User, dsn.Passwd)
+	return newCloudPostgres(cfg)
+}
+
+func newCloudMySQL(cfg Config) (*MySQL, error) {
+	// Example DSN: $USER:$PASS@tcp($PROJECT/$REGION/$INSTANCE)/$DB"
+	dsn, err := mysql.ParseDSN(cfg.Path)
+	if err != nil {
+		return nil, fmt.Errorf("mysql parse dsn: %w", err)
+	}
+
+	mcfg := cmysql.Cfg(dsn.Addr, dsn.User, dsn.Passwd)
 	// Strip port
 	mcfg.Addr = strings.Split(dsn.Addr, ":")[0]
 	mcfg.Addr = strings.Replace(mcfg.Addr, "/", ":", -1)
@@ -41,11 +52,27 @@ func NewCloudSQL(cfg Config) (*MySQL, error) {
 	mcfg.ParseTime = true
 	klog.Infof("mcfg: %#v", mcfg)
 
-	db, err := cloudsql.DialCfg(mcfg)
+	db, err := cmysql.DialCfg(mcfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cloudmysql dialcfg: %w", err)
 	}
 
 	dbx := sqlx.NewDb(db, "mysql")
-	return &MySQL{db: dbx}, err
+	return &MySQL{db: dbx}, nil
+}
+
+func newCloudPostgres(cfg Config) (*Postgres, error) {
+	// required for CloudSQL, as the encryption is between the proxy and upstream instead
+	if !strings.Contains(cfg.Path, "sslmode=disable") {
+		cfg.Path = cfg.Path + " sslmode=disable"
+	}
+
+	// See https://github.com/GoogleCloudPlatform/cloudsql-proxy/blob/7e668d9ad0ba579372f5142f149a18c38d14a9d0/proxy/dialers/postgres/hook_test.go#L30
+	dbx, err := sqlx.Open("cloudsqlpostgres", cfg.Path)
+	if err != nil {
+		return nil, fmt.Errorf("cloudsqlpostgres open: %w", err)
+	}
+
+	klog.Infof("opened cloudsqlpostgres db at %s", cfg.Path)
+	return &Postgres{db: dbx}, nil
 }
