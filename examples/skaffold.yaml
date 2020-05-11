@@ -622,6 +622,13 @@ rules:
       - label: "priority/p1"
 
   # Fix-It
+  fixit-prs:
+    name: "Fix-it PR's"
+    resolution: Review and merge!
+    type: pull_request
+    filters:
+      - label: "fixit"
+
   fixit-bugs:
     name: "Fix-it bugs"
     type: issue
@@ -646,12 +653,6 @@ rules:
       - label: "fixit"
       - label: "!kind/feature-request"
       - label: "!kind/bug"
-
-  fixit-prs:
-    resolution: Close or remove fixit label
-    type: pull_request
-    filters:
-      - label: "fixit"
 
   ## Similar
   similar-prs:
