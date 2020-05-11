@@ -96,7 +96,7 @@ NOTE: Multi-player works best if the "Resolution" field of each rule has a clear
 
 ![age screenshot](docs/images/age.png)
 
-With the default `Dockerfile`, Triage Party guarantees that all pages are updated at least every 8 minutes, settable using the `--max-refresh` flag. Triage Party will give popular pages a higher refresh rate, up to every 30 seconds by default (settable using `--min-refresh` flag).
+With the default `Dockerfile`, Triage Party refreshes data at least every 8 minutes, settable using the `--max-refresh` flag. Triage Party will give popular pages a higher refresh rate, up to every 30 seconds by default (settable using `--min-refresh` flag). This default is conservative, allowing Triage Party to work with repositories containing 10,000 open issues without hitting GitHub API limits.
 
 Live data can be requested at any time by using forcing a refresh in their browser, typically by holding the Shift button as you reload the page. See   [forced refresh for your browser](https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache).
 
