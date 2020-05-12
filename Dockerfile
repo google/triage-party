@@ -1,4 +1,3 @@
-# syntax = docker/dockerfile:1.0-experimental
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,38 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang AS builder
-WORKDIR /app
 
+# This Dockerfile is optimized for local development or small deployments,
+# as it inserts the config file and cached GitHub data into the image.
+# Some users may want to create their own Dockerfile or omit it entirely.
+
+
+# Stage 1: Copy local persistent cache into temp container containing "mv"
+FROM alpine AS temp
 # CFG is the path to your Triage Party configuration
-ARG CFG
-
-# Build the binary
-ENV SRC_DIR=/src/tparty
-ENV GO111MODULE=on
-RUN mkdir -p ${SRC_DIR}/cmd ${SRC_DIR}/third_party ${SRC_DIR}/pkg ${SRC_DIR}/site /app/third_party /app/site
-COPY go.* $SRC_DIR/
-COPY cmd ${SRC_DIR}/cmd/
-COPY pkg ${SRC_DIR}/pkg/
-WORKDIR $SRC_DIR
-RUN go mod download
-RUN go build cmd/server/main.go
-
-# Populate disk cache data (optional)
-FROM alpine AS persist
 ARG CFG
 COPY pcache /pc
 RUN echo "failure is OK with this next step (cache population)"
 RUN mv /pc/$(basename $CFG).pc /config.yaml.pc || touch /config.yaml.pc
 
-# Setup the site data
-FROM gcr.io/distroless/base
-ARG CFG
-COPY --from=builder /src/tparty/main /app/
-COPY --from=persist /config.yaml.pc /app/pcache/config.yaml.pc
-COPY site /app/site/
-COPY third_party /app/third_party/
-COPY $CFG /app/config.yaml
 
-# Run the server at a reasonable refresh rate
-CMD ["/app/main", "--min-refresh=30s", "--max-refresh=7m30s", "--config=/app/config.yaml", "--site=/app/site", "--3p=/app/third_party"]
+# Stage 2: Copy persistent cache & configuration into application container
+FROM triageparty/triage-party
+ARG CFG
+COPY --from=temp /config.yaml.pc /app/pcache/config.yaml.pc
+COPY site /app/site/
+COPY $CFG /app/config/config.yaml
+
+
+# Useful environment variables:
+# 
+# * GITHUB_TOKEN: Sets GitHub API token
+# * CONFIG_PATH: Sets configuration path (defaults to "/app/config/config.yaml")
+# * PORT: Sets HTTP listening port (defaults to 8080)
+# 
+# For other environment variables, see:
+# https://github.com/google/triage-party/blob/master/docs/deploy.md
+CMD ["/app/main", "--min-refresh=30s", "--max-refresh=8m", "--site=/app/site", "--3p=/app/third_party"]

@@ -1,6 +1,16 @@
 # Triage Party: Deployment Guide
 
-## Environments
+## Environment variables
+
+While Triage Party primarily uses flags for deployment configuration, several settings are available as environment variables to make it easier to deploy.
+
+* `PORT`: `--port`
+* `GITHUB_TOKEN`: (contents of) `--github-token-file`
+* `CONFIG_PATH`: `--config`
+* `PERSIST_BACKEND`: `--persist-backend`
+* `PERSIST_PATH`: `--persist-path`
+
+## Integration
 
 ### Docker
 

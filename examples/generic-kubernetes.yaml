@@ -13,7 +13,7 @@
 # limitations under the License.
 
 settings:
-  name: generic
+  name: generic-kubernetes
   min_similarity: 0.8
   repos:
     - https://github.com/kubernetes/community
