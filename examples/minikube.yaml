@@ -435,7 +435,7 @@ rules:
     type: issue
     resolution: Close em
     filters:
-      - milestone: v1.11.0
+      - milestone: "v1.11.0 May28"
       - label: "kind/feature"
 
   milestone-bugs:
@@ -443,7 +443,7 @@ rules:
     type: issue
     resolution: Close em
     filters:
-      - milestone: v1.11.0
+      - milestone: "v1.11.0 May28"
       - label: kind/bug
 
   milestone-other:
@@ -451,7 +451,7 @@ rules:
     type: issue
     resolution: Close em
     filters:
-      - milestone: v1.11.0
+      - milestone: "v1.11.0 May28"
       - label: "!kind/feature"
       - label: "!kind/bug"
 
@@ -460,7 +460,7 @@ rules:
     type: pull_request
     resolution: Close em
     filters:
-      - milestone: v1.11.0
+      - milestone: "v1.11.0 May28"
 
   ## Similar
   similar-prs:
