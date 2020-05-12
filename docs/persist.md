@@ -48,8 +48,7 @@ CockroachDB has a Postgres front-end, which makes it easy to support. Here's an 
 
 ## TiKV
 
-TiKV support was just introduced in [#73](https://github.com/google/triage-party/pull/73), but we haven't had
-the chance to write documentation for it. Help wanted!
+Under development: see [#69](https://github.com/google/triage-party/issues/69)
 
 ## Memory
 
