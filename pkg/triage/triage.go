@@ -44,7 +44,6 @@ type Party struct {
 	rules         map[string]Rule
 	reposOverride []string
 	debugNumber   int
-	maxClosedAge  time.Duration
 }
 
 func New(cfg Config) *Party {
