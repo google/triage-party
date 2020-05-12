@@ -23,11 +23,10 @@ import (
 	"strconv"
 	"time"
 
-	_ "github.com/lib/pq"
 	"github.com/patrickmn/go-cache"
 	"github.com/pingcap/tidb/config"
 	"github.com/pingcap/tidb/store/tikv"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 const StartKeys = `START_KEYS`
@@ -38,7 +37,7 @@ type TikV struct {
 	path  string
 }
 
-// NewPostgres returns a new Postgres cache
+// NewTiKV returns a new TiKV cache
 func NewTikV(cfg Config) (*TikV, error) {
 	cli, err := tikv.NewRawKVClient([]string{cfg.Path}, config.Security{})
 	if err != nil {
@@ -51,7 +50,7 @@ func NewTikV(cfg Config) (*TikV, error) {
 }
 
 func (t *TikV) String() string {
-	return t.path
+	return fmt.Sprintf("tikv://%s", t.path)
 }
 
 func (t *TikV) Initialize() error {
@@ -90,7 +89,7 @@ func (t *TikV) loadItems() error {
 		decoded[string(keys[i])] = item
 	}
 
-	klog.Infof("%d items loaded from Postgres", len(decoded))
+	klog.Infof("%d items loaded from TiKV", len(decoded))
 	t.cache = loadMem(decoded)
 	return nil
 }
@@ -121,7 +120,7 @@ func (t *TikV) Save() error {
 
 	klog.Infof("*** Saving %d items to Tikv", len(items))
 	defer func() {
-		klog.Infof("*** Tikv.Save took %s", time.Since(start))
+		klog.Infof("*** TiKV.Save took %s", time.Since(start))
 	}()
 	for k, v := range items {
 		b := new(bytes.Buffer)

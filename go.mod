@@ -27,7 +27,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pingcap/goleveldb v0.0.0-20191226122134-f82aafb29989 // indirect
 	github.com/pingcap/kvproto v0.0.0-20200428135407-0f5ffe459677 // indirect
-	github.com/pingcap/tidb v2.0.11+incompatible // indirect
+	github.com/pingcap/tidb v2.0.11+incompatible
 	github.com/pingcap/tipb v0.0.0-20200417094153-7316d94df1ee // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.6.0 // indirect

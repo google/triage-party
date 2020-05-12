@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/patrickmn/go-cache"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 type Memory struct {
