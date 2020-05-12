@@ -51,7 +51,7 @@ var (
 	githubAPIRawURL = flag.String("github-api-url", "", "GitHub API url to connect.  Please set this when you use GitHub Enterprise. This often is your GitHub Enterprise hostname. If the URL does not have the suffix \"/api/v3/\", it will be added automatically.")
 
 	// shared with tester
-	configPath     = flag.String("config", "", "configuration path")
+	configPath     = flag.String("config", "/app/config/config.yaml", "configuration path")
 	persistBackend = flag.String("persist-backend", "", "Cache persistence backend (disk, mysql, cloudsql)")
 	persistPath    = flag.String("persist-path", "", "Where to persist cache to (automatic)")
 
@@ -70,12 +70,18 @@ var (
 	memberRefresh = flag.Duration("membership-refresh", 24*time.Hour, "Minimum time between refreshing membership information")
 )
 
+const DefaultConfigPath = "/app/config/config.yaml"
+
 func main() {
 	klog.InitFlags(nil)
 	flag.Parse()
 
-	if *configPath == "" {
-		klog.Exitf("--config is required")
+	cp := *configPath
+	if cp == "" {
+		cp = os.Getenv("CONFIG_PATH")
+	}
+	if cp == "" {
+		klog.Warningf("--config and CONFIG_PATH were empty, falling back to %s", DefaultConfigPath)
 	}
 
 	ctx := context.Background()
@@ -84,12 +90,12 @@ func main() {
 		&oauth2.Token{AccessToken: triage.MustReadToken(*githubTokenFile, "GITHUB_TOKEN")},
 	)))
 
-	f, err := os.Open(findPath(*configPath))
+	f, err := os.Open(findPath(cp))
 	if err != nil {
-		klog.Exitf("open %s: %v", *configPath, err)
+		klog.Exitf("open %s: %v", cp, err)
 	}
 
-	c, err := persist.FromEnv(*persistBackend, *persistPath, *configPath, *reposOverride)
+	c, err := persist.FromEnv(*persistBackend, *persistPath, cp, *reposOverride)
 	if err != nil {
 		klog.Exitf("unable to create persistence layer: %v", err)
 	}
@@ -110,7 +116,7 @@ func main() {
 
 	tp := triage.New(cfg)
 	if err := tp.Load(f); err != nil {
-		klog.Exitf("load from %s: %v", *configPath, err)
+		klog.Exitf("load from %s: %v", cp, err)
 	}
 
 	ts, err := tp.ListRules()
