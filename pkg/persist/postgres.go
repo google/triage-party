@@ -24,7 +24,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/patrickmn/go-cache"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 var pgSchema = `

@@ -46,6 +46,10 @@ CockroachDB has a Postgres front-end, which makes it easy to support. Here's an 
 
  `--persist-backend=postgres postgresql://root@127.0.0.1:26257?sslmode=disable`
 
+## TiKV
+
+Under development: see [#69](https://github.com/google/triage-party/issues/69)
+
 ## Memory
 
 If no reliable storage is available, this will disable the persistent cache:

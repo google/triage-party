@@ -21,7 +21,7 @@ import (
 
 	"github.com/google/triage-party/pkg/logu"
 	"github.com/patrickmn/go-cache"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 var (
