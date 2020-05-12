@@ -2,12 +2,13 @@ package triage
 
 import (
 	"fmt"
-	"github.com/google/go-github/v31/github"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/google/go-github/v31/github"
 
 	"k8s.io/klog/v2"
 )
@@ -38,10 +39,13 @@ func MustReadToken(path string, env string) string {
 		if err != nil {
 			klog.Exitf("unable to read token file: %v", err)
 		}
-		token = strings.TrimSpace(string(t))
+		token = string(t)
 		klog.Infof("loaded %d byte github token from %s", len(token), path)
+	} else {
+		klog.Infof("loaded %d byte github token from %s", len(token), env)
 	}
 
+	token = strings.TrimSpace(string(token))
 	if len(token) < 8 {
 		klog.Exitf("github token impossibly small: %q", token)
 	}

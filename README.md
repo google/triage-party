@@ -102,10 +102,10 @@ Live data can be requested at any time by using forcing a refresh in their brows
 
 You can see how fresh a pages data is by mousing-over the "unique items" text in the top-center of the page.
 
-## Configuration
+## Documentation
 
-YAML-based. See the [configuration guide](docs/config.md).
+Thirsting for more? See:
 
-## Deployments
-
-Triage Party is state-less and designed to be deployable anywhere: see the [deployment guide](docs/deploy.md).
+* [Configuration guide](docs/config.md)
+* [Deployment guide](docs/deploy.md)
+* [Persistent cache configuration](docs/persist.md)

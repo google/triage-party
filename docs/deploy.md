@@ -14,27 +14,38 @@ While Triage Party primarily uses flags for deployment configuration, several se
 
 ### Docker
 
+The simple Docker deployment is setup for easy cache persistence from disk:
+
 ```shell
 docker build --tag=tp --build-arg CFG=examples/generic-project.yaml .
 docker run -e GITHUB_TOKEN=<your token> -p 8080:8080 tp
 ```
 
-### Google Cloud Build
+### Kubernetes
 
-```shell
-gcloud builds submit . --substitutions=_CFG=path/to/my/config.yaml
-```
+See [examples/manifests](../../examples/manifests)
 
-The built image is tagged with `gcr.io/$PROJECT_ID/triage-party:latest`. See the [cloudbuild.yaml](../cloudbuild.yaml) file for more options.
+Add the GitHub token as a secret:
+
+`kubectl create secret generic triage-party-github-token -n triage-party --from-file=token=$HOME/.github-token`
+
+Create a namespace:
+
+`kubectl apply -f examples/manifests/namespace.yaml`
+
+Add the configuration as a ConfigMap, and setup a NodePort:
+
+`kubectl apply -f ./examples/manifests`
+
+For faster Triage Party restarts, configure a [persistent cache](persistent.md).
+
+If you are deploying to minikube, this will open Triage Party up in your local web browser:
+
+`minikube service triage-party -n triage-party`
 
 ### Google Cloud Run
 
-Triage Party was designed to run with Google Cloud Run. That said, Google Cloud Run agressively spins down containers which are not serving incoming requests, which means:
-
-* Results may sometimes be stale (a warning will be shown in the UI)
-* For faster start-up, you'll want to configure an external persistent cache, such as Cloud SQL
-
-Here is a command-line example that deploys to Cloud Run with Cloud SQL persistence:
+Triage Party was designed to run well with Google Cloud Run. Here is an example command-line to deploy against Cloud Run with a Cloud SQL hosted [persistent cache](persist.md).
 
 ```shell
 gcloud beta run deploy "${SERVICE_NAME}" \
@@ -48,34 +59,10 @@ gcloud beta run deploy "${SERVICE_NAME}" \
 
 For a real-world example deployment script, see [examples/minikube-deploy.sh](examples/minikube-deploy.sh)
 
-### Kubernetes
+### Google Cloud Build
 
-See [examples/generic-kubernetes.yaml](examples/generic-kubernetes.yaml)
+```shell
+gcloud builds submit . --substitutions=_CFG=path/to/my/config.yaml
+```
 
-For faster start-up, you will want to persist cache externally to a PersistentVolume or database in case a pod is rescheduled.
-
-## Configuring Persistence
-
-Triage Party uses an in-memory cache with an optional persistence layer to decrease the load on GitHub API. It uses disk by default, but can be configured to use an external databasee. To configure it, use:
-
-* Backend type: `--persist-backend` flag or `PERSIST_BACKEND` environment variable
-* Backend path: `--persist-path` flag or `PERSIST_PATH` environment flag.
-
-Supported backends include:
-
-* `disk` - useful for development or small installations
-* `mysql` - useful for all installations
-* `postgres` - supports both PostgreSQL and CockroachDB
-* `cloudsql` - useful for Google Cloud installations
-* `memory` - no persistence
-
-Examples flag settings:
-
-* **Custom disk path**: `--persist-path=/var/tmp/tp`
-* **MySQL**: `--persist-backend=mysql --persist-path="user:password@tcp(127.0.0.1:3306)/tp"`
-* **PostgreSQL**: `--persist-backend=postgres --persist-path="dbname=tp"`
-* **CockroachDB**: `--persist-backend=postgres postgresql://root@127.0.0.1:26257?sslmode=disable`
-* **CloudSQL - MySQL**: `--persist-backend=cloudsql --persist-path="user:password@tcp(project/us-central1/triage-party)/db"`
-* **CloudSQL - Postgres**: `--persist-backend=cloudsql --persist-path="host=projectname:us-central1:dbname user=postgres password=pw"`
-
-NOTE: Local development with CloudSQL backends may require setting up [GOOGLE_APPLICATION_CREDENTIALS](https://cloud.google.com/docs/authentication/getting-started)
+The built image is tagged with `gcr.io/$PROJECT_ID/triage-party:latest`. See the [cloudbuild.yaml](../cloudbuild.yaml) file for more options.
