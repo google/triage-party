@@ -1,5 +1,32 @@
 # Release Notes
 
+## Version 1.0.0-beta.4 - 2020-05-11
+
+Improvements:
+
+* Publish Docker image, split Dockerfile into base and default [#90](https://github.com/google/triage-party/pull/90)
+* Add CloudSQL support for Postgres [#89](https://github.com/google/triage-party/pull/89)
+* Support GitHub Enterprise [#64](https://github.com/google/triage-party/pull/64)
+* Improve example Kubernetes manifests [#91](https://github.com/google/triage-party/pull/91)
+* Make stale data warning more informative and fire less often [#88](https://github.com/google/triage-party/pull/88)
+* Add custom.css override file, minor UI tweaks [#81](https://github.com/google/triage-party/pull/81)
+* Include timeline metadata: new 'prioritized' rule, new 'new-commits' tag [#72](https://github.com/google/triage-party/pull/72)
+* Log an error when rate limited by GitHub [#71](https://github.com/google/triage-party/pull/71)
+
+Bugfixes:
+
+* add tikv to persist [#73](https://github.com/google/triage-party/pull/73)
+* Build similarity info on cached data, add example 'similar' example page [#87](https://github.com/google/triage-party/pull/87)
+* Stale notification: use save time instead of item update time [#84](https://github.com/google/triage-party/pull/84)
+* Only download closed issues & PR's when required [#74](https://github.com/google/triage-party/pull/74)
+
+Thank you to our most recent contributors!
+
+- Mahmoud
+- Shingo Omura
+- Thomas Strömberg
+- Travis Tomsu
+
 ## Version 1.0.0-beta.3 - 2020-05-06
 
 * Add 'postgres' persistence backend for PostgreSQL & CockroachDB [#65](https://github.com/google/triage-party/pull/65)
