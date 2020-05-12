@@ -431,36 +431,36 @@ rules:
 
   # Milestone
   milestone-features:
-    name: "v1.10.0 Features"
+    name: "v1.11.0 Features"
     type: issue
     resolution: Close em
     filters:
-      - milestone: v1.10.0
+      - milestone: v1.11.0
       - label: "kind/feature"
 
   milestone-bugs:
-    name: "v1.10.0 Bugs"
+    name: "v1.11.0 Bugs"
     type: issue
     resolution: Close em
     filters:
-      - milestone: v1.10.0
+      - milestone: v1.11.0
       - label: kind/bug
 
   milestone-other:
-    name: "v1.10.0 Other"
+    name: "v1.11.0 Other"
     type: issue
     resolution: Close em
     filters:
-      - milestone: v1.10.0
+      - milestone: v1.11.0
       - label: "!kind/feature"
       - label: "!kind/bug"
 
   milestone-prs:
-    name: "v1.10.0 Pull Requests"
+    name: "v1.11.0 Pull Requests"
     type: pull_request
     resolution: Close em
     filters:
-      - milestone: v1.10.0
+      - milestone: v1.11.0
 
   ## Similar
   similar-prs:
