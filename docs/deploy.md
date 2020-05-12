@@ -23,10 +23,25 @@ docker run -e GITHUB_TOKEN=<your token> -p 8080:8080 tp
 
 ### Kubernetes
 
-See [examples/manifests](../../examples/manifests).
+See [examples/manifests](../../examples/manifests)
 
-For faster start-up, configure a [persistent cache](persistent.md). We recommend using an external database,
-but a PersistentVolumeClaim should also work.
+Add the GitHub token as a secret:
+
+`kubectl create secret generic triage-party-github-token -n triage-party --from-file=token=$HOME/.github-token`
+
+Create a namespace:
+
+`kubectl apply -f examples/manifests/namespace.yaml`
+
+Add the configuration as a ConfigMap, and setup a NodePort:
+
+`kubectl apply -f ./examples/manifests`
+
+For faster Triage Party restarts, configure a [persistent cache](persistent.md).
+
+If you are deploying to minikube, this will open Triage Party up in your local web browser:
+
+`minikube service triage-party -n triage-party`
 
 ### Google Cloud Run
 

@@ -20,7 +20,7 @@ spec:
         - name: GITHUB_TOKEN
           valueFrom:
             secretKeyRef:
-              name: triageparty-github-token
+              name: triage-party-github-token
               key: token
         volumeMounts:
         - name: config
@@ -28,4 +28,4 @@ spec:
       volumes:
       - name: config
         configMap:
-          name: triageparty-config
+          name: triage-party-config

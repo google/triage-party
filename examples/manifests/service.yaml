@@ -4,10 +4,10 @@ metadata:
   name: triage-party
   namespace: triage-party
 spec:
-  type: ClusterIP
+  type: NodePort
   ports:
-  - name: http
-    port: 80
-    targetPort: 8080
+  - port: 8080
+    nodePort: 32080
+    protocol: TCP
   selector:
     app: triage-party
