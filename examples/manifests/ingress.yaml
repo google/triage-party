@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: triage-party-ingress
+  namespace: triage-party
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+   - http:
+      paths:
+      - path: /
+        backend:
+          serviceName: triage-party
+          servicePort: 80
