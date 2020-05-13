@@ -10,22 +10,20 @@ Triage Party focuses on reducing response latency for incoming GitHub issues and
 
 Triage Party is a stateless Go web application, configured via YAML. While it has been optimized for Google Cloud Run deployments, it's deployable anywhere due to its low memory footprint: even on a Raspberry Pi.
 
-## Features
+## Novel Features
 
-* Queries that are not possible on GitHub:
-  * conversation state (`tag: recv`, `tag: send`)
-  * how long since a project member responded (`responded: +15d`)
-  * duration (`updated: +30d`)
-  * regexp (`label: priority/.*`)
-  * reactions (`reactions: >=5`)
-  * comment popularity (`comments-per-month: >0.9`)
-  * duplicate detection
-  * ... and more!
-* Multi-player mode: Supports up to 20 simultaneous players in group triage
-* Easily open an entire group of issues into browser tabs (must accept pop-up dialog)
-* Queries across multiple repositories
-* "Shift-Reload" for live data pull
+* Conversation direction tracking (`tag: recv`, `tag: send`)
+* Multiplayer mode: Up to 20 simultaneous players in group triage
+* Query across GitHub projects or repositories
+* Duplicate issue detection (`tag: similar`)
+* Filters that are not possible on GitHub:
+  * Follow-up latency by project members (`responded: +15d`)
+  * Reactions (`reactions: >=5`)
+  * Comment popularity (`comments-per-month: >0.9`)
+* Easily open groups of issues into browser tabs
+* YAML configuration for all pages, rules, and filters
 * GitHub Enterprise support (via `--github-api-url` cli flag)
+* Low latency (yet able to pull live data)
 
 ## Triage Party in production
 
