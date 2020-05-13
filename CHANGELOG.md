@@ -1,5 +1,13 @@
 # Release Notes
 
+## Version 1.0.0 - 2020-05-13
+
+No functional changes since beta 4:
+
+* Remove reference to unused moment library [#97](https://github.com/google/triage-party/pull/97)
+
+Special thanks to all the Kubernetes users and contributors who opened issues and shared their feedback before the initial release!
+
 ## Version 1.0.0-beta.4 - 2020-05-11
 
 Improvements:

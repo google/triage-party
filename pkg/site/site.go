@@ -37,7 +37,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-const VERSION = "v1.0.0-beta.4"
+const VERSION = "v1.0.0"
 
 var (
 	nonWordRe  = regexp.MustCompile(`\W`)
