@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This image is used to build the public "triageparty/triage-party"
+# image. We hope you enjoy it.
+#
+# Party on!
+
 FROM golang AS builder
 WORKDIR /app
 
@@ -31,7 +36,7 @@ FROM gcr.io/distroless/base
 COPY --from=builder /src/tparty/main /app/
 COPY site /app/site/
 COPY third_party /app/third_party/
-# Just an example to keep the application from crashing. Supply your own!
+# Include an example config to keep Triage Party from crashing. Supply your own!
 COPY examples/generic-project.yaml /app/config/config.yaml
 
 # Useful environment variables:
@@ -39,6 +44,8 @@ COPY examples/generic-project.yaml /app/config/config.yaml
 # * GITHUB_TOKEN: Sets GitHub API token
 # * CONFIG_PATH: Sets configuration path (defaults to "/app/config/config.yaml")
 # * PORT: Sets HTTP listening port (defaults to 8080)
+# * PERSIST_BACKEND: Set the cache persistence backend
+# * PERSIST_PATH: Set the cache persistence path
 # 
 # For other environment variables, see:
 # https://github.com/google/triage-party/blob/master/docs/deploy.md

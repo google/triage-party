@@ -12,10 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-# This Dockerfile is optimized for local development or small deployments,
-# as it inserts the config file and cached GitHub data into the image.
-# Some users may want to create their own Dockerfile or omit it entirely.
+# About this Triage Party Dockerfile:
+#
+# This Dockerfile is optimized for local development or basic deployments,
+# as it bakes your config file and optional local cached GitHub data.
+#
+# If you would rather pass configuration in via other means, such as a
+# ConfigMap, use the "triageparty/triage-party" image, or build the
+# equivalent image yourself using "base.Dockerfile"
+#
+# Party on!
 
 
 # Stage 1: Copy local persistent cache into temp container containing "mv"
@@ -40,6 +46,8 @@ COPY $CFG /app/config/config.yaml
 # * GITHUB_TOKEN: Sets GitHub API token
 # * CONFIG_PATH: Sets configuration path (defaults to "/app/config/config.yaml")
 # * PORT: Sets HTTP listening port (defaults to 8080)
+# * PERSIST_BACKEND: Set the cache persistence backend
+# * PERSIST_PATH: Set the cache persistence path
 # 
 # For other environment variables, see:
 # https://github.com/google/triage-party/blob/master/docs/deploy.md
