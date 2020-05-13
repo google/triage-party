@@ -23,25 +23,16 @@ docker run -e GITHUB_TOKEN=<your token> -p 8080:8080 tp
 
 ### Kubernetes
 
-See [examples/manifests](../../examples/manifests)
+See [examples/manifests](../../examples/manifests) for a basic example. To install Triage Party into a Kubernetes cluster:
 
-Add the GitHub token as a secret:
+```shell
+kubectl apply -f examples/manifests
+kubectl create secret generic triage-party-github-token -n triage-party --from-file=token=$HOME/.github-token
+```
 
-`kubectl create secret generic triage-party-github-token -n triage-party --from-file=token=$HOME/.github-token`
+If you are using minikube, this will open Triage Party in your web browser: `minikube service triage-party -n triage-party`
 
-Create a namespace:
-
-`kubectl apply -f examples/manifests/namespace.yaml`
-
-Add the configuration as a ConfigMap, and setup a NodePort:
-
-`kubectl apply -f ./examples/manifests`
-
-For faster Triage Party restarts, configure a [persistent cache](persistent.md).
-
-If you are deploying to minikube, this will open Triage Party up in your local web browser:
-
-`minikube service triage-party -n triage-party`
+For faster Pod restarts, configure a [persistent cache](persistent.md) using an external database or `PersistentVolumeClaim`
 
 ### Google Cloud Run
 
