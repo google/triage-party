@@ -18,6 +18,20 @@ settings:
   repos:
     - https://github.com/kubernetes/community
 
+  # Who should automatically be considered a project member?
+  # See: https://developer.github.com/v4/enum/commentauthorassociation/
+  # Default is "collaborator, owner, member", unless "members" is set
+  #
+  #member-roles:
+  # - collaborator
+  # - owner
+  # - member
+
+  # Who else do we consider to be a project member? Default is empty.
+  #members:
+  # - tstromberg
+
+
 collections:
   - id: daily
     name: Daily Triage

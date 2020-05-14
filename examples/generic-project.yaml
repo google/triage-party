@@ -14,9 +14,24 @@
 
 settings:
   name: generic-project
+  # On a scale of 0-1, how similar do two issues need to be to be tagged as "similar"
   min_similarity: 0.75
+  # Repositories to query, can be overridden by -repos
   repos:
-    -  https://github.com/photoprism/photoprism
+    - https://github.com/photoprism/photoprism
+
+  # Who should automatically be considered a project member?
+  # See: https://developer.github.com/v4/enum/commentauthorassociation/
+  # Default is "collaborator, owner, member", unless "members" is set
+  #
+  #member-roles:
+  # - collaborator
+  # - owner
+  # - member
+
+  # Who else do we consider to be a project member? Default is empty.
+  #members:
+  # - tstromberg
 
 collections:
   - id: daily
