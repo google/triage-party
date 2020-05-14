@@ -31,28 +31,26 @@ type Config struct {
 	Client        *github.Client
 	Cache         persist.Cacher
 	Repos         []string
-	MemberRefresh time.Duration
 	// DebugNumber is useful when you want to debug why a single issue is or is-not appearing
 	DebugNumber int
 }
 
 type Party struct {
-	engine        *hubbub.Engine
-	settings      Settings
-	collections   []Collection
-	cache         persist.Cacher
-	rules         map[string]Rule
-	reposOverride []string
-	debugNumber   int
+	engine          *hubbub.Engine
+	settings        Settings
+	collections     []Collection
+	cache           persist.Cacher
+	rules           map[string]Rule
+	reposOverride   []string
+	debugNumber     int
 }
 
 func New(cfg Config) *Party {
 	hc := hubbub.Config{
-		Client:        cfg.Client,
-		Cache:         cfg.Cache,
-		Repos:         cfg.Repos,
-		DebugNumber:   cfg.DebugNumber,
-		MemberRefresh: cfg.MemberRefresh,
+		Client:      cfg.Client,
+		Cache:       cfg.Cache,
+		Repos:       cfg.Repos,
+		DebugNumber: cfg.DebugNumber,
 	}
 
 	klog.Infof("New hubbub with config: %+v", hc)

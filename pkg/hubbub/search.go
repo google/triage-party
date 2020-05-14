@@ -39,27 +39,11 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	klog.V(1).Infof("Gathering raw data for %s/%s search %s - newer than %s", org, project, toYAML(fs), logu.STime(newerThan))
 	var wg sync.WaitGroup
 
-	var members map[string]bool
 	var open []*github.Issue
 	var closed []*github.Issue
 	var err error
 
 	age := time.Now()
-	orgCutoff := time.Now().Add(h.memberRefresh * -1)
-	if orgCutoff.After(newerThan) {
-		klog.V(1).Infof("Setting org cutoff to %s", newerThan)
-		orgCutoff = newerThan
-	}
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		members, _, err = h.cachedOrgMembers(ctx, org, orgCutoff)
-		if err != nil {
-			klog.Errorf("members: %v", err)
-			return
-		}
-	}()
 
 	wg.Add(1)
 	go func() {
@@ -144,7 +128,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 			}
 		}
 
-		co := h.IssueSummary(i, comments, members[i.User.GetLogin()])
+		co := h.IssueSummary(i, comments)
 		co.Labels = labels
 		h.seen[co.URL] = co
 
