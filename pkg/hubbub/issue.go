@@ -217,14 +217,3 @@ func isBot(u *github.User) bool {
 
 	return false
 }
-
-// Return if a role is basically a member
-func isMember(role string) bool {
-	// Possible values are "COLLABORATOR", "CONTRIBUTOR", "FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR", "MEMBER", "OWNER", or "NONE".
-	switch role {
-	case "COLLABORATOR", "MEMBER", "OWNER":
-		return true
-	default:
-		return false
-	}
-}

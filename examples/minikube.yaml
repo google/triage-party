@@ -18,6 +18,20 @@ settings:
   repos:
     - https://github.com/kubernetes/minikube
 
+  member-roles:
+    # Automatically add members from these roles (exclude default of "member")
+    # See https://developer.github.com/v4/enum/commentauthorassociation/
+    - collaborator
+    - owner
+  members:
+    # Always consider these folks to be members
+    - afbjorklund
+    - josedonizetti
+    - medyagh
+    - priyawadhwa
+    - sharifelgamal
+    - tstromberg
+
 collections:
   - id: daily-triage
     name: Daily Triage

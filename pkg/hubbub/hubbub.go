@@ -21,6 +21,7 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/persist"
+	"k8s.io/klog/v2"
 )
 
 // Config is how to configure a new hubbub engine
@@ -37,6 +38,13 @@ type Config struct {
 
 	// DebugNumber is used when you want to debug why a single item is being handled in a certain wait
 	DebugNumber int
+
+	// MemberRoles are which roles to consider as members
+	// https://developer.github.com/v4/enum/commentauthorassociation/
+	MemberRoles []string
+
+	// Members are which specific users to consider as members
+	Members []string
 }
 
 // Engine is the search engine interface for hubbub
@@ -55,6 +63,9 @@ type Engine struct {
 	titleToURLs   sync.Map
 	similarTitles sync.Map
 
+	memberRoles map[string]bool
+	members     map[string]bool
+
 	// indexes used for similarity matching
 	seen map[string]*Conversation
 }
@@ -68,6 +79,24 @@ func New(cfg Config) *Engine {
 		seen:               map[string]*Conversation{},
 		MinSimilarity:      cfg.MinSimilarity,
 		debugNumber:        cfg.DebugNumber,
+
+		memberRoles: map[string]bool{},
+		members:     map[string]bool{},
+	}
+
+	klog.Infof("considering users as members: %v", cfg.Members)
+	for _, user := range cfg.Members {
+		e.members[user] = true
+	}
+
+	klog.Infof("considering roles as members: %v", cfg.MemberRoles)
+	for _, role := range cfg.MemberRoles {
+		e.memberRoles[role] = true
+	}
+
+	if len(e.members) == 0 && len(e.memberRoles) == 0 {
+		e.memberRoles = map[string]bool{"collaborator": true, "member": true, "owner": true}
+		klog.Warningf("No memberships defined, using default: %v", e.memberRoles)
 	}
 
 	// This value is typically programmed on the fly, but lets give it a good enough default

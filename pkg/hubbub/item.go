@@ -32,7 +32,7 @@ type GitHubItem interface {
 // conversation creates a conversation from an issue-like
 func (h *Engine) conversation(i GitHubItem, cs []CommentLike) *Conversation {
 	authorIsMember := false
-	if isMember(i.GetAuthorAssociation()) {
+	if h.isMember(i.GetUser().GetLogin(), i.GetAuthorAssociation()) {
 		authorIsMember = true
 	}
 
@@ -88,7 +88,7 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike) *Conversation {
 		if c.GetUser().GetLogin() == i.GetUser().GetLogin() {
 			co.LatestAuthorResponse = c.GetCreatedAt()
 		}
-		if isMember(c.GetAuthorAssociation()) && !isBot(c.GetUser()) {
+		if h.isMember(c.GetUser().GetLogin(), c.GetAuthorAssociation()) && !isBot(c.GetUser()) {
 			if !co.LatestMemberResponse.After(co.LatestAuthorResponse) && !authorIsMember {
 				co.AccumulatedHoldTime += c.GetCreatedAt().Sub(co.LatestAuthorResponse)
 			}
@@ -159,6 +159,21 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike) *Conversation {
 	co.CommentersPerMonth = float64(co.CommentersTotal) / float64(months)
 	co.ReactionsPerMonth = float64(co.ReactionsTotal) / float64(months)
 	return co
+}
+
+// Return if a user or role should be considered a member
+func (h *Engine) isMember(user string, role string) bool {
+	if h.members[user] {
+		klog.V(3).Infof("%q (%s) is in membership list", user, role)
+		return true
+	}
+
+	if h.memberRoles[strings.ToLower(role)] {
+		klog.V(3).Infof("%q (%s) is in membership role list", user, role)
+		return true
+	}
+
+	return false
 }
 
 // Add events to the conversation summary if useful
