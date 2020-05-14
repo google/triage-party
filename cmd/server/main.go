@@ -67,7 +67,6 @@ var (
 
 	maxRefresh    = flag.Duration("max-refresh", 60*time.Minute, "Maximum time between collection runs")
 	minRefresh    = flag.Duration("min-refresh", 60*time.Second, "Minimum time between collection runs")
-	memberRefresh = flag.Duration("membership-refresh", 24*time.Hour, "Minimum time between refreshing membership information")
 )
 
 const DefaultConfigPath = "/app/config/config.yaml"
@@ -107,7 +106,6 @@ func main() {
 	cfg := triage.Config{
 		Client:        client,
 		Cache:         c,
-		MemberRefresh: *memberRefresh,
 	}
 
 	if *reposOverride != "" {

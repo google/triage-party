@@ -79,10 +79,9 @@ func main() {
 	}
 
 	cfg := triage.Config{
-		Client:        client,
-		Cache:         c,
-		MemberRefresh: 90 * 24 * time.Hour,
-		DebugNumber:   *number,
+		Client:      client,
+		Cache:       c,
+		DebugNumber: *number,
 	}
 
 	if *reposOverride != "" {

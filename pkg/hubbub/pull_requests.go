@@ -154,7 +154,7 @@ func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComme
 		}
 	}
 
-	co := h.conversation(pr, cl, isMember(pr.GetAuthorAssociation()))
+	co := h.conversation(pr, cl)
 	co.Type = PullRequest
 
 	h.addEvents(co, timeline)

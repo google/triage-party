@@ -12,6 +12,7 @@ import (
 // GitHubItem is an interface that matches both GitHub Issues and PullRequests
 type GitHubItem interface {
 	GetAssignee() *github.User
+	GetAuthorAssociation() string
 	GetBody() string
 	GetComments() int
 	GetHTMLURL() string
@@ -29,7 +30,12 @@ type GitHubItem interface {
 }
 
 // conversation creates a conversation from an issue-like
-func (h *Engine) conversation(i GitHubItem, cs []CommentLike, authorIsMember bool) *Conversation {
+func (h *Engine) conversation(i GitHubItem, cs []CommentLike) *Conversation {
+	authorIsMember := false
+	if isMember(i.GetAuthorAssociation()) {
+		authorIsMember = true
+	}
+
 	co := &Conversation{
 		ID:                   i.GetNumber(),
 		URL:                  i.GetHTMLURL(),

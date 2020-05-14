@@ -185,12 +185,12 @@ type CommentLike interface {
 	String() string
 }
 
-func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment, authorIsMember bool) *Conversation {
+func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment) *Conversation {
 	cl := []CommentLike{}
 	for _, c := range cs {
 		cl = append(cl, CommentLike(c))
 	}
-	co := h.conversation(i, cl, authorIsMember)
+	co := h.conversation(i, cl)
 	r := i.GetReactions()
 	co.ReactionsTotal += r.GetTotalCount()
 	for k, v := range reactions(r) {
