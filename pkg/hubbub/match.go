@@ -80,7 +80,7 @@ func preFetchMatch(i GitHubItem, labels []*github.Label, fs []Filter) bool {
 		}
 
 		// This state can be performed without downloading comments
-		if f.TagRegex() != nil && f.TagRegex().String() == "assigned" {
+		if f.TagRegex() != nil && f.TagRegex().String() == "^assigned$" {
 			// If assigned and no assignee, fail
 			if !f.TagNegate() && i.GetAssignee() == nil {
 				return false
