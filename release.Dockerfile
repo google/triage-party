@@ -36,8 +36,7 @@ FROM gcr.io/distroless/base
 COPY --from=builder /src/tparty/main /app/
 COPY site /app/site/
 COPY third_party /app/third_party/
-# Include an example config to keep Triage Party from crashing. Supply your own!
-COPY examples/generic-project.yaml /app/config/config.yaml
+COPY config/config.yaml /app/config/config.yaml
 
 # Useful environment variables:
 # 
