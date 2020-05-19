@@ -51,7 +51,7 @@ var (
 	githubAPIRawURL = flag.String("github-api-url", "", "GitHub API url to connect.  Please set this when you use GitHub Enterprise. This often is your GitHub Enterprise hostname. If the URL does not have the suffix \"/api/v3/\", it will be added automatically.")
 
 	// shared with tester
-	configPath     = flag.String("config", "/app/config/config.yaml", "configuration path")
+	configPath     = flag.String("config", "", "configuration path (defaults to searching for config.yaml)")
 	persistBackend = flag.String("persist-backend", "", "Cache persistence backend (disk, mysql, cloudsql)")
 	persistPath    = flag.String("persist-path", "", "Where to persist cache to (automatic)")
 
@@ -65,11 +65,9 @@ var (
 	port          = flag.Int("port", 8080, "port to run server at")
 	siteName      = flag.String("name", "", "override site name from config file")
 
-	maxRefresh    = flag.Duration("max-refresh", 60*time.Minute, "Maximum time between collection runs")
-	minRefresh    = flag.Duration("min-refresh", 60*time.Second, "Minimum time between collection runs")
+	maxRefresh = flag.Duration("max-refresh", 60*time.Minute, "Maximum time between collection runs")
+	minRefresh = flag.Duration("min-refresh", 60*time.Second, "Minimum time between collection runs")
 )
-
-const DefaultConfigPath = "/app/config/config.yaml"
 
 func main() {
 	klog.InitFlags(nil)
@@ -80,7 +78,8 @@ func main() {
 		cp = os.Getenv("CONFIG_PATH")
 	}
 	if cp == "" {
-		klog.Warningf("--config and CONFIG_PATH were empty, falling back to %s", DefaultConfigPath)
+		cp = findPath("config/config.yaml")
+		klog.Warningf("--config and CONFIG_PATH were empty, falling back to %s", cp)
 	}
 
 	ctx := context.Background()
@@ -104,8 +103,8 @@ func main() {
 	}
 
 	cfg := triage.Config{
-		Client:        client,
-		Cache:         c,
+		Client: client,
+		Cache:  c,
 	}
 
 	if *reposOverride != "" {
@@ -225,5 +224,11 @@ func findPath(p string) string {
 			return tp
 		}
 	}
+
+	prod := filepath.Join("/app/", p)
+	if _, err := os.Stat(prod); err == nil {
+		return prod
+	}
+
 	return p
 }
