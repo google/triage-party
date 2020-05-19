@@ -48,14 +48,14 @@ Run:
 ```shell
 go run cmd/server/main.go \
   --github-token-file=$HOME/.github-token \
-  --config examples/generic-kubernetes.yaml \
+  --config config/examples/kubernetes.yaml \
   --repos kubernetes/sig-release
 ```
 
 If you do not have [Go](https://golang.org/) installed, you can run Triage Party using Docker:
 
 ```shell
-docker build --tag=tp --build-arg CFG=examples/generic-project.yaml .
+docker build --tag=tp .
 docker run -e GITHUB_TOKEN=$(cat $HOME/.github-token) -p 8080:8080 tp
 ```
 
