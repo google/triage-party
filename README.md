@@ -12,10 +12,10 @@ Triage Party is a stateless Go web application, configured via YAML. While it ha
 
 ## Novel Features
 
-* Conversation direction tracking (`tag: recv`, `tag: send`)
+* Conversation direction tracking and filtering
 * Multiplayer mode: Up to 20 simultaneous players in group triage
 * Query across GitHub projects or repositories
-* Duplicate issue detection (`tag: similar`)
+* Duplicate issue detection
 * Filters that are not possible on GitHub:
   * Follow-up latency by project members (`responded: +15d`)
   * Reactions (`reactions: >=5`)
