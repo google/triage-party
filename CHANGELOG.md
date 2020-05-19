@@ -1,5 +1,17 @@
 # Release Notes
 
+## Version 1.1.0 - 2020-05-19
+
+* Change Dockerfile to build source and make build-args optional [#110](https://github.com/google/triage-party/pull/110)
+* Fix 'tag: assigned' filter [#109](https://github.com/google/triage-party/pull/109)
+* Make members and member-roles configurable [#108](https://github.com/google/triage-party/pull/108)
+* Remove org membership fetching (no longer necessary) [#107](https://github.com/google/triage-party/pull/107)
+
+Thank you to our contributors:
+
+* Shingo Omura
+* Thomas Stromberg
+
 ## Version 1.0.0 - 2020-05-13
 
 No functional changes since beta 4:
