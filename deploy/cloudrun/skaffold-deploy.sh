@@ -21,7 +21,7 @@ echo "token path: ${GITHUB_TOKEN_PATH}"
 export PROJECT=k8s-skaffold
 export IMAGE="gcr.io/k8s-skaffold/teaparty:$(date +%F-%s)"
 export SERVICE_NAME=skaffold-triage-party
-export CONFIG_FILE=examples/skaffold.yaml
+export CONFIG_FILE=config/examples/skaffold.yaml
 
 docker build -t "${IMAGE}" --build-arg "CFG=${CONFIG_FILE}" .
 

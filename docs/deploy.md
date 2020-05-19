@@ -23,10 +23,10 @@ docker run -e GITHUB_TOKEN=<your token> -p 8080:8080 tp
 
 ### Kubernetes
 
-See [examples/manifests](../../examples/manifests) for a basic example. To install Triage Party into a Kubernetes cluster:
+See [deploy/kubernetes](../../deploy/kubernetes) for example manifests. To install Triage Party into a Kubernetes cluster:
 
 ```shell
-kubectl apply -f examples/manifests
+kubectl apply -f deploy/kubernetes
 kubectl create secret generic triage-party-github-token -n triage-party --from-file=token=$HOME/.github-token
 ```
 
@@ -48,12 +48,12 @@ gcloud beta run deploy "${SERVICE_NAME}" \
     --platform managed
 ```
 
-For a real-world example deployment script, see [examples/minikube-deploy.sh](examples/minikube-deploy.sh)
+For a real-world example deployment script, see [deploy/cloudrun/minikube-deploy.sh](deploy/cloudrun/minikube-deploy.sh)
 
 ### Google Cloud Build
 
 ```shell
-gcloud builds submit . --substitutions=_CFG=path/to/my/config.yaml
+gcloud builds submit .
 ```
 
 The built image is tagged with `gcr.io/$PROJECT_ID/triage-party:latest`. See the [cloudbuild.yaml](../cloudbuild.yaml) file for more options.

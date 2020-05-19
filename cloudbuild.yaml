@@ -3,7 +3,6 @@ steps:
   args: [
     "build",
     "-t", "gcr.io/$PROJECT_ID/$_REPO_NAME:$_TAG_NAME",
-    "--build-arg", "CFG=$_CFG",
     "-f", "Dockerfile",
     ".",
   ]
@@ -11,7 +10,6 @@ steps:
 substitutions:
   _REPO_NAME: triage-party
   _TAG_NAME: latest
-  _CFG: "examples/generic-project.yaml"
 
 images:
 - 'gcr.io/$PROJECT_ID/$_REPO_NAME:$_TAG_NAME'

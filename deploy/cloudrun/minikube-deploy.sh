@@ -21,7 +21,7 @@ echo "token path: ${GITHUB_TOKEN_PATH}"
 export PROJECT=k8s-minikube
 export IMAGE=gcr.io/k8s-minikube/triage-party
 export SERVICE_NAME=teaparty
-export CONFIG_FILE=examples/minikube.yaml
+export CONFIG_FILE=config/examples/minikube.yaml
 
 docker build -t "${IMAGE}" --build-arg "CFG=${CONFIG_FILE}" .
 
