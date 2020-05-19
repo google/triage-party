@@ -12,34 +12,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# About this Triage Party Dockerfile:
+############################################################################
+# About this Dockerfile
 #
-# This Dockerfile is optimized for local development or basic deployments,
-# as it bakes your config file and optional local cached GitHub data.
+# This Dockerfile is optimized for local development or deployments which
+# require the configuration file to be baked into the resulting image.
 #
 # If you would rather pass configuration in via other means, such as a
-# ConfigMap, use the "triageparty/triage-party" image, or build the
-# equivalent image yourself using "base.Dockerfile"
-#
-# Party on!
+# ConfigMap or environment variable, use the "triageparty/triage-party"
+# image published on Docker Hub, or build the equivalent
+# using "base.Dockerfile"
 
+# Stage 1: Build Triage Party (identical to base.Dockerfile)
+FROM golang AS builder
+WORKDIR /app
+ENV SRC_DIR=/src/tparty
+ENV GO111MODULE=on
+RUN mkdir -p ${SRC_DIR}/cmd ${SRC_DIR}/third_party ${SRC_DIR}/pkg ${SRC_DIR}/site /app/third_party /app/site
+COPY go.* $SRC_DIR/
+COPY cmd ${SRC_DIR}/cmd/
+COPY pkg ${SRC_DIR}/pkg/
+WORKDIR $SRC_DIR
+RUN go mod download
+RUN go build cmd/server/main.go
 
-# Stage 1: Copy local persistent cache into temp container containing "mv"
+# Stage 2: Copy local persistent cache into temp container containing "mv"
 FROM alpine AS temp
-# CFG is the path to your Triage Party configuration
-ARG CFG
+ARG CFG=config/config.yaml
 COPY pcache /pc
-RUN echo "failure is OK with this next step (cache population)"
+RUN echo "Pre-populating cache if found (failure is perfectly OK)"
 RUN mv /pc/$(basename $CFG).pc /config.yaml.pc || touch /config.yaml.pc
 
-
-# Stage 2: Copy persistent cache & configuration into application container
-FROM triageparty/triage-party
-ARG CFG
+# Stage 3: Build the configured application container
+FROM gcr.io/distroless/base AS triage-party
+ARG CFG=config/config.yaml
+COPY --from=builder /src/tparty/main /app/
 COPY --from=temp /config.yaml.pc /app/pcache/config.yaml.pc
 COPY site /app/site/
+COPY third_party /app/third_party/
 COPY $CFG /app/config/config.yaml
-
 
 # Useful environment variables:
 # 
