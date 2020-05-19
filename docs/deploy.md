@@ -17,7 +17,7 @@ While Triage Party primarily uses flags for deployment configuration, several se
 The simple Docker deployment is setup for easy cache persistence from disk:
 
 ```shell
-docker build --tag=tp --build-arg CFG=examples/generic-project.yaml .
+docker build --tag=tp .
 docker run -e GITHUB_TOKEN=<your token> -p 8080:8080 tp
 ```
 
