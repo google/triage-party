@@ -102,7 +102,7 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 	return allPRs, start, nil
 }
 
-func (h *Engine) cachedPRComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.PullRequestComment, time.Time, error) {
+func (h *Engine) cachedReviewComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.PullRequestComment, time.Time, error) {
 	key := fmt.Sprintf("%s-%s-%d-pr-comments", org, project, num)
 
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
@@ -110,11 +110,44 @@ func (h *Engine) cachedPRComments(ctx context.Context, org string, project strin
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", key, newerThan)
-	return h.updatePRComments(ctx, org, project, num, key)
+	return h.updateReviewComments(ctx, org, project, num, key)
 }
 
-func (h *Engine) updatePRComments(ctx context.Context, org string, project string, num int, key string) ([]*github.PullRequestComment, time.Time, error) {
-	klog.V(1).Infof("Downloading PR comments for %s/%s #%d", org, project, num)
+// prComments mixes together code review comments and pull-request comments
+func (h *Engine) prComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*Comment, time.Time, error) {
+	start := time.Now()
+
+	var comments []*Comment
+	cs, _, err := h.cachedIssueComments(ctx, org, project, num, newerThan)
+	if err != nil {
+		klog.Errorf("pr comments: %v", err)
+	}
+	for _, c := range cs {
+		comments = append(comments, NewComment(c))
+	}
+
+	rc, _, err := h.cachedReviewComments(ctx, org, project, num, newerThan)
+	if err != nil {
+		klog.Errorf("comments: %v", err)
+	}
+	for _, c := range rc {
+		nc := NewComment(c)
+		nc.ReviewID = c.GetPullRequestReviewID()
+		comments = append(comments, nc)
+	}
+
+	// Re-sort the mixture of review and issue comments in ascending time order
+	sort.Slice(comments, func(i, j int) bool { return comments[j].Created.After(comments[i].Created) })
+
+	if num == h.debugNumber {
+		klog.Errorf("debug comments: %s", formatStruct(comments))
+	}
+
+	return comments, start, err
+}
+
+func (h *Engine) updateReviewComments(ctx context.Context, org string, project string, num int, key string) ([]*github.PullRequestComment, time.Time, error) {
+	klog.V(1).Infof("Downloading review comments for %s/%s #%d", org, project, num)
 	start := time.Now()
 
 	opt := &github.PullRequestListCommentsOptions{
@@ -122,14 +155,16 @@ func (h *Engine) updatePRComments(ctx context.Context, org string, project strin
 	}
 	var allComments []*github.PullRequestComment
 	for {
-		klog.V(2).Infof("Downloading PR comments for %s/%s #%d (page %d)...", org, project, num, opt.Page)
+		klog.V(2).Infof("Downloading review comments for %s/%s #%d (page %d)...", org, project, num, opt.Page)
 		cs, resp, err := h.client.PullRequests.ListComments(ctx, org, project, num, opt)
+
 		if err != nil {
 			return cs, start, err
 		}
+
 		h.logRate(resp.Rate)
 
-		klog.V(2).Infof("Received %d comments", len(cs))
+		klog.V(2).Infof("Received %d review comments", len(cs))
 		allComments = append(allComments, cs...)
 		if resp.NextPage == 0 {
 			break
@@ -144,17 +179,15 @@ func (h *Engine) updatePRComments(ctx context.Context, org string, project strin
 	return allComments, start, nil
 }
 
-func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComment, timeline []*github.Timeline) *Conversation {
-	cl := []CommentLike{}
+func (h *Engine) PRSummary(pr *github.PullRequest, cs []*Comment, timeline []*github.Timeline) *Conversation {
 	latestReview := time.Time{}
 	for _, c := range cs {
-		cl = append(cl, CommentLike(c))
-		if c.GetPullRequestReviewID() != 0 {
-			latestReview = c.GetCreatedAt()
+		if c.ReviewID != 0 && c.Created.After(latestReview) {
+			latestReview = c.Created
 		}
 	}
 
-	co := h.conversation(pr, cl)
+	co := h.conversation(pr, cs)
 	co.Type = PullRequest
 
 	h.addEvents(co, timeline)
