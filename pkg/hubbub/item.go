@@ -65,7 +65,15 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 	seenClosedCommenters := map[string]bool{}
 	seenMemberComment := false
 
+	if co.ID == h.debugNumber {
+		klog.Errorf("debug conversation: %s", formatStruct(co))
+	}
+
 	for _, c := range cs {
+		if co.ID == h.debugNumber {
+			klog.Errorf("debug conversation comment: %s", formatStruct(c))
+		}
+
 		// We don't like their kind around here
 		if isBot(c.User) {
 			continue
@@ -106,6 +114,7 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 					continue
 				}
 				if strings.Contains(line, "?") {
+					klog.V(2).Infof("question at %s: %s", c.Created, line)
 					lastQuestion = c.Created
 				}
 			}
@@ -118,15 +127,18 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 	}
 
 	if co.LatestMemberResponse.After(co.LatestAuthorResponse) {
+		klog.V(2).Infof("marking as send: latest member response (%s) is after latest author response (%s)", co.LatestMemberResponse, co.LatestAuthorResponse)
 		co.Tags = append(co.Tags, sendTag())
 		co.CurrentHoldTime = 0
 	} else if !authorIsMember {
+		klog.V(2).Infof("marking as recv: author is not member, latest member response (%s) is before latest author response (%s)", co.LatestMemberResponse, co.LatestAuthorResponse)
 		co.Tags = append(co.Tags, recvTag())
 		co.CurrentHoldTime += time.Since(co.LatestAuthorResponse)
 		co.AccumulatedHoldTime += time.Since(co.LatestAuthorResponse)
 	}
 
 	if lastQuestion.After(co.LatestMemberResponse) {
+		klog.V(2).Infof("marking as recv-q: last question (%s) comes after last member response (%s)", lastQuestion, co.LatestMemberResponse)
 		co.Tags = append(co.Tags, recvQTag())
 	}
 
