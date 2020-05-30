@@ -33,7 +33,6 @@ type Conversation struct {
 	Organization string `json:"organization"`
 	Project      string `json:"project"`
 
-	Hidden  bool         `json:"hidden"`
 	URL     string       `json:"url"`
 	Title   string       `json:"title"`
 	Author  *github.User `json:"author"`

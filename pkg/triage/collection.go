@@ -78,7 +78,7 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 
 		ro, err := p.ExecuteRule(ctx, t, seen, newerThan)
 		if err != nil {
-			return nil, fmt.Errorf("rule %q: %v", t.Name, err)
+			return nil, fmt.Errorf("rule %q: %w", t.Name, err)
 		}
 
 		if ro.LatestInput.After(latestInput) {

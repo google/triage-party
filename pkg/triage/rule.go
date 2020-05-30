@@ -47,7 +47,7 @@ type RuleResult struct {
 	TotalCurrentHoldDays     float64
 	TotalAccumulatedHoldDays float64
 
-	Duplicates int
+	Duplicates map[string]bool
 
 	// LatestInput is the timestamp of the most recent input data
 	LatestInput time.Time
@@ -59,7 +59,7 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 
 	r := &RuleResult{
 		Rule:       t,
-		Duplicates: 0,
+		Duplicates: map[string]bool{},
 	}
 
 	if seen == nil {
@@ -74,8 +74,7 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 				}
 
 				klog.V(2).Infof("dupe: %s (now: %q, previous: %q)", c.URL, t.ID, dupeRule.ID)
-				c.Hidden = true
-				r.Duplicates++
+				r.Duplicates[c.URL] = true
 			}
 			r.Items = append(r.Items, c)
 			seen[c.URL] = &t
