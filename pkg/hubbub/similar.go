@@ -60,6 +60,7 @@ type RelatedConversation struct {
 	Title   string       `json:"title"`
 	Author  *github.User `json:"author"`
 	Type    string       `json:"type"`
+	State   string       `json:"state"`
 	Created time.Time    `json:"created"`
 }
 
@@ -197,6 +198,7 @@ func makeRelated(c *Conversation) *RelatedConversation {
 		Title:   c.Title,
 		Author:  c.Author,
 		Type:    c.Type,
+		State:   c.State,
 		Created: c.Created,
 	}
 }
