@@ -142,19 +142,17 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 			continue
 		}
 
-		if needsEvents(fs) {
-			timeline, err := h.cachedTimeline(ctx, org, project, i.GetNumber(), newerThan)
-			if err != nil {
-				klog.Errorf("timeline: %v", err)
-				continue
-			}
+		timeline, err := h.cachedTimeline(ctx, org, project, i.GetNumber(), i.GetUpdatedAt())
+		if err != nil {
+			klog.Errorf("timeline: %v", err)
+			continue
+		}
 
-			h.addEvents(co, timeline)
+		h.addEvents(co, timeline)
 
-			if !postEventsMatch(co, fs) {
-				klog.V(1).Infof("#%d - %q did not match post-events filter: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
-				continue
-			}
+		if !postEventsMatch(co, fs) {
+			klog.V(1).Infof("#%d - %q did not match post-events filter: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
+			continue
 		}
 
 		filtered = append(filtered, co)
@@ -178,16 +176,6 @@ func NeedsClosed(fs []Filter) bool {
 		}
 		if f.State != "" && f.State != "open" {
 			klog.Infof("will need closed items due to State=%s", f.State)
-			return true
-		}
-	}
-	return false
-}
-
-// needsEvents returns whether the filters require events data
-func needsEvents(fs []Filter) bool {
-	for _, f := range fs {
-		if f.Prioritized != "" {
 			return true
 		}
 	}

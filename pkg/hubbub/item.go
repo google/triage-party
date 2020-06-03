@@ -52,8 +52,14 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 		Reactions:            map[string]int{},
 	}
 
+	// "https://github.com/kubernetes/minikube/issues/7179",
+	urlParts := strings.Split(i.GetHTMLURL(), "/")
+	co.Organization = urlParts[3]
+	co.Project = urlParts[4]
+
 	if i.GetAssignee() != nil {
 		co.Assignees = append(co.Assignees, i.GetAssignee())
+		co.Tags = append(co.Tags, assignedTag())
 	}
 
 	if !authorIsMember {
@@ -147,12 +153,13 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 		co.Tags = append(co.Tags, recvQTag())
 	}
 
-	if co.Milestone != nil {
+	// Only open milestones for now to keep the query rate lower
+	if co.Milestone != nil && co.Milestone.GetState() == "open" {
 		co.Tags = append(co.Tags, milestoneTag())
 	}
 
 	if !co.LatestAssigneeResponse.IsZero() {
-		co.Tags = append(co.Tags, assigneeUpdated())
+		co.Tags = append(co.Tags, assigneeUpdatedTag())
 	}
 
 	if len(cs) > 0 {
@@ -211,6 +218,12 @@ func (h *Engine) addEvents(co *Conversation, timeline []*github.Timeline) {
 			break
 		}
 	}
+	assignedTo := map[string]bool{}
+	for _, a := range co.Assignees {
+		assignedTo[a.GetLogin()] = true
+	}
+
+	thisRepo := fmt.Sprintf("%s/%s", co.Organization, co.Project)
 
 	for _, t := range timeline {
 		if h.debugNumber == co.ID {
@@ -218,17 +231,55 @@ func (h *Engine) addEvents(co *Conversation, timeline []*github.Timeline) {
 		}
 
 		if t.GetEvent() == "labeled" && t.GetLabel().GetName() == priority {
-			klog.Infof("prioritized at %s", t.GetCreatedAt())
+			klog.V(2).Infof("prioritized at %s", t.GetCreatedAt())
 			co.Prioritized = t.GetCreatedAt()
 		}
 
-		if co.Type == Issue && t.GetEvent() == "referenced" {
-			klog.Warningf("#%d has a reference: : %s", co.ID, formatStruct(t))
+		if t.GetEvent() == "cross-referenced" {
+			if assignedTo[t.GetActor().GetLogin()] {
+				if t.GetCreatedAt().After(co.LatestAssigneeResponse) {
+					co.LatestAssigneeResponse = t.GetCreatedAt()
+					co.Tags = append(co.Tags, assigneeUpdatedTag())
+				}
+			}
 
-			if t.GetSource().GetIssue().IsPullRequest() {
-				co.Tags = append(co.Tags, prTag())
+			if co.Type == Issue && t.GetSource().GetIssue().IsPullRequest() {
+				refRepo := t.GetSource().GetIssue().GetRepository().GetFullName()
+
+				if assignedTo[t.GetActor().GetLogin()] || refRepo == thisRepo {
+					state := t.GetSource().GetIssue().GetState()
+					if state == "open" {
+						co.Tags = append(co.Tags, openPRTag())
+					} else if state == "closed" {
+						co.Tags = append(co.Tags, closedPRTag())
+					}
+				}
 			}
 		}
+	}
+
+	co.Tags = dedupTags(co.Tags)
+}
+
+func dedupTags(tags []Tag) []Tag {
+	deduped := []Tag{}
+	seen := map[string]bool{}
+
+	for _, t := range tags {
+		if seen[t.ID] {
+			continue
+		}
+		deduped = append(deduped, t)
+		seen[t.ID] = true
+	}
+
+	return deduped
+}
+
+func assignedTag() Tag {
+	return Tag{
+		ID:          "assigned",
+		Description: "Someone is assigned",
 	}
 }
 
@@ -239,16 +290,23 @@ func commentedTag() Tag {
 	}
 }
 
-func prTag() Tag {
+func openPRTag() Tag {
 	return Tag{
-		ID:          "pr",
-		Description: "Issue has a cross-referenced PR",
+		ID:          "open-pr",
+		Description: "Issue has an open cross-referenced PR",
 	}
 }
 
-func assigneeUpdated() Tag {
+func closedPRTag() Tag {
 	return Tag{
-		ID:          "updated",
+		ID:          "closed-pr",
+		Description: "Issue has an closed cross-referenced PR",
+	}
+}
+
+func assigneeUpdatedTag() Tag {
+	return Tag{
+		ID:          "assignee-updated",
 		Description: "The assignee has updated the issue",
 	}
 }

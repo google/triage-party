@@ -107,12 +107,6 @@ func postFetchMatch(co *Conversation, fs []Filter) bool {
 	for _, f := range fs {
 		klog.V(2).Infof("post-fetch matching item #%d against filter: %+v", co.ID, toYAML(f))
 
-		if f.TagRegex() != nil {
-			if ok := matchTag(co.Tags, f.TagRegex(), f.TagNegate()); !ok {
-				klog.V(4).Infof("#%d did not pass matchTag: %s vs %s %v", co.ID, co.Tags, f.TagRegex(), f.TagNegate())
-				return false
-			}
-		}
 		if f.Responded != "" {
 			if ok := matchDuration(co.LatestMemberResponse, f.Responded); !ok {
 				klog.V(4).Infof("#%d did not pass matchDuration: %s vs %s", co.ID, co.LatestMemberResponse, f.Responded)
@@ -173,6 +167,13 @@ func postFetchMatch(co *Conversation, fs []Filter) bool {
 // Check if an issue matches the summarized version, after events have been loaded
 func postEventsMatch(co *Conversation, fs []Filter) bool {
 	for _, f := range fs {
+		if f.TagRegex() != nil {
+			if ok := matchTag(co.Tags, f.TagRegex(), f.TagNegate()); !ok {
+				klog.V(4).Infof("#%d did not pass matchTag: %s vs %s %v", co.ID, co.Tags, f.TagRegex(), f.TagNegate())
+				return false
+			}
+		}
+
 		if f.Prioritized != "" {
 			if ok := matchDuration(co.Prioritized, f.Prioritized); !ok {
 				klog.V(4).Infof("#%d did not pass prioritized duration: %s vs %s", co.ID, co.LatestMemberResponse, f.Prioritized)

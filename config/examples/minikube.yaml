@@ -113,7 +113,8 @@ collections:
     rules:
         - no-update
         - updated
-        - has-pr
+        - open-pr
+        - closed-pr
         - closed
 
   - id: tests
@@ -146,21 +147,28 @@ rules:
     type: issue
     filters:
       - tag: "milestone"
-      - tag: "assigned"
       - tag: "!assignee-updated"
+      - tag: "!(open-pr|closed-pr)"
   updated:
-    name: "Updated"
+    name: "In Progress"
     type: issue
     filters:
       - tag: "milestone"
       - tag: "assignee-updated"
-      - tag: "!pr"
-  has-pr:
-    name: "Review"
+      - tag: "!(open-pr|closed-pr)"
+  open-pr:
+    name: "Open PR"
     type: issue
     filters:
       - tag: "milestone"
-      - tag: "pr"
+      - tag: "open-pr"
+  closed-pr:
+    name: "Closed PR"
+    type: issue
+    filters:
+      - tag: "milestone"
+      - tag: "!open-pr"
+      - tag: "closed-pr"
   closed:
     name: "Closed"
     type: issue
