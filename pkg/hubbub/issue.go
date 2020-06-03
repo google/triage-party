@@ -172,24 +172,12 @@ func openByDefault(fs []Filter) []Filter {
 	return fs
 }
 
-type CommentLike interface {
-	GetAuthorAssociation() string
-	GetBody() string
-	GetCreatedAt() time.Time
-	GetReactions() *github.Reactions
-	GetHTMLURL() string
-	GetID() int64
-	GetURL() string
-	GetUpdatedAt() time.Time
-	GetUser() *github.User
-	String() string
-}
-
 func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment) *Conversation {
-	cl := []CommentLike{}
+	cl := []*Comment{}
 	for _, c := range cs {
-		cl = append(cl, CommentLike(c))
+		cl = append(cl, NewComment(c))
 	}
+	
 	co := h.conversation(i, cl)
 	r := i.GetReactions()
 	co.ReactionsTotal += r.GetTotalCount()

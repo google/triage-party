@@ -265,24 +265,28 @@ rules:
 
   # Issues that may need reprioritized
   issue-new-with-reactions:
-    name: "New, has multiple reactions, but not p0"
-    resolution: "Check if issue should be prioritized as p0"
+    name: "New, has multiple reactions, but not high priority"
+    resolution: "Prioritize as p0 or p1, or add discuss label"
     type: issue
     filters:
-      - reactions: ">2"
-      - created: -10d
-      - tag: "!send"
+      - reactions: ">3"
+      - created: -8d
+      - updated: -4d
       - label: "!priority/p0"
+      - label: "!priority/p1"
+      - label: "!triage/discuss"
 
   issue-new-with-many-commenters:
-    name: "New, has multiple commenters, but not p0"
-    resolution: "Check if issue should be prioritized as p0"
+    name: "New, has multiple commenters, but not high priority"
+    resolution: "Prioritize as p0 or p1, or add discuss label"
     type: issue
     filters:
       - commenters: ">3"
-      - created: -10d
-      - tag: "!send"
+      - created: -8d
+      - updated: -4d
       - label: "!priority/p0"
+      - label: "!priority/p1"
+      - label: "!triage/discuss"
 
   # Don't forget our users
   issue-updated-needs-info:

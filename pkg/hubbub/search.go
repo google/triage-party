@@ -268,15 +268,12 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 			continue
 		}
 
-		comments := []*github.PullRequestComment{}
+		var comments []*Comment
 		// pr.GetComments() always returns 0 :(
 		if pr.GetState() == "open" && pr.GetUpdatedAt().After(pr.GetCreatedAt()) {
-			comments, _, err = h.cachedPRComments(ctx, org, project, pr.GetNumber(), pr.GetUpdatedAt())
+			comments, _, err = h.prComments(ctx, org, project, pr.GetNumber(), pr.GetUpdatedAt())
 			if err != nil {
 				klog.Errorf("comments: %v", err)
-			}
-			if pr.GetNumber() == h.debugNumber {
-				klog.Errorf("debug comments: %s", formatStruct(comments))
 			}
 		} else {
 			klog.Infof("skipping comment download for #%d - not updated", pr.GetNumber())

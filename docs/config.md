@@ -106,7 +106,7 @@ Triage Party has an automatic tagging mechanism that adds annotations which can 
 * `commented`: a member of the project has previously commented on this conversation
 * `send`: a member of the project added a comment after the author (may be waiting for response from original author)
 * `recv`: the original author has commented more recently than a member of the project (may be waiting on a response from a project member)
-* `recv-q`: the original author commented with a question more recently than a member of the project has commented (may be waiting on an answer from a project member)
+* `recv-q`: someone asked a question more recently than a member of the project has commented (may be waiting on an answer from a project member)
 * `member-last`: a member of the organization was the last commenter
 * `author-last`: the original author was the last commenter
 * `assigned`: the issue or PR has been assigned to someone
