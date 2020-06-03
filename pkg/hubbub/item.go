@@ -48,7 +48,7 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike) *Conversation {
 		ClosedAt:             i.GetClosedAt(),
 		SelfInflicted:        authorIsMember,
 		LatestAuthorResponse: i.GetCreatedAt(),
-		Milestone:            i.GetMilestone().GetTitle(),
+		Milestone:            i.GetMilestone(),
 		Reactions:            map[string]int{},
 	}
 
@@ -88,6 +88,11 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike) *Conversation {
 		if c.GetUser().GetLogin() == i.GetUser().GetLogin() {
 			co.LatestAuthorResponse = c.GetCreatedAt()
 		}
+
+		if c.GetUser().GetLogin() == i.GetAssignee().GetLogin() {
+			co.LatestAssigneeResponse = c.GetCreatedAt()
+		}
+
 		if h.isMember(c.GetUser().GetLogin(), c.GetAuthorAssociation()) && !isBot(c.GetUser()) {
 			if !co.LatestMemberResponse.After(co.LatestAuthorResponse) && !authorIsMember {
 				co.AccumulatedHoldTime += c.GetCreatedAt().Sub(co.LatestAuthorResponse)
@@ -128,6 +133,14 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike) *Conversation {
 
 	if lastQuestion.After(co.LatestMemberResponse) {
 		co.Tags = append(co.Tags, recvQTag())
+	}
+
+	if co.Milestone != nil {
+		co.Tags = append(co.Tags, milestoneTag())
+	}
+
+	if !co.LatestAssigneeResponse.IsZero() {
+		co.Tags = append(co.Tags, assigneeUpdated())
 	}
 
 	if len(cs) > 0 {
@@ -188,9 +201,21 @@ func (h *Engine) addEvents(co *Conversation, timeline []*github.Timeline) {
 	}
 
 	for _, t := range timeline {
+		if h.debugNumber == co.ID {
+			klog.Errorf("debug timeline event: %s", formatStruct(t))
+		}
+
 		if t.GetEvent() == "labeled" && t.GetLabel().GetName() == priority {
 			klog.Infof("prioritized at %s", t.GetCreatedAt())
 			co.Prioritized = t.GetCreatedAt()
+		}
+
+		if co.Type == Issue && t.GetEvent() == "referenced" {
+			klog.Warningf("#%d has a reference: : %s", co.ID, formatStruct(t))
+
+			if t.GetSource().GetIssue().IsPullRequest() {
+				co.Tags = append(co.Tags, prTag())
+			}
 		}
 	}
 }
@@ -199,6 +224,20 @@ func commentedTag() Tag {
 	return Tag{
 		ID:          "commented",
 		Description: "A project member has commented on this",
+	}
+}
+
+func prTag() Tag {
+	return Tag{
+		ID:          "pr",
+		Description: "Issue has a cross-referenced PR",
+	}
+}
+
+func assigneeUpdated() Tag {
+	return Tag{
+		ID:          "updated",
+		Description: "The assignee has updated the issue",
 	}
 }
 
@@ -220,6 +259,13 @@ func recvQTag() Tag {
 	return Tag{
 		ID:          "recv-q",
 		Description: "The author has asked a question since the last project member commented",
+	}
+}
+
+func milestoneTag() Tag {
+	return Tag{
+		ID:          "milestone",
+		Description: "The issue has a milestone associated to it",
 	}
 }
 

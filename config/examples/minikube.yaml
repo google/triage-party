@@ -108,11 +108,13 @@ collections:
   - id: milestone
     name: Next Milestone
     description: Items on the next milestone
+    display: kanban
+    selector: milestone
     rules:
-      - milestone-prs
-      - milestone-features
-      - milestone-bugs
-      - milestone-other
+        - no-update
+        - updated
+        - has-pr
+        - closed
 
   - id: tests
     name: Broken tests
@@ -138,6 +140,35 @@ collections:
       - open-issues
 
 rules:
+  ### Kanban ###
+  no-update:
+    name: "No Update"
+    type: issue
+    filters:
+      - tag: "milestone"
+      - tag: "assigned"
+      - tag: "!assignee-updated"
+  updated:
+    name: "Updated"
+    type: issue
+    filters:
+      - tag: "milestone"
+      - tag: "assignee-updated"
+      - tag: "!pr"
+  has-pr:
+    name: "Review"
+    type: issue
+    filters:
+      - tag: "milestone"
+      - tag: "pr"
+  closed:
+    name: "Closed"
+    type: issue
+    filters:
+      - tag: "milestone"
+      - state: closed
+      - updated: -30d
+
   ### Daily Triage ####
   # SLO violations
   issue-needs-priority-slo:
