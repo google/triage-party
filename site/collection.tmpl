@@ -109,7 +109,7 @@
               <a href="{{ .URL }}" title="{{ .LastCommentBody }}"><strong>{{ .Title }}</strong></a>
               {{ if .Similar }}<div class="similar"><ul>
               {{ range .Similar }}
-                <li><a href="{{ .URL }}" title="Title is similar to #{{ .ID }}">Similar to {{ if eq .Type "pull_request" }}PR{{ end }}#{{ .ID }}: {{ .Title }}</a></li>
+                <li><a href="{{ .URL }}" title="Title is similar to #{{ .ID }}">Similar to {{ if eq .Type "pull_request" }}PR{{ end }}#{{ .ID }}({{ .State }}): {{ .Title }}</a></li>
               {{ end }}
               </div>
               {{ end }}
