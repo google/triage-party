@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package handlers define HTTP handlers.
 package site
 
 import (
@@ -20,6 +19,7 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/google/go-github/v31/github"
@@ -28,17 +28,35 @@ import (
 	"k8s.io/klog/v2"
 )
 
+var unassigned = "zz_unassigned"
+
+// Swimlane is a row in a Kanban display.
 type Swimlane struct {
 	User    *github.User
 	Columns []*triage.RuleResult
 }
 
-func groupByUser(results []*triage.RuleResult) []*Swimlane {
+func avatarWide(u *github.User) template.HTML {
+	if u.GetLogin() == unassigned {
+		return template.HTML("<div class=unassigned></div>")
+	}
+
+	return template.HTML(fmt.Sprintf(`<a href="%s" title="%s"><img src="%s" width="96" height="96"></a>`, u.GetHTMLURL(), u.GetLogin(), u.GetAvatarURL()))
+}
+
+func groupByUser(results []*triage.RuleResult, milestoneID int) []*Swimlane {
 	lanes := map[string]*Swimlane{}
 
 	for i, r := range results {
 		for _, co := range r.Items {
-			for _, a := range co.Assignees {
+			assignees := co.Assignees
+			if len(assignees) == 0 {
+				assignees = append(assignees, &github.User{
+					Login: &unassigned,
+				})
+			}
+
+			for _, a := range assignees {
 				assignee := a.GetLogin()
 				if lanes[assignee] == nil {
 					lanes[assignee] = &Swimlane{
@@ -53,7 +71,10 @@ func groupByUser(results []*triage.RuleResult) []*Swimlane {
 						Items: []*hubbub.Conversation{},
 					}
 				}
-				lanes[assignee].Columns[i].Items = append(lanes[assignee].Columns[i].Items, co)
+
+				if milestoneID == 0 || co.Milestone.GetID() == int64(milestoneID) {
+					lanes[assignee].Columns[i].Items = append(lanes[assignee].Columns[i].Items, co)
+				}
 			}
 		}
 	}
@@ -66,7 +87,7 @@ func groupByUser(results []*triage.RuleResult) []*Swimlane {
 	return ls
 }
 
-// Kanban shows a kanban swimlane view of a collection
+// Kanban shows a kanban swimlane view of a collection.
 func (h *Handlers) Kanban() http.HandlerFunc {
 	fmap := template.FuncMap{
 		"toJS":          toJS,
@@ -87,22 +108,75 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := strings.TrimPrefix(r.URL.Path, "/k/")
+		milestoneID := getInt(r.URL, "milestone", 0)
 
 		p, err := h.collectionPage(r.Context(), id, isRefresh(r))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("collection page for %q: %v", id, err), 500)
 			klog.Errorf("page: %v", err)
+
 			return
 		}
 
-		p.Swimlanes = groupByUser(p.CollectionResult.RuleResults)
+		chosen, milestones := milestoneChoices(p.CollectionResult.RuleResults, milestoneID)
+		for _, m := range milestones {
+			if m.Selected {
+				milestoneID = m.Value
+			}
+		}
+
+		p.Description = p.Collection.Description
+		p.Swimlanes = groupByUser(p.CollectionResult.RuleResults, milestoneID)
+		p.SelectorOptions = milestones
+		p.SelectorVar = "milestone"
+		p.Milestone = chosen
 
 		klog.V(2).Infof("page context: %+v", p)
+
 		err = t.ExecuteTemplate(w, "base", p)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("collection page for %q: %v", id, err), 500)
 			klog.Errorf("tmpl: %v", err)
+
 			return
 		}
 	}
+}
+
+func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Milestone, []Choice) {
+	counts := map[*github.Milestone]int{}
+
+	for _, r := range results {
+		for _, co := range r.Items {
+			counts[co.Milestone]++
+		}
+	}
+
+	milestones := []*github.Milestone{}
+	for k := range counts {
+		milestones = append(milestones, k)
+	}
+
+	sort.Slice(milestones, func(i, j int) bool { return milestones[i].GetDueOn().After(milestones[j].GetDueOn()) })
+
+	if milestoneID == 0 {
+		milestoneID = milestones[0].GetNumber()
+	}
+
+	choices := []Choice{}
+
+	var chosen *github.Milestone
+
+	for _, m := range milestones {
+		c := Choice{
+			Value: m.GetNumber(),
+			Text:  fmt.Sprintf("%s (%s)", m.GetTitle(), m.GetDueOn()),
+		}
+		if c.Value == milestoneID {
+			c.Selected = true
+			chosen = m
+		}
+	}
+
+	return chosen, choices
 }

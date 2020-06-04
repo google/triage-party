@@ -116,10 +116,21 @@ type Page struct {
 
 	Swimlanes        []*Swimlane
 	CollectionResult *triage.CollectionResult
-	Stats            *triage.CollectionResult
-	StatsID          string
+	SelectorVar      string
+	SelectorOptions  []Choice
+	Milestone        *github.Milestone
+
+	Stats   *triage.CollectionResult
+	StatsID string
 
 	GetVars string
+}
+
+// Choice is a selector choice
+type Choice struct {
+	Value    int
+	Text     string
+	Selected bool
 }
 
 // is this request an HTTP refresh?
@@ -211,10 +222,6 @@ func humanTime(t time.Time) string {
 
 func avatar(u *github.User) template.HTML {
 	return template.HTML(fmt.Sprintf(`<a href="%s" title="%s"><img src="%s" width="20" height="20"></a>`, u.GetHTMLURL(), u.GetLogin(), u.GetAvatarURL()))
-}
-
-func avatarWide(u *github.User) template.HTML {
-	return template.HTML(fmt.Sprintf(`<a href="%s" title="%s"><img src="%s" width="96" height="96"></a>`, u.GetHTMLURL(), u.GetLogin(), u.GetAvatarURL()))
 }
 
 // playerFilter filters out results for a particular player

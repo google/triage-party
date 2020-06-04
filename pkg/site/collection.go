@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package handlers define HTTP handlers.
+// Package site defines HTTP handlers.
 package site
 
 import (
@@ -25,7 +25,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// Collection shows a grouping of rules
+// Collection shows a grouping of rules.
 func (h *Handlers) Collection() http.HandlerFunc {
 	fmap := template.FuncMap{
 		"toJS":          toJS,
@@ -65,17 +65,21 @@ func (h *Handlers) Collection() http.HandlerFunc {
 		if err != nil {
 			http.Error(w, fmt.Sprintf("collection page for %q: %v", id, err), 500)
 			klog.Errorf("page: %v", err)
+
 			return
 		}
 
 		result := p.CollectionResult
+
 		if player > 0 && players > 1 {
 			p.CollectionResult = playerFilter(result, player, players)
 		}
 
 		embedURL := ""
+
 		if mode == 1 {
 			searchIndex := 0
+
 			for _, o := range result.RuleResults {
 				for _, i := range o.Items {
 					searchIndex++
@@ -95,6 +99,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 		p.PlayerNums = playerNums
 		p.Player = player
 		p.Players = players
+		p.Description = p.Collection.Description
 		p.Mode = mode
 		p.Index = index
 		p.EmbedURL = embedURL
@@ -102,6 +107,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 
 		klog.V(2).Infof("page context: %+v", p)
 		err = t.ExecuteTemplate(w, "base", p)
+
 		if err != nil {
 			klog.Errorf("tmpl: %v", err)
 			return

@@ -35,7 +35,7 @@
             <form style="display: inline-block;" action="/s/{{ .ID }}" method="get">
               {{ if gt .Players 1 }}
                 <select onchange="this.form.submit();" name="player">
-                  {{ range $i, $name := .PlayerChoices }}
+                  {{ range $i, $name := .SelectorOptions }}
                     <option value="{{ $i }}" {{ if eq $.Player $i}}selected{{ end }}>{{ $name }}</option>
                   {{ end }}
                 </select>
@@ -55,9 +55,9 @@
 
 {{define "content"}}
 
-  {{ if ne .Collection.Description "" }}
+  {{ if ne .Description "" }}
     <div class="box description">
-    <pre>{{ .Collection.Description }}</pre>
+    <pre>{{ .Description }}</pre>
     </div>
   {{ end }}
 

@@ -34,6 +34,7 @@
   clear: right;
   float: left;
   width: 10em;
+  word-wrap: break-word;
 
   box-shadow: 2px 2px 8px #ccc;
 }
@@ -89,4 +90,13 @@ display: inline !important;
   font-style: italic;
   font-size: 90%;
   color: #333;
+}
+
+.unassigned:before {
+  content: "🤷";
+  font-size: xx-large;
+}
+
+.kanban-assignee {
+  width: 2em;
 }

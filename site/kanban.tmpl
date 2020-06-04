@@ -17,8 +17,7 @@
           <div class="right-item">
           <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
           <span title="Data as of {{ .ResultAge | HumanDuration}} ago">{{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }}, 
-          Avg age: {{ .CollectionResult.AvgAge | toDays }}, 
-          Avg wait: {{ .CollectionResult.AvgCurrentHold | toDays }}
+          Avg age: {{ .CollectionResult.AvgAge | toDays }}
           </span>
           </div>
           <script>
@@ -34,19 +33,11 @@
       <div class="navbar-form">
           <div class="buttons">
             <form style="display: inline-block;" action="/k/{{ .ID }}" method="get">
-              {{ if gt .Players 1 }}
-                <select onchange="this.form.submit();" name="milestone">
-                  {{ range $i, $name := .PlayerChoices }}
-                    <option value="{{ $i }}" {{ if eq $.Player $i}}selected{{ end }}>{{ $name }}</option>
+                <select onchange="this.form.submit();" name="{{ .SelectorVar }}">
+                  {{ range .SelectorOptions }}
+                    <option value="{{ .Value }}" {{ if .Selected }}selected{{ end }}>{{ .Text }}</option>
                   {{ end }}
                 </select>
-                of
-              {{ end }}
-              <select onchange="this.form.submit();" name="players">
-                {{ range $i, $val := .PlayerNums }}
-                  <option value="{{ $val }}" {{ if eq $.Players $val}}selected{{ end }}>{{ if eq $val 1}}Solo{{ else }}{{ $val }} Players{{ end }}</option>
-                {{ end }}
-              </select>
             </form>
           </div>
       </div>
@@ -55,13 +46,28 @@
 {{ end }}
 
 {{define "content"}}
-  <div class="box kanban">
-    <table id="kanban-table" class="compact is-size-6">
-    <thead class="box-header">
+
+  {{ if ne .Description "" }}
+    <div class="box description">
+    <pre>{{ .Description }}</pre>
+    </div>
+  {{ end }}
+
+  <div class="box outcome kanban">
+      <div class="box-header collapsible">
+        <div class="box-head-left">
+          <h3>{{ .Milestone.Title }}</h3>
+        </div>
+        <div class="box-head-right">
+        <!--  just save the space -->
+        </div>
+      </div>
+      <table id="kanban-table" class="compact is-size-6">
+    <thead>
     <tr>
-      <th>Assi</th>
+      <th id="assignee-col">Assi</th>
       {{ range .CollectionResult.RuleResults }}
-      <th>{{ .Rule.Name}}</th>
+        <th id="{{ .Rule.ID | Class  }}" title="{{ .Rule | toYAML }}">{{ .Rule.Name}}</th>
       {{ end }}
     </tr>
     <tbody>
@@ -75,18 +81,20 @@
       <td class="kanban-column">
         {{ if . }}
           {{ range $x, $i := .Items }}
-            {{ if ge $x $col.Overflow }}
+            {{ $overflow := 0 }}
+            {{ if and (.Assignees) (ge $x $col.Overflow) }}
+              {{ $overflow = 1 }}
               <br style="clear: both">
             {{ end }}
 
-            <div class="sticky sticky-{{ $x }} {{ if ge $x $col.Overflow }}sticky-overflow{{ end }} {{ range $i.Labels }} {{ .Name | Class }}{{ end }}">
+            <div class="sticky sticky-{{ $x }} {{ if $overflow }}sticky-overflow{{ end }} {{ range $i.Labels }} {{ .Name | Class }}{{ end }}">
               <a href="{{ $i.URL }}" title="{{ $i.LastCommentBody }}">
                 <span class="sticky-title">{{ $i.Title }}</span>
                 <span class="sticky-id">#{{ $i.ID }}</span>
               </a>
 
               <div class="reactions">
-                {{ if ge $x $col.Overflow }}🌊{{ end }}
+                {{ if $overflow }}🌊{{ end }}
                 {{ range $value, $count := $i.Reactions }}
                   {{ if gt $count 1 }}
                     <div class="reaction-{{ $value }} sticky-reaction"></div>
@@ -110,7 +118,7 @@
 <script src="/third_party/datatables-bulma/dataTables.bulma.js"></script>
 <script>
    $('#kanban-table').DataTable( {
-        "order": [[ 0, "desc" ]],
+        "order": [[ 0, "asc" ]],
         "paging": false,
         "info": false,
     });
