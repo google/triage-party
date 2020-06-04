@@ -177,7 +177,7 @@ func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment) *Conve
 	for _, c := range cs {
 		cl = append(cl, NewComment(c))
 	}
-	
+
 	co := h.conversation(i, cl)
 	r := i.GetReactions()
 	co.ReactionsTotal += r.GetTotalCount()

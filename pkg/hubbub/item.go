@@ -48,12 +48,18 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 		ClosedAt:             i.GetClosedAt(),
 		SelfInflicted:        authorIsMember,
 		LatestAuthorResponse: i.GetCreatedAt(),
-		Milestone:            i.GetMilestone().GetTitle(),
+		Milestone:            i.GetMilestone(),
 		Reactions:            map[string]int{},
 	}
 
+	// "https://github.com/kubernetes/minikube/issues/7179",
+	urlParts := strings.Split(i.GetHTMLURL(), "/")
+	co.Organization = urlParts[3]
+	co.Project = urlParts[4]
+
 	if i.GetAssignee() != nil {
 		co.Assignees = append(co.Assignees, i.GetAssignee())
+		co.Tags = append(co.Tags, assignedTag())
 	}
 
 	if !authorIsMember {
@@ -96,6 +102,11 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 		if c.User.GetLogin() == i.GetUser().GetLogin() {
 			co.LatestAuthorResponse = c.Created
 		}
+
+		if c.User.GetLogin() == i.GetAssignee().GetLogin() {
+			co.LatestAssigneeResponse = c.Created
+		}
+
 		if h.isMember(c.User.GetLogin(), c.AuthorAssoc) && !isBot(c.User) {
 			if !co.LatestMemberResponse.After(co.LatestAuthorResponse) && !authorIsMember {
 				co.AccumulatedHoldTime += c.Created.Sub(co.LatestAuthorResponse)
@@ -140,6 +151,15 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 	if lastQuestion.After(co.LatestMemberResponse) {
 		klog.V(2).Infof("marking as recv-q: last question (%s) comes after last member response (%s)", lastQuestion, co.LatestMemberResponse)
 		co.Tags = append(co.Tags, recvQTag())
+	}
+
+	// Only open milestones for now to keep the query rate lower
+	if co.Milestone != nil && co.Milestone.GetState() == "open" {
+		co.Tags = append(co.Tags, milestoneTag())
+	}
+
+	if !co.LatestAssigneeResponse.IsZero() {
+		co.Tags = append(co.Tags, assigneeUpdatedTag())
 	}
 
 	if len(cs) > 0 {
@@ -198,12 +218,77 @@ func (h *Engine) addEvents(co *Conversation, timeline []*github.Timeline) {
 			break
 		}
 	}
+	assignedTo := map[string]bool{}
+	for _, a := range co.Assignees {
+		assignedTo[a.GetLogin()] = true
+	}
+
+	thisRepo := fmt.Sprintf("%s/%s", co.Organization, co.Project)
 
 	for _, t := range timeline {
+		if h.debugNumber == co.ID {
+			klog.Errorf("debug timeline event: %s", formatStruct(t))
+		}
+
 		if t.GetEvent() == "labeled" && t.GetLabel().GetName() == priority {
-			klog.Infof("prioritized at %s", t.GetCreatedAt())
+			klog.V(2).Infof("prioritized at %s", t.GetCreatedAt())
 			co.Prioritized = t.GetCreatedAt()
 		}
+
+		if t.GetEvent() == "cross-referenced" {
+			if assignedTo[t.GetActor().GetLogin()] {
+				if t.GetCreatedAt().After(co.LatestAssigneeResponse) {
+					co.LatestAssigneeResponse = t.GetCreatedAt()
+					co.Tags = append(co.Tags, assigneeUpdatedTag())
+				}
+			}
+
+			if co.Type == Issue && t.GetSource().GetIssue().IsPullRequest() {
+				state := t.GetSource().GetIssue().GetState()
+				refRepo := t.GetSource().GetIssue().GetRepository().GetFullName()
+				if refRepo != thisRepo {
+					continue
+				}
+
+				if assignedTo[t.GetActor().GetLogin()] {
+					if state == "open" {
+						co.Tags = append(co.Tags, assigneeOpenPRTag())
+					} else if state == "closed" {
+						co.Tags = append(co.Tags, assigneeClosedPRTag())
+					}
+				} else {
+					if state == "open" {
+						co.Tags = append(co.Tags, otherOpenPRTag())
+					} else if state == "closed" {
+						co.Tags = append(co.Tags, otherClosedPRTag())
+					}
+				}
+			}
+		}
+	}
+
+	co.Tags = dedupTags(co.Tags)
+}
+
+func dedupTags(tags []Tag) []Tag {
+	deduped := []Tag{}
+	seen := map[string]bool{}
+
+	for _, t := range tags {
+		if seen[t.ID] {
+			continue
+		}
+		deduped = append(deduped, t)
+		seen[t.ID] = true
+	}
+
+	return deduped
+}
+
+func assignedTag() Tag {
+	return Tag{
+		ID:          "assigned",
+		Description: "Someone is assigned",
 	}
 }
 
@@ -211,6 +296,41 @@ func commentedTag() Tag {
 	return Tag{
 		ID:          "commented",
 		Description: "A project member has commented on this",
+	}
+}
+
+func otherOpenPRTag() Tag {
+	return Tag{
+		ID:          "other-open-pr",
+		Description: "Issue has an open cross-referenced PR",
+	}
+}
+
+func otherClosedPRTag() Tag {
+	return Tag{
+		ID:          "other-closed-pr",
+		Description: "Issue has an closed cross-referenced PR",
+	}
+}
+
+func assigneeOpenPRTag() Tag {
+	return Tag{
+		ID:          "assignee-open-pr",
+		Description: "Issue has an open cross-referenced PR",
+	}
+}
+
+func assigneeClosedPRTag() Tag {
+	return Tag{
+		ID:          "assignee-closed-pr",
+		Description: "Issue has an closed cross-referenced PR",
+	}
+}
+
+func assigneeUpdatedTag() Tag {
+	return Tag{
+		ID:          "assignee-updated",
+		Description: "The assignee has updated the issue",
 	}
 }
 
@@ -232,6 +352,13 @@ func recvQTag() Tag {
 	return Tag{
 		ID:          "recv-q",
 		Description: "The author has asked a question since the last project member commented",
+	}
+}
+
+func milestoneTag() Tag {
+	return Tag{
+		ID:          "milestone",
+		Description: "The issue has a milestone associated to it",
 	}
 }
 

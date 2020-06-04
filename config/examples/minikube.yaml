@@ -106,13 +106,21 @@ collections:
       - other-old
 
   - id: milestone
-    name: Next Milestone
-    description: Items on the next milestone
+    name: Milestone
+    description: >
+      A Kanban visualization of milestones, showing the flow of issues through each stage.
+
+        * Unassigned issues represent available work
+        * >2 issues assigned to the same person within a stage signifies a pipeline bottleneck
+    display: kanban
+    overflow: 2
+    selector: milestone
     rules:
-      - milestone-prs
-      - milestone-features
-      - milestone-bugs
-      - milestone-other
+        - no-update
+        - updated
+        - open-pr
+        - closed-pr
+        - closed
 
   - id: tests
     name: Broken tests
@@ -138,6 +146,42 @@ collections:
       - open-issues
 
 rules:
+  ### Kanban ###
+  no-update:
+    name: "No Update"
+    type: issue
+    filters:
+      - tag: "milestone"
+      - tag: "!assignee-updated"
+      - tag: "!(assignee-open-pr|assignee-closed-pr)"
+  updated:
+    name: "In Progress"
+    type: issue
+    filters:
+      - tag: "milestone"
+      - tag: "assignee-updated"
+      - tag: "!(assignee-open-pr|assignee-closed-pr)"
+  open-pr:
+    name: "Open PR"
+    type: issue
+    filters:
+      - tag: "milestone"
+      - tag: "assignee-open-pr"
+  closed-pr:
+    name: "Closed PR"
+    type: issue
+    filters:
+      - tag: "milestone"
+      - tag: "!assignee-open-pr"
+      - tag: "assignee-closed-pr"
+  closed:
+    name: "Closed"
+    type: issue
+    filters:
+      - tag: "milestone"
+      - state: closed
+      - updated: -30d
+
   ### Daily Triage ####
   # SLO violations
   issue-needs-priority-slo:

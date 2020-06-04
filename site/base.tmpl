@@ -25,7 +25,11 @@
     <div class="navbar-start">
       {{ range .Collections }}
         {{ if not .Hidden }}
-          <a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/s/{{ .ID }}{{ $.GetVars }}">{{ .Name }}</a>
+          {{ if eq .Display "kanban" }}
+            <a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/k/{{ .ID }}{{ $.GetVars }}">{{ .Name }}</a>
+          {{ else }}
+            <a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/s/{{ .ID }}{{ $.GetVars }}">{{ .Name }}</a>
+          {{ end }}
         {{ end }}
       {{ end }}
     </div>

@@ -1,0 +1,98 @@
+
+/**
+ * Copyright 2020 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+th {
+  color: #fff !important;
+  white-space: nowrap;
+}
+
+.sticky {
+  font-family: Arial;
+  background-color: #ffc;  
+  border: 1px solid #cc9;
+  padding: 0.8em;
+  margin-right: 0.9em;
+  margin-bottom: 0.9em;
+  clear: right;
+  float: left;
+  width: 10em;
+  word-wrap: break-word;
+
+  box-shadow: 2px 2px 8px #ccc;
+}
+
+.sticky-title {
+font-family: "Comic Sans MS", cursive, sans-serif;
+padding-right: 0.25em;
+}
+
+.sticky-id {
+color: #555;
+font-size: 95%;
+}
+
+.sticky a {
+color: #191919;
+}
+
+.kanban-assignee {
+width: 1em;
+}
+
+#kanban-table td {
+border-right: 1px solid #e5e5e5;
+padding: 1em !important;
+}
+
+.sticky-reaction {
+display: inline !important;
+}
+
+
+/* sticky colors based on GitHub labels! */
+.kind-process {
+  background-color: #A5FF8F;
+}
+
+.kind-bug {
+  background-color: #FDBABC;
+}
+
+
+.kind-documentation {
+  background-color: #A0F2FF;
+}
+
+.prority-urgent {
+  font-weight: bold;
+}
+
+.sticky-overflow {
+  background-color: #999;
+  font-style: italic;
+  font-size: 90%;
+  color: #333;
+}
+
+.unassigned:before {
+  content: "🤷";
+  font-size: xx-large;
+}
+
+.kanban-assignee {
+  width: 2em;
+}

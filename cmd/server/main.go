@@ -174,6 +174,7 @@ func main() {
 	http.Handle("/third_party/", http.StripPrefix("/third_party/", http.FileServer(http.Dir(findPath(*thirdPartyDir)))))
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(findPath(*siteDir), "static")))))
 	http.HandleFunc("/s/", s.Collection())
+	http.HandleFunc("/k/", s.Kanban())
 	http.HandleFunc("/", s.Root())
 
 	listenAddr := fmt.Sprintf(":%s", os.Getenv("PORT"))

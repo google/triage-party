@@ -51,10 +51,11 @@ type Conversation struct {
 
 	Mergeable bool `json:"mergeable"`
 
-	LatestAuthorResponse time.Time `json:"latest_author_response"`
-	LatestMemberResponse time.Time `json:"latest_member_response"`
-	LatestCommit         time.Time `json:"latest_commit"`
-	LatestReview         time.Time `json:"latest_review"`
+	LatestAuthorResponse   time.Time `json:"latest_author_response"`
+	LatestAssigneeResponse time.Time `json:"latest_assignee_response"`
+	LatestMemberResponse   time.Time `json:"latest_member_response"`
+	LatestCommit           time.Time `json:"latest_commit"`
+	LatestReview           time.Time `json:"latest_review"`
 
 	AccumulatedHoldTime time.Duration `json:"accumulated_hold_time"`
 	CurrentHoldTime     time.Duration `json:"current_hold_time"`
@@ -83,7 +84,7 @@ type Conversation struct {
 	// Similar issues to this one
 	Similar []*RelatedConversation `json:"similar"`
 
-	Milestone string `json:"milestone"`
+	Milestone *github.Milestone `json:"milestone"`
 }
 
 // Tag is used for automatically labelling issues

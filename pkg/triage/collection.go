@@ -32,6 +32,11 @@ type Collection struct {
 	Dedup        bool     `yaml:"dedup,omitempty"`
 	Hidden       bool     `yaml:"hidden,omitempty"`
 	UsedForStats bool     `yaml:"used_for_statistics,omitempty"`
+
+	// Kanban option
+	Display  string `yaml:"display"`
+	Overflow int    `yaml:"overflow"`
+	Selector string `yaml:"selector"`
 }
 
 // The result of Execute
