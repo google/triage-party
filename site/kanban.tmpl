@@ -5,9 +5,10 @@
 {{ define "style" }}
   <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
   <link rel="stylesheet" href="/third_party/datatables-bulma/dataTables.bulma.css" />
-{{ end }}
-
+  <link rel="stylesheet" href="/static/css/kanban.css?{{.Version}}">
+  <link rel="stylesheet" href="/static/css/custom.css?{{.Version}}">{{ end }}
 {{define "subnav"}}
+
 <nav class="navbar secondary" role="navigation" aria-label="secondary navigation">
   <div class="navbar-secondary-brand">
   </div>
@@ -54,133 +55,64 @@
 {{ end }}
 
 {{define "content"}}
+  <div class="box kanban">
+    <table id="kanban-table" class="compact is-size-6">
+    <thead class="box-header">
+    <tr>
+      <th>Assi</th>
+      {{ range .CollectionResult.RuleResults }}
+      <th>{{ .Rule.Name}}</th>
+      {{ end }}
+    </tr>
+    <tbody>
 
-  {{ if ne .Collection.Description "" }}
-    <div class="box description">
-    <pre>{{ .Collection.Description }}</pre>
-    </div>
-  {{ end }}
+    {{ $col := .Collection }}
 
-
-<table>
-<thead>
-<tr>
-  {{ range .CollectionResult.RuleResults }}
-  <th>{{ .Rule.Name}}</th>
-  {{ end }}
-</tr>
-<tbody>
-<tr>
-  {{ range .CollectionResult.RuleResults }}
-    {{ if eq (len .Items) 0 }}
-      <div class="no-matches" title="{{ .Rule | toYAML }}"><strong>{{ .Rule.Name }}</strong>: No matching items</div>
-    {{ else }}
-      <script>
-      function {{ .Rule.ID | toJSfunc }}tabs() {
-          {{ range .Items}}window.open("{{ .URL | toJS }}", "_tab{{ .ID }}");
-          {{ end }}
-      }
-      </script>
-      <div class="box outcome">
-      <div class="box-header collapsible">
-        <div class="box-head-left">
-          <h3 title="{{ .Rule | toYAML }}">{{ .Rule.Name }} ({{ len .Items }})<div class="tab-link"><a href="#" title="open in new tabs" onclick="{{ .Rule.ID | toJSfunc }}tabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div></h3>
-          <h4 class="subtitle">Resolution: {{ .Rule.Resolution }}</h4>
-          <h5 class="stats">Average age: {{ .AvgAge | toDays }}, Avg wait: {{ .AvgCurrentHold | toDays }}</h5>
-        </div>
-        <div class="box-head-right">
-        <!--  just save the space -->
-        </div>
-      </div>
-      <table id="{{ .Rule.ID | toJSfunc  }}" class="compact is-size-6">
-      <thead>
-        <tr>
-          <td class="col-id">ID</td>
-          <td class="col-author" title="Author">Au</td>
-          <td class="col-desc" title="Description">Desc</td>
-          <td class="col-assignee" title="Assignee">As</td>
-          <td class="col-reactions" title="Reactions">Rea</td>
-          <td class="col-create" title="When issue was created">Cr</td>
-          <td class="col-update" title="When issue was last updated">Up</td>
-          <td class="col-response" title="When issue was last responded to">Re</td>
-          <td class="col-comments" title="Commenters">Cmntrs</td>
-          <td class="col-labels">Labels</td>
-          <td class="col-tags">Tags</td>
-        </tr>
-      </thead>
-      <tbody>
-        {{ $dupes := .Duplicates }}
-        {{ range .Items }}
-        {{ if or (lt $dupes 3) (not .Hidden) }}
-          <tr>
-            <td class="cell-id"><a href="{{ .URL }}">{{ .ID }}</a></td>
-            <td class="cell-author" data-order="{{ .Author.GetLogin }}">{{ .Author | Avatar }}</td>
-            <td class="cell-desc">
-              <a href="{{ .URL }}" title="{{ .LastCommentBody }}"><strong>{{ .Title }}</strong></a>
-              {{ if .Similar }}<div class="similar"><ul>
-              {{ range .Similar }}
-                <li><a href="{{ .URL }}" title="Title is similar to #{{ .ID }}">Similar to {{ if eq .Type "pull_request" }}PR{{ end }}#{{ .ID }}: {{ .Title }}</a></li>
-              {{ end }}
-              </div>
-              {{ end }}
-            </td>
-
-            <td class="cell-assignee" data-order="{{ range .Assignees }}{{ .GetLogin }}{{ end }}">{{ range .Assignees }}{{ . |  Avatar}}{{ end }}
-
-            <td class="cell-reactions" data-order="{{ .ReactionsTotal }}">
-            {{ range $value, $count := .Reactions }}
-              {{ if gt $count 1 }}
-                <div class="reaction-{{ $value }}">{{ $count }}</div>
-              {{ end }}
-            {{ end }}   
-            </td>
-            <td class="cell-create" data-order="{{ .Created | UnixNano }}">{{ .Created | HumanTime }}</td>
-            <td class="cell-update" data-order="{{ .Updated | UnixNano }}">{{ .Updated | HumanTime }}</td>
-            <td class="cell-response" data-order="{{ .LatestMemberResponse | UnixNano }}">{{ .LatestMemberResponse | HumanTime }}</td>
-            <td class="cell-comments" data-order="{{ .CommentersTotal }}">{{ range .Commenters }}{{ . |  Avatar}}{{ end }}</td>
-            <td class="cell-labels">
-              {{ range .Labels }}
-                <div class="gh-label" style="background-color: #{{ .Color }}"><span class="gh-label-text">{{ .Name }}</span></div>
-              {{ end }}
-            </td>
-            <td class="cell-tags">
-              {{ range .Tags }}<div class="gh-tag tag-{{ .ID }}" title="{{ .Description }}">{{ .ID }}</div> {{ end }}
-            </td>
-          </tr>
-          {{ end }}
-        {{ end }}
-        {{ if gt .Duplicates 2 }}
-          <tr class="dupes"><td colspan="12">{{ .Duplicates }} previously listed 
-          {{ if eq .Duplicates 1 }}item{{ else }}items{{ end }} omitted{{ if lt .Duplicates 20 }}:
-            {{ range .Items }}
-              {{ if .Hidden }}
-                <a href="{{ .URL }}" title="{{ .Title }}">#{{ .ID }}</a>
-              {{ end }}
+    {{ range .Swimlanes }}
+    <tr class="swimlane">
+      <td class="kanban-assignee" data-order="{{ .User.GetLogin }}">{{ .User | Avatar }}</td>
+      {{ range .Columns }}
+      <td class="kanban-column">
+        {{ if . }}
+          {{ range $x, $i := .Items }}
+            {{ if ge $x $col.Overflow }}
+              <br style="clear: both">
             {{ end }}
+
+            <div class="sticky sticky-{{ $x }} {{ if ge $x $col.Overflow }}sticky-overflow{{ end }} {{ range $i.Labels }} {{ .Name | Class }}{{ end }}">
+              <a href="{{ $i.URL }}" title="{{ $i.LastCommentBody }}">
+                <span class="sticky-title">{{ $i.Title }}</span>
+                <span class="sticky-id">#{{ $i.ID }}</span>
+              </a>
+
+              <div class="reactions">
+                {{ if ge $x $col.Overflow }}🌊{{ end }}
+                {{ range $value, $count := $i.Reactions }}
+                  {{ if gt $count 1 }}
+                    <div class="reaction-{{ $value }} sticky-reaction"></div>
+                  {{ end }}
+                {{ end }}     
+              </div>            
+
+            </div>
           {{ end }}
-          </td></tr>
         {{ end }}
-      </tbody>
-      </table>
-      </div>
+      </td>
+      {{ end}}        
+    </tr>
     {{ end }}
-  {{ end }}
-
-
-  {{ if eq .Total 0 }}
-  <div class="celebrate">
-    <h1>🎉</h1>
-    <h2>Zarro Boogs Found!</h2>
-    <p>You did it! You have fought valiantly for the user, and saved the day.</p>
-  </div>
-
-  {{ end }} 
-
+    </table>
 {{ end }} 
 
 {{ define "js" }}
 <script src="/third_party/jquery/jquery-3.3.1.min.js"></script>
-
-
-
+<script src="/third_party/datatables/jquery.dataTables.min.js"></script>
+<script src="/third_party/datatables-bulma/dataTables.bulma.js"></script>
+<script>
+   $('#kanban-table').DataTable( {
+        "order": [[ 0, "desc" ]],
+        "paging": false,
+        "info": false,
+    });
+</script>
 {{ end }}

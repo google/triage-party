@@ -267,7 +267,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 			klog.Infof("skipping comment download for #%d - not updated", pr.GetNumber())
 		}
 
-		timeline, err := h.cachedTimeline(ctx, org, project, pr.GetNumber(), newerThan)
+		timeline, err := h.cachedTimeline(ctx, org, project, pr.GetNumber(), pr.GetUpdatedAt())
 		if err != nil {
 			klog.Errorf("timeline: %v", err)
 			continue

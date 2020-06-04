@@ -244,14 +244,23 @@ func (h *Engine) addEvents(co *Conversation, timeline []*github.Timeline) {
 			}
 
 			if co.Type == Issue && t.GetSource().GetIssue().IsPullRequest() {
+				state := t.GetSource().GetIssue().GetState()
 				refRepo := t.GetSource().GetIssue().GetRepository().GetFullName()
+				if refRepo != thisRepo {
+					continue
+				}
 
-				if assignedTo[t.GetActor().GetLogin()] || refRepo == thisRepo {
-					state := t.GetSource().GetIssue().GetState()
+				if assignedTo[t.GetActor().GetLogin()] {
 					if state == "open" {
-						co.Tags = append(co.Tags, openPRTag())
+						co.Tags = append(co.Tags, assigneeOpenPRTag())
 					} else if state == "closed" {
-						co.Tags = append(co.Tags, closedPRTag())
+						co.Tags = append(co.Tags, assigneeClosedPRTag())
+					}
+				} else {
+					if state == "open" {
+						co.Tags = append(co.Tags, otherOpenPRTag())
+					} else if state == "closed" {
+						co.Tags = append(co.Tags, otherClosedPRTag())
 					}
 				}
 			}
@@ -290,16 +299,30 @@ func commentedTag() Tag {
 	}
 }
 
-func openPRTag() Tag {
+func otherOpenPRTag() Tag {
 	return Tag{
-		ID:          "open-pr",
+		ID:          "other-open-pr",
 		Description: "Issue has an open cross-referenced PR",
 	}
 }
 
-func closedPRTag() Tag {
+func otherClosedPRTag() Tag {
 	return Tag{
-		ID:          "closed-pr",
+		ID:          "other-closed-pr",
+		Description: "Issue has an closed cross-referenced PR",
+	}
+}
+
+func assigneeOpenPRTag() Tag {
+	return Tag{
+		ID:          "assignee-open-pr",
+		Description: "Issue has an open cross-referenced PR",
+	}
+}
+
+func assigneeClosedPRTag() Tag {
+	return Tag{
+		ID:          "assignee-closed-pr",
 		Description: "Issue has an closed cross-referenced PR",
 	}
 }

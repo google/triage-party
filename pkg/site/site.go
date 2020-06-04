@@ -85,11 +85,6 @@ func (h *Handlers) Root() http.HandlerFunc {
 	}
 }
 
-type Swimlane struct {
-	User    *github.User
-	Columns []triage.RuleResult
-}
-
 // Page are values that are passed into the renderer
 type Page struct {
 	Version     string
@@ -169,6 +164,11 @@ func toJSfunc(s string) template.JS {
 	return template.JS(nonWordRe.ReplaceAllString(s, "_"))
 }
 
+// Make a class name
+func className(s string) template.HTMLAttr {
+	return template.HTMLAttr(nonWordRe.ReplaceAllString(s, "-"))
+}
+
 func unixNano(t time.Time) int64 {
 	return t.UnixNano()
 }
@@ -211,6 +211,10 @@ func humanTime(t time.Time) string {
 
 func avatar(u *github.User) template.HTML {
 	return template.HTML(fmt.Sprintf(`<a href="%s" title="%s"><img src="%s" width="20" height="20"></a>`, u.GetHTMLURL(), u.GetLogin(), u.GetAvatarURL()))
+}
+
+func avatarWide(u *github.User) template.HTML {
+	return template.HTML(fmt.Sprintf(`<a href="%s" title="%s"><img src="%s" width="96" height="96"></a>`, u.GetHTMLURL(), u.GetLogin(), u.GetAvatarURL()))
 }
 
 // playerFilter filters out results for a particular player

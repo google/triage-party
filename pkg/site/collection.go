@@ -21,10 +21,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/google/triage-party/pkg/hubbub"
-	"github.com/google/triage-party/pkg/triage"
 	"k8s.io/klog/v2"
 )
 
@@ -46,14 +43,9 @@ func (h *Handlers) Collection() http.HandlerFunc {
 	))
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		dataAge := time.Time{}
+		klog.Infof("GET %s: %v", r.URL.Path, r.Header)
+
 		id := strings.TrimPrefix(r.URL.Path, "/s/")
-
-		defer func() {
-			klog.Infof("Served %q request within %s from data %s old", id, time.Since(start), time.Since(dataAge))
-		}()
-
 		playerChoices := []string{"Select a player"}
 		players := getInt(r.URL, "players", 1)
 		player := getInt(r.URL, "player", 0)
@@ -69,75 +61,16 @@ func (h *Handlers) Collection() http.HandlerFunc {
 			playerNums = append(playerNums, i+1)
 		}
 
-		klog.Infof("GET %s (%q): %v", r.URL.Path, id, r.Header)
-		s, err := h.party.LookupCollection(id)
+		p, err := h.collectionPage(r.Context(), id, isRefresh(r))
 		if err != nil {
-			http.Error(w, fmt.Sprintf("%q not found: old link or typo?", id), http.StatusNotFound)
-			klog.Errorf("collection: %v", err)
+			http.Error(w, fmt.Sprintf("collection page for %q: %v", id, err), 500)
+			klog.Errorf("page: %v", err)
 			return
 		}
 
-		sts, err := h.party.ListCollections()
-		if err != nil {
-			klog.Errorf("collections: %v", err)
-			http.Error(w, "list error", http.StatusInternalServerError)
-			return
-		}
-
-		var result *triage.CollectionResult
-		if isRefresh(r) {
-			result = h.updater.ForceRefresh(r.Context(), id)
-			klog.Infof("refresh %q result: %d items", id, len(result.RuleResults))
-		} else {
-			result = h.updater.Lookup(r.Context(), id, true)
-			if result == nil {
-				http.Error(w, fmt.Sprintf("%q no data", id), http.StatusNotFound)
-				return
-			}
-			if result.RuleResults == nil {
-				http.Error(w, fmt.Sprintf("%q no outcomes", id), http.StatusNotFound)
-				return
-			}
-
-			klog.V(2).Infof("lookup %q result: %d items", id, len(result.RuleResults))
-		}
-
-		dataAge = result.Time
-		warning := ""
-
-		if time.Since(result.Time) > h.warnAge {
-			warning = fmt.Sprintf("Serving results from %s ago. Service started %s ago and is downloading new data. Use Shift-Reload to force refresh at any time.", humanDuration(time.Since(result.Time)), humanDuration(time.Since(h.startTime)))
-		}
-
-		total := 0
-		for _, o := range result.RuleResults {
-			total += len(o.Items)
-		}
-
-		unique := []*hubbub.Conversation{}
-		seen := map[int]bool{}
-		for _, o := range result.RuleResults {
-			for _, i := range o.Items {
-				if !seen[i.ID] {
-					unique = append(unique, i)
-					seen[i.ID] = true
-				}
-			}
-		}
-
+		result := p.CollectionResult
 		if player > 0 && players > 1 {
-			result = playerFilter(result, player, players)
-		}
-
-		uniqueFiltered := []*hubbub.Conversation{}
-		seenFiltered := map[int]bool{}
-		for _, o := range result.RuleResults {
-			for _, i := range o.Items {
-				if !seenFiltered[i.ID] {
-					uniqueFiltered = append(uniqueFiltered, i)
-					seenFiltered[i.ID] = true
-				}
-			}
+			p.CollectionResult = playerFilter(result, player, players)
 		}
 
 		embedURL := ""
@@ -158,37 +91,14 @@ func (h *Handlers) Collection() http.HandlerFunc {
 			getVars = fmt.Sprintf("?player=%d&players=%d", player, players)
 		}
 
-		p := &Page{
-			ID:               s.ID,
-			Version:          VERSION,
-			SiteName:         h.siteName,
-			Title:            s.Name,
-			Collection:       s,
-			Collections:      sts,
-			Description:      s.Description,
-			CollectionResult: result,
-			Total:            len(unique),
-			TotalShown:       len(uniqueFiltered),
-			Types:            "Issues",
-			PlayerChoices:    playerChoices,
-			PlayerNums:       playerNums,
-			Player:           player,
-			Players:          players,
-			Mode:             mode,
-			Index:            index,
-			EmbedURL:         embedURL,
-			Warning:          warning,
-			UniqueItems:      uniqueFiltered,
-			GetVars:          getVars,
-			ResultAge:        time.Since(result.Time),
-		}
-
-		for _, s := range sts {
-			if s.UsedForStats {
-				p.Stats = h.updater.Lookup(r.Context(), s.ID, false)
-				p.StatsID = s.ID
-			}
-		}
+		p.PlayerChoices = playerChoices
+		p.PlayerNums = playerNums
+		p.Player = player
+		p.Players = players
+		p.Mode = mode
+		p.Index = index
+		p.EmbedURL = embedURL
+		p.GetVars = getVars
 
 		klog.V(2).Infof("page context: %+v", p)
 		err = t.ExecuteTemplate(w, "base", p)
