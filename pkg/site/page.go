@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package handlers define HTTP handlers.
 package site
 
 import (
@@ -35,12 +34,12 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 
 	s, err := h.party.LookupCollection(id)
 	if err != nil {
-		return nil, fmt.Errorf("lookup collection: %v", err)
+		return nil, fmt.Errorf("lookup collection: %w", err)
 	}
 
 	sts, err := h.party.ListCollections()
 	if err != nil {
-		return nil, fmt.Errorf("list collections: %v", err)
+		return nil, fmt.Errorf("list collections: %w", err)
 	}
 
 	var result *triage.CollectionResult
@@ -74,6 +73,7 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 
 	uniqueFiltered := []*hubbub.Conversation{}
 	seenFiltered := map[int]bool{}
+
 	for _, o := range result.RuleResults {
 		for _, i := range o.Items {
 			if !seenFiltered[i.ID] {
@@ -85,6 +85,7 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 
 	unique := []*hubbub.Conversation{}
 	seen := map[int]bool{}
+
 	for _, o := range result.RuleResults {
 		for _, i := range o.Items {
 			if !seen[i.ID] {
@@ -117,5 +118,6 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 			p.StatsID = s.ID
 		}
 	}
+
 	return p, nil
 }

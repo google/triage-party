@@ -15,11 +15,8 @@
  * limitations under the License.
  */
 
- th {
+th {
   color: #fff !important;
-  padding: 0.5em !important;
-  padding-right: 1em !important;
-  border-right: 2px solid #022;
   white-space: nowrap;
 }
 
@@ -30,7 +27,6 @@
   padding: 0.8em;
   margin-right: 0.9em;
   margin-bottom: 0.9em;
-  display: inline-block;
   clear: right;
   float: left;
   width: 10em;

@@ -106,8 +106,12 @@ collections:
       - other-old
 
   - id: milestone
-    name: Next Milestone
-    description: Items on the next milestone
+    name: Milestone
+    description: >
+      A Kanban visualization of milestones, showing the flow of issues through each stage.
+
+        * Unassigned issues represent available work
+        * >2 issues assigned to the same person within a stage signifies a pipeline bottleneck
     display: kanban
     overflow: 2
     selector: milestone

@@ -38,7 +38,7 @@ type Swimlane struct {
 
 func avatarWide(u *github.User) template.HTML {
 	if u.GetLogin() == unassigned {
-		return template.HTML("<div class=unassigned></div>")
+		return template.HTML(`<div class="unassigned" title="Unassigned work - free for the taking!"></div>`)
 	}
 
 	return template.HTML(fmt.Sprintf(`<a href="%s" title="%s"><img src="%s" width="96" height="96"></a>`, u.GetHTMLURL(), u.GetLogin(), u.GetAvatarURL()))
@@ -72,7 +72,7 @@ func groupByUser(results []*triage.RuleResult, milestoneID int) []*Swimlane {
 					}
 				}
 
-				if milestoneID == 0 || co.Milestone.GetID() == int64(milestoneID) {
+				if milestoneID == 0 || co.Milestone.GetNumber() == milestoneID {
 					lanes[assignee].Columns[i].Items = append(lanes[assignee].Columns[i].Items, co)
 				}
 			}
@@ -119,14 +119,10 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 		}
 
 		chosen, milestones := milestoneChoices(p.CollectionResult.RuleResults, milestoneID)
-		for _, m := range milestones {
-			if m.Selected {
-				milestoneID = m.Value
-			}
-		}
+		klog.Infof("milestones choices: %+v", milestones)
 
 		p.Description = p.Collection.Description
-		p.Swimlanes = groupByUser(p.CollectionResult.RuleResults, milestoneID)
+		p.Swimlanes = groupByUser(p.CollectionResult.RuleResults, chosen.GetNumber())
 		p.SelectorOptions = milestones
 		p.SelectorVar = "milestone"
 		p.Milestone = chosen
@@ -144,17 +140,17 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 }
 
 func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Milestone, []Choice) {
-	counts := map[*github.Milestone]int{}
+	mmap := map[int]*github.Milestone{}
 
 	for _, r := range results {
 		for _, co := range r.Items {
-			counts[co.Milestone]++
+			mmap[co.Milestone.GetNumber()] = co.Milestone
 		}
 	}
 
 	milestones := []*github.Milestone{}
-	for k := range counts {
-		milestones = append(milestones, k)
+	for _, v := range mmap {
+		milestones = append(milestones, v)
 	}
 
 	sort.Slice(milestones, func(i, j int) bool { return milestones[i].GetDueOn().After(milestones[j].GetDueOn()) })
@@ -170,12 +166,14 @@ func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Mi
 	for _, m := range milestones {
 		c := Choice{
 			Value: m.GetNumber(),
-			Text:  fmt.Sprintf("%s (%s)", m.GetTitle(), m.GetDueOn()),
+			Text:  fmt.Sprintf("%s (%s)", m.GetTitle(), m.GetDueOn().Format("2006-01-02")),
 		}
 		if c.Value == milestoneID {
 			c.Selected = true
 			chosen = m
 		}
+
+		choices = append(choices, c)
 	}
 
 	return chosen, choices

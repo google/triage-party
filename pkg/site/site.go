@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package handlers define HTTP handlers.
+// Package site define HTTP handlers.
 package site
 
 import (
@@ -36,10 +36,13 @@ import (
 	"k8s.io/klog/v2"
 )
 
-const VERSION = "v1.1.0"
+// VERSION is what version of Triage Party we advertise as.
+const VERSION = "v1.2.0-beta"
 
 var (
-	nonWordRe  = regexp.MustCompile(`\W`)
+	nonWordRe = regexp.MustCompile(`\W`)
+
+	// MaxPlayers is how many players to enable in the web interface.
 	MaxPlayers = 20
 )
 
@@ -227,6 +230,7 @@ func avatar(u *github.User) template.HTML {
 // playerFilter filters out results for a particular player
 func playerFilter(result *triage.CollectionResult, player int, players int) *triage.CollectionResult {
 	klog.Infof("Filtering for player %d of %d ...", player, players)
+
 	os := []*triage.RuleResult{}
 	seen := map[string]*triage.Rule{}
 

@@ -57,6 +57,8 @@
       <div class="box-header collapsible">
         <div class="box-head-left">
           <h3>{{ .Milestone.Title }}</h3>
+          <h4 class="subtitle">Due {{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | HumanTime }})</h4>
+          <h5 class="stats">{{ .Milestone.GetOpenIssues}} open issues, {{ .Milestone.GetClosedIssues }} closed issues</h5>
         </div>
         <div class="box-head-right">
         <!--  just save the space -->
