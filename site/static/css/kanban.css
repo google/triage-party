@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-th {
+ th {
   color: #fff !important;
   white-space: nowrap;
 }
 
 .sticky {
   font-family: Arial;
-  background-color: #ffc;  
+  background-color: #ffc;
   border: 1px solid #cc9;
   padding: 0.8em;
   margin-right: 0.9em;
@@ -66,15 +66,18 @@ display: inline !important;
 /* sticky colors based on GitHub labels! */
 .kind-process {
   background-color: #A5FF8F;
+  border: 1px solid #85DF6F;
 }
 
 .kind-bug {
   background-color: #FDBABC;
+  border: 1px solid #DD9A9C;
 }
 
 
 .kind-documentation {
   background-color: #A0F2FF;
+  border: 1px solid #80D2DF;
 }
 
 .prority-urgent {
@@ -83,12 +86,13 @@ display: inline !important;
 
 .sticky-overflow {
   background-color: #999;
+  border: 1px solid #99F;
   font-style: italic;
   font-size: 90%;
   color: #333;
 }
 
-.unassigned:before {
+.unassigned-icon:before {
   content: "🤷";
   font-size: xx-large;
 }
@@ -96,3 +100,28 @@ display: inline !important;
 .kanban-assignee {
   width: 2em;
 }
+
+.unassigned-icon {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.unassigned-lane {
+  background-color: #858585 !important;
+  color: #000;
+  border-top: 1px solid #000 !important;
+}
+
+.unassigned-lane td {
+  border-right: 1px solid #888 !important;
+}
+
+.unassigned-lane .sticky {
+ box-shadow: 2px 2px 8px #333;
+}  
+
+.kanban-column {
+  min-width: 10em;
+}
+

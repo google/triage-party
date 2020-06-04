@@ -67,7 +67,7 @@ collections:
       Once a week, we meet up to address loose ends. Prioritize:
 
        * Keeping an open dialog with our users
-       * Raising the priority for hot issues        
+       * Raising the priority for hot issues
     rules:
       # SLO
       - issue-near-soon-slo
@@ -111,16 +111,16 @@ collections:
       A Kanban visualization of milestones, showing the flow of issues through each stage.
 
         * Unassigned issues represent available work
-        * >2 issues assigned to the same person within a stage signifies a pipeline bottleneck
+        * >2 issues assigned to the same person within a stage signifies a bottleneck 🌊
     display: kanban
     overflow: 2
     selector: milestone
     rules:
-        - no-update
-        - updated
-        - open-pr
-        - closed-pr
-        - closed
+      - no-update
+      - updated
+      - open-pr
+      - closed-pr
+      - closed
 
   - id: tests
     name: Broken tests
@@ -292,16 +292,16 @@ rules:
       - tag: recv
 
   issue-updated-has-question:
-      name: "Recently updated issue has a question"
-      resolution: "Add an answer"
-      type: issue
-      filters:
-        - tag: recv-q
-        - label: "!triage/needs-information"
-        - tag: "!member-last"
-        - tag: "!contributor-last"
-        - responded: +3d
-        - updated: -7d
+    name: "Recently updated issue has a question"
+    resolution: "Add an answer"
+    type: issue
+    filters:
+      - tag: recv-q
+      - label: "!triage/needs-information"
+      - tag: "!member-last"
+      - tag: "!contributor-last"
+      - responded: +3d
+      - updated: -7d
 
   ####### Weekly Triage #########
   # SLO nearing
@@ -394,7 +394,7 @@ rules:
     filters:
       - created: +20d
       - updated: +5d
-  
+
   # People with questions
   issue-has-question:
     name: "Overdue answers for a question"

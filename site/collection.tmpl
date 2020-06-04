@@ -19,6 +19,9 @@
           Avg age: {{ .CollectionResult.AvgAge | toDays }}, 
           Avg wait: {{ .CollectionResult.AvgCurrentHold | toDays }}
           </span>
+          {{ if eq .Collection.Display "kanban" }}
+            <span class="alt-view"><a href="/k/{{ .ID }}{{ $.GetVars }}">Kanban View</a></span>
+          {{ end }}
           </div>
           <script>
           function openAllTabs() {
@@ -106,7 +109,7 @@
             <td class="cell-id"><a href="{{ .URL }}">{{ .ID }}</a></td>
             <td class="cell-author" data-order="{{ .Author.GetLogin }}">{{ .Author | Avatar }}</td>
             <td class="cell-desc">
-              <a href="{{ .URL }}" title="{{ .LastCommentBody }}"><strong>{{ .Title }}</strong></a>
+              <a href="{{ .URL }}" title="@{{ .LastCommentAuthor.GetLogin}}: {{ .LastCommentBody }}"><strong>{{ .Title }}</strong></a>
               {{ if .Similar }}<div class="similar"><ul>
               {{ range .Similar }}
                 <li><a href="{{ .URL }}" title="Title is similar to #{{ .ID }}">Similar to {{ if eq .Type "pull_request" }}PR{{ end }}#{{ .ID }}({{ .State }}): {{ .Title }}</a></li>

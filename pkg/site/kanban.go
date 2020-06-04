@@ -38,7 +38,7 @@ type Swimlane struct {
 
 func avatarWide(u *github.User) template.HTML {
 	if u.GetLogin() == unassigned {
-		return template.HTML(`<div class="unassigned" title="Unassigned work - free for the taking!"></div>`)
+		return template.HTML(`<div class="unassigned"><div class="unassigned-icon" title="Unassigned work - free for the taking!"></div><span>nobody</span></div>`)
 	}
 
 	return template.HTML(fmt.Sprintf(`<a href="%s" title="%s"><img src="%s" width="96" height="96"></a>`, u.GetHTMLURL(), u.GetLogin(), u.GetAvatarURL()))
