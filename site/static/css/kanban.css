@@ -114,7 +114,7 @@ display: inline !important;
 }
 
 .unassigned-lane td {
-  border-right: 1px solid #888 !important;
+  border-right: 1px solid #666 !important;
 }
 
 .unassigned-lane .sticky {
