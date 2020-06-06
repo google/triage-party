@@ -114,19 +114,23 @@ type Page struct {
 	TotalPullRequests      int
 	TotalIssues            int
 
+	ClosedPerDay float64
+
 	Collection  triage.Collection
 	Collections []triage.Collection
 
-	Swimlanes        []*Swimlane
-	CollectionResult *triage.CollectionResult
-	SelectorVar      string
-	SelectorOptions  []Choice
-	Milestone        *github.Milestone
+	Swimlanes         []*Swimlane
+	CollectionResult  *triage.CollectionResult
+	SelectorVar       string
+	SelectorOptions   []Choice
+	Milestone         *github.Milestone
+	MilestoneETA      time.Time
+	MilestoneOnTarget int
+	MilestoneETADiff  time.Duration
 
-	Stats   *triage.CollectionResult
-	StatsID string
-
-	GetVars string
+	OpenStats     *triage.CollectionResult
+	VelocityStats *triage.CollectionResult
+	GetVars       string
 }
 
 // Choice is a selector choice
@@ -247,5 +251,5 @@ func playerFilter(result *triage.CollectionResult, player int, players int) *tri
 		os = append(os, triage.SummarizeRuleResult(o.Rule, cs, seen))
 	}
 
-	return triage.SummarizeCollectionResult(os)
+	return triage.SummarizeCollectionResult(result.Collection, os)
 }

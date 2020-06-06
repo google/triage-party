@@ -125,3 +125,16 @@ display: inline !important;
   min-width: 10em;
 }
 
+.late-eta {
+  color: #FF0 !important;
+  font-weight: bold !important;
+}
+
+.very-late-eta {
+  color: #F00 !important;
+  font-weight: bold !important;
+}
+
+.early-eta {
+  font-style: italic;
+}

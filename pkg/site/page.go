@@ -24,6 +24,11 @@ import (
 	"k8s.io/klog/v2"
 )
 
+const (
+	OpenStatsName     = "__open__"
+	VelocityStatsName = "__velocity__"
+)
+
 func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) (*Page, error) {
 	start := time.Now()
 	dataAge := time.Time{}
@@ -114,8 +119,15 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 
 	for _, s := range sts {
 		if s.UsedForStats {
-			p.Stats = h.updater.Lookup(ctx, s.ID, false)
-			p.StatsID = s.ID
+			if s.ID == VelocityStatsName {
+				p.VelocityStats = h.updater.Lookup(ctx, s.ID, false)
+				continue
+			}
+			// Older configs may not use OpenStatsName
+			if s.ID == OpenStatsName || p.OpenStats == nil {
+				p.OpenStats = h.updater.Lookup(ctx, s.ID, false)
+				continue
+			}
 		}
 	}
 

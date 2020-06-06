@@ -18,6 +18,7 @@
           <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
           <span title="Data as of {{ .ResultAge | HumanDuration}} ago">{{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }}, 
           Avg age: {{ .CollectionResult.AvgAge | toDays }}
+          {{ if .VelocityStats }}, Avg close rate: <a href="/s/{{.VelocityStats.Collection.ID }}">{{ printf "%.1f" $.ClosedPerDay }} issue(s) per day</a>{{ end }}
           </span>
           <span class="alt-view"><a href="/s/{{ .ID }}{{ $.GetVars }}">Item View</a></span>
           </div>
@@ -58,7 +59,17 @@
       <div class="box-header collapsible">
         <div class="box-head-left">
           <h3>{{ .Milestone.Title }}</h3>
-          <h4 class="subtitle">Due {{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | HumanTime }})</h4>
+          <h4 class="subtitle">Due: {{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | HumanTime }})</h4>
+          {{ if not .MilestoneETA.IsZero }}
+            <h4 class="subtitle">ETA:
+                <span class="{{ if eq .MilestoneOnTarget 2}}very-late-eta{{ else if eq .MilestoneOnTarget 1}}late-eta{{ else if eq .MilestoneOnTarget -1}}early-eta{{ end }}">
+                    {{ .MilestoneETA.Format "2006-01-02" }} 
+                    {{ if gt .MilestoneOnTarget 0 }}(late by {{.MilestoneETADiff | HumanDuration }})
+                    {{ else if lt .MilestoneOnTarget 0 }} (early by {{.MilestoneETADiff | HumanDuration }})
+                    {{ end }}
+                  </span>
+            </h4>
+          {{ end }}
           <h5 class="stats">{{ .Milestone.GetOpenIssues}} open issues, {{ .Milestone.GetClosedIssues }} closed issues</h5>
         </div>
         <div class="box-head-right">

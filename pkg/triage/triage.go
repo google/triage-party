@@ -271,6 +271,13 @@ func processRules(raw map[string]Rule) (map[string]Rule, error) {
 				}
 			}
 
+			if f.RawMilestone != "" {
+				err := f.LoadMilestoneRegex()
+				if err != nil {
+					return rules, fmt.Errorf("%q milestone: %w", id, err)
+				}
+			}
+
 			newfs = append(newfs, f)
 		}
 

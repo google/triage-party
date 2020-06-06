@@ -158,9 +158,8 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 		co.Tags = append(co.Tags, recvQTag())
 	}
 
-	// Only open milestones for now to keep the query rate lower
 	if co.Milestone != nil && co.Milestone.GetState() == "open" {
-		co.Tags = append(co.Tags, milestoneTag())
+		co.Tags = append(co.Tags, openMilestoneTag())
 	}
 
 	if !co.LatestAssigneeResponse.IsZero() {
@@ -360,10 +359,10 @@ func recvQTag() Tag {
 	}
 }
 
-func milestoneTag() Tag {
+func openMilestoneTag() Tag {
 	return Tag{
-		ID:          "milestone",
-		Description: "The issue has a milestone associated to it",
+		ID:          "open-milestone",
+		Description: "The issue is associated to an open milestone",
 	}
 }
 

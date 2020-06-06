@@ -26,7 +26,7 @@
       {{ range .Collections }}
         {{ if not .Hidden }}
           {{ if eq .Display "kanban" }}
-            <a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/k/{{ .ID }}{{ $.GetVars }}">{{ .Name }}</a>
+            <a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/k/{{ .ID }}">{{ .Name }}</a>
           {{ else }}
             <a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/s/{{ .ID }}{{ $.GetVars }}">{{ .Name }}</a>
           {{ end }}
@@ -35,10 +35,10 @@
     </div>
     <div class="navbar-end">
       <div class="buttons">
-      {{ if .Stats }}
-        <a class="button is-white" title="Total PRs" href="/s/{{ .StatsID }}{{ $.GetVars }}">{{ .Stats.TotalPullRequests }} PRs</a>
-        <a class="button is-white" title="Total Issues" href="/s/{{ .StatsID }}{{ $.GetVars }}">{{ .Stats.TotalIssues }} issues</a>
-        <a class="button is-white" title="Average hold time" href="/s/{{ .StatsID }}{{ $.GetVars }}">{{ .Stats.AvgCurrentHold | toDays }} avg wait</a>
+      {{ if .OpenStats }}
+        <a class="button is-white" title="Total PRs" href="/s/{{ .OpenStats.Collection.ID }}{{ $.GetVars }}">{{ .OpenStats.TotalPullRequests }} PRs</a>
+        <a class="button is-white" title="Total Issues" href="/s/{{ .OpenStats.Collection.ID }}{{ $.GetVars }}">{{ .OpenStats.TotalIssues }} issues</a>
+        <a class="button is-white" title="Average hold time" href="/s/{{ .OpenStats.Collection.ID }}{{ $.GetVars }}">{{ .OpenStats.AvgCurrentHold | toDays }} avg wait</a>
       {{ end }}
       </div>
     </div>
