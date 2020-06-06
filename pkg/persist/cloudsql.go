@@ -28,7 +28,6 @@ import (
 
 // NewCloudSQL returns a new Google Cloud SQL store (MySQL)
 func NewCloudSQL(cfg Config) (Cacher, error) {
-
 	// This heuristic may be totally wrong. My apologies.
 	if strings.Contains(cfg.Path, "(") {
 		return newCloudMySQL(cfg)
@@ -64,7 +63,7 @@ func newCloudMySQL(cfg Config) (*MySQL, error) {
 func newCloudPostgres(cfg Config) (*Postgres, error) {
 	// required for CloudSQL, as the encryption is between the proxy and upstream instead
 	if !strings.Contains(cfg.Path, "sslmode=disable") {
-		cfg.Path = cfg.Path + " sslmode=disable"
+		cfg.Path += " sslmode=disable"
 	}
 
 	// See https://github.com/GoogleCloudPlatform/cloudsql-proxy/blob/7e668d9ad0ba579372f5142f149a18c38d14a9d0/proxy/dialers/postgres/hook_test.go#L30
