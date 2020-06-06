@@ -72,9 +72,9 @@ func preFetchMatch(i GitHubItem, labels []*github.Label, fs []Filter) bool {
 			}
 		}
 
-		if f.Milestone != "" {
-			if i.GetMilestone().GetTitle() != f.Milestone {
-				klog.V(2).Infof("#%d milestone does not meet %s: %+v", i.GetNumber(), f.Milestone, i.GetMilestone())
+		if f.MilestoneRegex() != nil {
+			if ok := matchNegateRegex(i.GetMilestone().GetTitle(), f.MilestoneRegex(), f.MilestoneNegate()); !ok {
+				klog.V(2).Infof("#%d milestone does not meet %s", i.GetNumber(), f.MilestoneRegex())
 				return false
 			}
 		}
@@ -199,6 +199,13 @@ func matchLabel(labels []*github.Label, re *regexp.Regexp, negate bool) bool {
 
 // matchNegateRegex matches a value against a negatable regex
 func matchNegateRegex(value string, re *regexp.Regexp, negate bool) bool {
+	klog.V(2).Infof("Checking value %q against %s (negate=%v)", value, re, negate)
+
+	if value == "" && re.String() != "" && re.String() != "^$" {
+		klog.V(1).Infof("%q is empty, regexp %q is not, returning %v", value, re, negate)
+		return negate
+	}
+
 	if re.MatchString(value) {
 		klog.V(2).Infof("%q matches %s, returning %v", value, re, !negate)
 		return !negate

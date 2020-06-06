@@ -42,7 +42,9 @@ type Filter struct {
 	titleRegex  *regexp.Regexp
 	titleNegate bool
 
-	Milestone string `yaml:"milestone,omitempty"`
+	RawMilestone    string `yaml:"milestone,omitempty"`
+	milestoneRegex  *regexp.Regexp
+	milestoneNegate bool
 
 	Created            string `yaml:"created,omitempty"`
 	Updated            string `yaml:"updated,omitempty"`
@@ -123,6 +125,28 @@ func (f *Filter) TitleRegex() *regexp.Regexp {
 
 func (f *Filter) TitleNegate() bool {
 	return f.titleNegate
+}
+
+// LoadMilestoneRegex loads a new milestone regex
+func (f *Filter) LoadMilestoneRegex() error {
+	r, negateState := negativeMatch(f.RawMilestone)
+
+	re, err := regex(r)
+	if err != nil {
+		return err
+	}
+
+	f.milestoneRegex = re
+	f.milestoneNegate = negateState
+	return nil
+}
+
+func (f *Filter) MilestoneRegex() *regexp.Regexp {
+	return f.milestoneRegex
+}
+
+func (f *Filter) MilestoneNegate() bool {
+	return f.milestoneNegate
 }
 
 // negativeMatch parses a match string and returns the underlying string and negation bool

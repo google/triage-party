@@ -50,6 +50,8 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 		LatestAuthorResponse: i.GetCreatedAt(),
 		Milestone:            i.GetMilestone(),
 		Reactions:            map[string]int{},
+		LastCommentAuthor:    i.GetUser(),
+		LastCommentBody:      i.GetBody(),
 	}
 
 	// "https://github.com/kubernetes/minikube/issues/7179",
@@ -84,6 +86,9 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 		if isBot(c.User) {
 			continue
 		}
+
+		co.LastCommentBody = c.Body
+		co.LastCommentAuthor = c.User
 
 		r := c.Reactions
 		if r.GetTotalCount() > 0 {
@@ -153,9 +158,8 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 		co.Tags = append(co.Tags, recvQTag())
 	}
 
-	// Only open milestones for now to keep the query rate lower
 	if co.Milestone != nil && co.Milestone.GetState() == "open" {
-		co.Tags = append(co.Tags, milestoneTag())
+		co.Tags = append(co.Tags, openMilestoneTag())
 	}
 
 	if !co.LatestAssigneeResponse.IsZero() {
@@ -355,10 +359,10 @@ func recvQTag() Tag {
 	}
 }
 
-func milestoneTag() Tag {
+func openMilestoneTag() Tag {
 	return Tag{
-		ID:          "milestone",
-		Description: "The issue has a milestone associated to it",
+		ID:          "open-milestone",
+		Description: "The issue is associated to an open milestone",
 	}
 }
 

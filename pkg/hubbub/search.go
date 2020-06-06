@@ -118,6 +118,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 			klog.V(1).Infof("#%d - %q did not match item filter: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
 			continue
 		}
+		klog.V(1).Infof("#%d - %q made it past pre-fetch: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
 
 		comments := []*github.IssueComment{}
 		if i.GetComments() > 0 {
@@ -141,6 +142,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 			klog.V(1).Infof("#%d - %q did not match post-fetch filter: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
 			continue
 		}
+		klog.V(1).Infof("#%d - %q made it past post-fetch: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
 
 		timeline, err := h.cachedTimeline(ctx, org, project, i.GetNumber(), i.GetUpdatedAt())
 		if err != nil {
@@ -154,6 +156,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 			klog.V(1).Infof("#%d - %q did not match post-events filter: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
 			continue
 		}
+		klog.V(1).Infof("#%d - %q made it past post-events: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
 
 		filtered = append(filtered, co)
 	}

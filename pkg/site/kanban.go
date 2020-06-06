@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/hubbub"
@@ -30,6 +31,9 @@ import (
 
 var unassigned = "zz_unassigned"
 
+// veryLate is how long before a milestone is considered very late
+var veryLate = 24 * 6 * time.Hour
+
 // Swimlane is a row in a Kanban display.
 type Swimlane struct {
 	User    *github.User
@@ -38,7 +42,7 @@ type Swimlane struct {
 
 func avatarWide(u *github.User) template.HTML {
 	if u.GetLogin() == unassigned {
-		return template.HTML(`<div class="unassigned" title="Unassigned work - free for the taking!"></div>`)
+		return template.HTML(`<div class="unassigned"><div class="unassigned-icon" title="Unassigned work - free for the taking!"></div><span>nobody</span></div>`)
 	}
 
 	return template.HTML(fmt.Sprintf(`<a href="%s" title="%s"><img src="%s" width="96" height="96"></a>`, u.GetHTMLURL(), u.GetLogin(), u.GetAvatarURL()))
@@ -114,7 +118,11 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 		if err != nil {
 			http.Error(w, fmt.Sprintf("collection page for %q: %v", id, err), 500)
 			klog.Errorf("page: %v", err)
+			return
+		}
 
+		if len(p.CollectionResult.RuleResults) == 0 {
+			http.Error(w, fmt.Sprintf("no results for %q", id), 400)
 			return
 		}
 
@@ -126,6 +134,24 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 		p.SelectorOptions = milestones
 		p.SelectorVar = "milestone"
 		p.Milestone = chosen
+		p.ClosedPerDay = calcClosedPerDay(p.VelocityStats)
+		p.MilestoneETA = calcETA(chosen, p.ClosedPerDay)
+
+		dueOn := p.Milestone.GetDueOn()
+
+		if p.MilestoneETA.Format("2006-01-02") == dueOn.Format("2006-01-02") {
+			klog.Infof("milestone ETA is on time!")
+			p.MilestoneOnTarget = 0
+		} else if p.MilestoneETA.After(dueOn) {
+			p.MilestoneOnTarget = 1
+			p.MilestoneETADiff = p.MilestoneETA.Sub(dueOn)
+			if p.MilestoneETADiff > veryLate {
+				p.MilestoneOnTarget = 2
+			}
+		} else {
+			p.MilestoneOnTarget = -1
+			p.MilestoneETADiff = dueOn.Sub(p.MilestoneETA)
+		}
 
 		klog.V(2).Infof("page context: %+v", p)
 
@@ -133,10 +159,54 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 		if err != nil {
 			http.Error(w, fmt.Sprintf("collection page for %q: %v", id, err), 500)
 			klog.Errorf("tmpl: %v", err)
-
 			return
 		}
 	}
+}
+
+func calcClosedPerDay(r *triage.CollectionResult) float64 {
+	if r == nil {
+		klog.Errorf("unable to calc closed per day: no data")
+		return 0.0
+	}
+
+	oldestClosure := time.Now()
+
+	for _, r := range r.RuleResults {
+		for _, co := range r.Items {
+			if !co.ClosedAt.IsZero() && co.ClosedAt.Before(oldestClosure) {
+				klog.Infof("#%d was closed at %s", co.ID, co.ClosedAt)
+				oldestClosure = co.ClosedAt
+			}
+		}
+	}
+
+	days := time.Since(oldestClosure).Hours() / 24
+	closeRate := days / float64(r.TotalIssues)
+	klog.Infof("close rate is %.2f (%.1f days of data, %d issues)", closeRate, days, r.TotalIssues)
+	return closeRate
+}
+
+func calcETA(m *github.Milestone, closeRate float64) time.Time {
+	if m == nil {
+		klog.Errorf("unable to calc ETA: no milestone")
+		return time.Time{}
+	}
+
+	open := m.GetOpenIssues()
+
+	if open == 0 {
+		klog.Errorf("unable to calc ETA: no issues")
+		return time.Time{}
+	}
+
+	if closeRate < 0.0001 {
+		klog.Errorf("unable to calc ETA: too low of a close rate: %f", closeRate)
+		return time.Time{}
+	}
+
+	days := float64(open) / closeRate
+	return time.Now().AddDate(0, 0, int(days))
 }
 
 func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Milestone, []Choice) {
@@ -151,6 +221,11 @@ func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Mi
 	milestones := []*github.Milestone{}
 	for _, v := range mmap {
 		milestones = append(milestones, v)
+	}
+
+	if len(milestones) == 0 {
+		klog.Errorf("Went through %d issues, but none had a milestone", len(results))
+		return nil, nil
 	}
 
 	sort.Slice(milestones, func(i, j int) bool { return milestones[i].GetDueOn().After(milestones[j].GetDueOn()) })

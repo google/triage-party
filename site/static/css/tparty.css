@@ -349,3 +349,14 @@ td:last-child { padding-right: 0.2em !important; }
 .no-matches strong {
   color: #666;
 }
+
+.alt-view {
+  margin-left: 0.8em;
+  padding-left: 0.8em;
+  border-left: 1px dashed #5A35FF;  
+}
+
+.alt-view a {
+  color: #fff;
+  text-decoration: underline;  
+}

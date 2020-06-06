@@ -18,7 +18,9 @@
           <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
           <span title="Data as of {{ .ResultAge | HumanDuration}} ago">{{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }}, 
           Avg age: {{ .CollectionResult.AvgAge | toDays }}
+          {{ if .VelocityStats }}, Avg close rate: <a href="/s/{{.VelocityStats.Collection.ID }}">{{ printf "%.1f" $.ClosedPerDay }} issue(s) per day</a>{{ end }}
           </span>
+          <span class="alt-view"><a href="/s/{{ .ID }}{{ $.GetVars }}">Item View</a></span>
           </div>
           <script>
           function openAllTabs() {
@@ -57,7 +59,17 @@
       <div class="box-header collapsible">
         <div class="box-head-left">
           <h3>{{ .Milestone.Title }}</h3>
-          <h4 class="subtitle">Due {{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | HumanTime }})</h4>
+          <h4 class="subtitle">Due: {{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | HumanTime }})</h4>
+          {{ if not .MilestoneETA.IsZero }}
+            <h4 class="subtitle">ETA:
+                <span class="{{ if eq .MilestoneOnTarget 2}}very-late-eta{{ else if eq .MilestoneOnTarget 1}}late-eta{{ else if eq .MilestoneOnTarget -1}}early-eta{{ end }}">
+                    {{ .MilestoneETA.Format "2006-01-02" }} 
+                    {{ if gt .MilestoneOnTarget 0 }}(late by {{.MilestoneETADiff | HumanDuration }})
+                    {{ else if lt .MilestoneOnTarget 0 }} (early by {{.MilestoneETADiff | HumanDuration }})
+                    {{ end }}
+                  </span>
+            </h4>
+          {{ end }}
           <h5 class="stats">{{ .Milestone.GetOpenIssues}} open issues, {{ .Milestone.GetClosedIssues }} closed issues</h5>
         </div>
         <div class="box-head-right">
@@ -77,7 +89,7 @@
     {{ $col := .Collection }}
 
     {{ range .Swimlanes }}
-    <tr class="swimlane">
+    <tr class="swimlane {{ if not .User.ID }}unassigned-lane{{ end }}">
       <td class="kanban-assignee" data-order="{{ .User.GetLogin }}">{{ .User | Avatar }}</td>
       {{ range .Columns }}
       <td class="kanban-column">
@@ -90,7 +102,7 @@
             {{ end }}
 
             <div class="sticky sticky-{{ $x }} {{ if $overflow }}sticky-overflow{{ end }} {{ range $i.Labels }} {{ .Name | Class }}{{ end }}">
-              <a href="{{ $i.URL }}" title="{{ $i.LastCommentBody }}">
+              <a href="{{ $i.URL }}" title="@{{ $i.LastCommentAuthor.GetLogin }}: {{ $i.LastCommentBody }}">
                 <span class="sticky-title">{{ $i.Title }}</span>
                 <span class="sticky-id">#{{ $i.ID }}</span>
               </a>
@@ -125,4 +137,20 @@
         "info": false,
     });
 </script>
+<script>
+  var cols = document.getElementsByClassName("collapsible");
+  var i;
+  for (i = 0; i < cols.length; i++) {
+      cols[i].addEventListener("click", function () {
+          this.classList.toggle("active");
+          var content = this.nextElementSibling;
+          if (content.style.display === "block") {
+              content.style.display = "none";
+          } else {
+              content.style.display = "block";
+          }
+      });
+  }
+</script>
+
 {{ end }}
