@@ -6,7 +6,8 @@
   <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
   <link rel="stylesheet" href="/third_party/datatables-bulma/dataTables.bulma.css" />
   <link rel="stylesheet" href="/static/css/kanban.css?{{.Version}}">
-  <link rel="stylesheet" href="/static/css/custom.css?{{.Version}}">{{ end }}
+{{ end }}
+
 {{define "subnav"}}
 
 <nav class="navbar secondary" role="navigation" aria-label="secondary navigation">
@@ -59,15 +60,14 @@
       <div class="box-header collapsible">
         <div class="box-head-left">
           <h3>{{ .Milestone.Title }}</h3>
-          <h4 class="subtitle">Due: {{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | HumanTime }})</h4>
+          <h4 class="subtitle">Due: {{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | RoughTime }})</h4>
           {{ if not .MilestoneETA.IsZero }}
-            <h4 class="subtitle">ETA:
-                <span class="{{ if eq .MilestoneOnTarget 2}}very-late-eta{{ else if eq .MilestoneOnTarget 1}}late-eta{{ else if eq .MilestoneOnTarget -1}}early-eta{{ end }}">
+            <h4 class="subtitle {{ if .MilestoneVeryLate}}very-late-eta{{ else if gt .MilestoneCountOffset 0}}late-eta{{ else if lt .MilestoneCountOffset 0}}early-eta{{ end }}">ETA:
+                <span class="eta">
                     {{ .MilestoneETA.Format "2006-01-02" }} 
-                    {{ if gt .MilestoneOnTarget 0 }}(late by {{.MilestoneETADiff | HumanDuration }})
-                    {{ else if lt .MilestoneOnTarget 0 }} (early by {{.MilestoneETADiff | HumanDuration }})
+                    {{ if ne .MilestoneCountOffset 0 }}({{ LateTime .MilestoneETA .Milestone.DueOn }}, off by {{.MilestoneCountOffset}} issues)
                     {{ end }}
-                  </span>
+                </span>
             </h4>
           {{ end }}
           <h5 class="stats">{{ .Milestone.GetOpenIssues}} open issues, {{ .Milestone.GetClosedIssues }} closed issues</h5>
@@ -103,8 +103,8 @@
 
             <div class="sticky sticky-{{ $x }} {{ if $overflow }}sticky-overflow{{ end }} {{ range $i.Labels }} {{ .Name | Class }}{{ end }}">
               <a href="{{ $i.URL }}" title="@{{ $i.LastCommentAuthor.GetLogin }}: {{ $i.LastCommentBody }}">
+                <span class="sticky-id">#{{ $i.ID }}: </span>
                 <span class="sticky-title">{{ $i.Title }}</span>
-                <span class="sticky-id">#{{ $i.ID }}</span>
               </a>
 
               <div class="reactions">
@@ -116,6 +116,12 @@
                 {{ end }}     
               </div>            
 
+
+              <ul class="refs">
+                  {{ range .PullRequestRefs }}
+                     <li class="tag-default tag-pr-{{.ReviewState | Class }}"><a href="{{ .URL }}" title='"{{ .Title }}" by @{{.Author.GetLogin}} ({{.ReviewState}})'>{{ .ID }}</li>
+                  {{ end }}
+              </ul>
             </div>
           {{ end }}
         {{ end }}

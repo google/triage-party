@@ -113,14 +113,16 @@ collections:
         * Unassigned issues represent available work
         * >2 issues assigned to the same person within a stage signifies a bottleneck 🌊
     display: kanban
-    overflow: 2
+    overflow: 3
     selector: milestone
+    dedup: true
     rules:
-      - no-update
-      - updated
-      - open-pr
-      - closed-pr
-      - closed
+      - milestone-not-started
+      - milestone-assignee-updated
+      - milestone-pr-needs-review
+      - milestone-pr-needs-work
+      - milestone-pr-needs-merge
+      - milestone-closed
 
   - id: tests
     name: Broken tests
@@ -154,35 +156,39 @@ collections:
 
 rules:
   ### Kanban ###
-  no-update:
-    name: "No Update"
+  milestone-not-started:
+    name: "Not started"
     type: issue
     filters:
       - tag: open-milestone
       - tag: "!assignee-updated"
       - tag: "!(assignee-open-pr|assignee-closed-pr)"
-  updated:
+  milestone-assignee-updated:
     name: "In Progress"
     type: issue
     filters:
       - tag: open-milestone
       - tag: "assignee-updated"
-      - tag: "!(assignee-open-pr|assignee-closed-pr)"
-  open-pr:
-    name: "Open PR"
+      - tag: "!(pr-changes-requested|pr-reviewer-comment|pr-unreviewed|pr-new-commits|pr-approved|pr-changes-requested)"
+  milestone-pr-needs-work:
+    name: "PR needs work"
+    type: issue
+    filters:
+      - tag: "(pr-changes-requested|pr-reviewer-comment)"
+  milestone-pr-needs-review:
+    name: "PR needs Review"
     type: issue
     filters:
       - tag: open-milestone
-      - tag: "assignee-open-pr"
-  closed-pr:
-    name: "Closed PR"
+      - tag: "(pr-unreviewed|pr-new-commits)"
+  milestone-pr-needs-merge:
+    name: "PR needs Merge"
     type: issue
     filters:
       - tag: open-milestone
-      - tag: "!assignee-open-pr"
-      - tag: "assignee-closed-pr"
-  closed:
-    name: "Closed"
+      - tag: "(pr-approved|pr-approved-but-pushed)"  
+  milestone-closed:
+    name: "Finish Line"
     type: issue
     filters:
       - tag: open-milestone

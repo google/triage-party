@@ -212,68 +212,6 @@ func (h *Engine) isMember(user string, role string) bool {
 	return false
 }
 
-// Add events to the conversation summary if useful
-func (h *Engine) addEvents(co *Conversation, timeline []*github.Timeline) {
-	priority := ""
-	for _, l := range co.Labels {
-		if strings.HasPrefix(l.GetName(), "priority") {
-			klog.V(1).Infof("found priority: %s", l.GetName())
-			priority = l.GetName()
-			break
-		}
-	}
-	assignedTo := map[string]bool{}
-	for _, a := range co.Assignees {
-		assignedTo[a.GetLogin()] = true
-	}
-
-	thisRepo := fmt.Sprintf("%s/%s", co.Organization, co.Project)
-
-	for _, t := range timeline {
-		if h.debugNumber == co.ID {
-			klog.Errorf("debug timeline event: %s", formatStruct(t))
-		}
-
-		if t.GetEvent() == "labeled" && t.GetLabel().GetName() == priority {
-			klog.V(2).Infof("prioritized at %s", t.GetCreatedAt())
-			co.Prioritized = t.GetCreatedAt()
-		}
-
-		if t.GetEvent() == "cross-referenced" {
-			if assignedTo[t.GetActor().GetLogin()] {
-				if t.GetCreatedAt().After(co.LatestAssigneeResponse) {
-					co.LatestAssigneeResponse = t.GetCreatedAt()
-					co.Tags = append(co.Tags, assigneeUpdatedTag())
-				}
-			}
-
-			if co.Type == Issue && t.GetSource().GetIssue().IsPullRequest() {
-				state := t.GetSource().GetIssue().GetState()
-				refRepo := t.GetSource().GetIssue().GetRepository().GetFullName()
-				if refRepo != thisRepo {
-					continue
-				}
-
-				if assignedTo[t.GetActor().GetLogin()] {
-					if state == "open" {
-						co.Tags = append(co.Tags, assigneeOpenPRTag())
-					} else if state == "closed" {
-						co.Tags = append(co.Tags, assigneeClosedPRTag())
-					}
-				} else {
-					if state == "open" {
-						co.Tags = append(co.Tags, otherOpenPRTag())
-					} else if state == "closed" {
-						co.Tags = append(co.Tags, otherClosedPRTag())
-					}
-				}
-			}
-		}
-	}
-
-	co.Tags = dedupTags(co.Tags)
-}
-
 func dedupTags(tags []Tag) []Tag {
 	deduped := []Tag{}
 	seen := map[string]bool{}
@@ -300,41 +238,6 @@ func commentedTag() Tag {
 	return Tag{
 		ID:          "commented",
 		Description: "A project member has commented on this",
-	}
-}
-
-func otherOpenPRTag() Tag {
-	return Tag{
-		ID:          "other-open-pr",
-		Description: "Issue has an open cross-referenced PR",
-	}
-}
-
-func otherClosedPRTag() Tag {
-	return Tag{
-		ID:          "other-closed-pr",
-		Description: "Issue has an closed cross-referenced PR",
-	}
-}
-
-func assigneeOpenPRTag() Tag {
-	return Tag{
-		ID:          "assignee-open-pr",
-		Description: "Issue has an open cross-referenced PR",
-	}
-}
-
-func assigneeClosedPRTag() Tag {
-	return Tag{
-		ID:          "assignee-closed-pr",
-		Description: "Issue has an closed cross-referenced PR",
-	}
-}
-
-func assigneeUpdatedTag() Tag {
-	return Tag{
-		ID:          "assignee-updated",
-		Description: "The assignee has updated the issue",
 	}
 }
 

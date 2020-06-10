@@ -66,6 +66,9 @@ type Engine struct {
 	memberRoles map[string]bool
 	members     map[string]bool
 
+	// Workaround because GitHub doesn't update issues if cross-references occur
+	latestXref map[string]time.Time
+
 	// indexes used for similarity matching
 	seen map[string]*Conversation
 }
@@ -80,6 +83,7 @@ func New(cfg Config) *Engine {
 		MinSimilarity:      cfg.MinSimilarity,
 		debugNumber:        cfg.DebugNumber,
 
+		latestXref:  map[string]time.Time{},
 		memberRoles: map[string]bool{},
 		members:     map[string]bool{},
 	}
@@ -101,7 +105,7 @@ func New(cfg Config) *Engine {
 
 	// This value is typically programmed on the fly, but lets give it a good enough default
 	if e.MaxClosedUpdateAge == 0 {
-		e.MaxClosedUpdateAge = time.Duration(24 * 3 * time.Hour)
+		e.MaxClosedUpdateAge = 24 * 3 * time.Hour
 	}
 
 	return e

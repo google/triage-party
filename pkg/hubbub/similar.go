@@ -3,9 +3,7 @@ package hubbub
 import (
 	"regexp"
 	"strings"
-	"time"
 
-	"github.com/google/go-github/v31/github"
 	"github.com/imjasonmiller/godice"
 	"k8s.io/klog/v2"
 )
@@ -48,20 +46,6 @@ var removeWords = map[string]bool{
 	"with":    true,
 	"do":      true,
 	"we":      true,
-}
-
-// A subset of Conversation for related items (requires less memory than a Conversation)
-type RelatedConversation struct {
-	Organization string `json:"org"`
-	Project      string `json:"project"`
-	ID           int    `json:"int"`
-
-	URL     string       `json:"url"`
-	Title   string       `json:"title"`
-	Author  *github.User `json:"author"`
-	Type    string       `json:"type"`
-	State   string       `json:"state"`
-	Created time.Time    `json:"created"`
 }
 
 // normalize titles for a higher hit-rate
@@ -133,6 +117,7 @@ func (h *Engine) updateSimilarityTables(rawTitle, url string) {
 	}
 }
 
+// FindSimilar locates similar conversations to this one
 func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 	simco := []*RelatedConversation{}
 	title := normalizeTitle(co.Title)
@@ -186,19 +171,4 @@ func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 		added[url] = true
 	}
 	return simco
-}
-
-func makeRelated(c *Conversation) *RelatedConversation {
-	return &RelatedConversation{
-		Organization: c.Organization,
-		Project:      c.Project,
-		ID:           c.ID,
-
-		URL:     c.URL,
-		Title:   c.Title,
-		Author:  c.Author,
-		Type:    c.Type,
-		State:   c.State,
-		Created: c.Created,
-	}
 }

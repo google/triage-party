@@ -119,14 +119,14 @@ type Page struct {
 	Collection  triage.Collection
 	Collections []triage.Collection
 
-	Swimlanes         []*Swimlane
-	CollectionResult  *triage.CollectionResult
-	SelectorVar       string
-	SelectorOptions   []Choice
-	Milestone         *github.Milestone
-	MilestoneETA      time.Time
-	MilestoneOnTarget int
-	MilestoneETADiff  time.Duration
+	Swimlanes            []*Swimlane
+	CollectionResult     *triage.CollectionResult
+	SelectorVar          string
+	SelectorOptions      []Choice
+	Milestone            *github.Milestone
+	MilestoneETA         time.Time
+	MilestoneCountOffset int
+	MilestoneVeryLate    bool
 
 	OpenStats     *triage.CollectionResult
 	VelocityStats *triage.CollectionResult
@@ -184,7 +184,9 @@ func toJSfunc(s string) template.JS {
 
 // Make a class name
 func className(s string) template.HTMLAttr {
-	return template.HTMLAttr(nonWordRe.ReplaceAllString(s, "-"))
+	s = strings.ToLower(nonWordRe.ReplaceAllString(s, "-"))
+	s = strings.Replace(s, "_", "-", -1)
+	return template.HTMLAttr(s)
 }
 
 func unixNano(t time.Time) int64 {
@@ -192,14 +194,14 @@ func unixNano(t time.Time) int64 {
 }
 
 func humanDuration(d time.Duration) string {
-	return humanTime(time.Now().Add(-d))
+	return roughTime(time.Now().Add(-d))
 }
 
 func toDays(d time.Duration) string {
 	return fmt.Sprintf("%0.1fd", d.Hours()/24)
 }
 
-func humanTime(t time.Time) string {
+func roughTime(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	}
