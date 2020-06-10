@@ -64,6 +64,7 @@ var (
 	dryRun        = flag.Bool("dry-run", false, "run queries, don't start a server")
 	port          = flag.Int("port", 8080, "port to run server at")
 	siteName      = flag.String("name", "", "override site name from config file")
+	number        = flag.Int("num", 0, "only display results for this GitHub numbe (debug)")
 
 	maxRefresh = flag.Duration("max-refresh", 60*time.Minute, "Maximum time between collection runs")
 	minRefresh = flag.Duration("min-refresh", 60*time.Second, "Minimum time between collection runs")
@@ -103,8 +104,9 @@ func main() {
 	}
 
 	cfg := triage.Config{
-		Client: client,
-		Cache:  c,
+		Client:      client,
+		Cache:       c,
+		DebugNumber: *number,
 	}
 
 	if *reposOverride != "" {
@@ -174,6 +176,7 @@ func main() {
 	http.Handle("/third_party/", http.StripPrefix("/third_party/", http.FileServer(http.Dir(findPath(*thirdPartyDir)))))
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(findPath(*siteDir), "static")))))
 	http.HandleFunc("/s/", s.Collection())
+	http.HandleFunc("/k/", s.Kanban())
 	http.HandleFunc("/", s.Root())
 
 	listenAddr := fmt.Sprintf(":%s", os.Getenv("PORT"))

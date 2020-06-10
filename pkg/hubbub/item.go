@@ -30,7 +30,7 @@ type GitHubItem interface {
 }
 
 // conversation creates a conversation from an issue-like
-func (h *Engine) conversation(i GitHubItem, cs []CommentLike) *Conversation {
+func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 	authorIsMember := false
 	if h.isMember(i.GetUser().GetLogin(), i.GetAuthorAssociation()) {
 		authorIsMember = true
@@ -48,12 +48,20 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike) *Conversation {
 		ClosedAt:             i.GetClosedAt(),
 		SelfInflicted:        authorIsMember,
 		LatestAuthorResponse: i.GetCreatedAt(),
-		Milestone:            i.GetMilestone().GetTitle(),
+		Milestone:            i.GetMilestone(),
 		Reactions:            map[string]int{},
+		LastCommentAuthor:    i.GetUser(),
+		LastCommentBody:      i.GetBody(),
 	}
+
+	// "https://github.com/kubernetes/minikube/issues/7179",
+	urlParts := strings.Split(i.GetHTMLURL(), "/")
+	co.Organization = urlParts[3]
+	co.Project = urlParts[4]
 
 	if i.GetAssignee() != nil {
 		co.Assignees = append(co.Assignees, i.GetAssignee())
+		co.Tags = append(co.Tags, assignedTag())
 	}
 
 	if !authorIsMember {
@@ -65,13 +73,24 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike) *Conversation {
 	seenClosedCommenters := map[string]bool{}
 	seenMemberComment := false
 
+	if co.ID == h.debugNumber {
+		klog.Errorf("debug conversation: %s", formatStruct(co))
+	}
+
 	for _, c := range cs {
+		if co.ID == h.debugNumber {
+			klog.Errorf("debug conversation comment: %s", formatStruct(c))
+		}
+
 		// We don't like their kind around here
-		if isBot(c.GetUser()) {
+		if isBot(c.User) {
 			continue
 		}
 
-		r := c.GetReactions()
+		co.LastCommentBody = c.Body
+		co.LastCommentAuthor = c.User
+
+		r := c.Reactions
 		if r.GetTotalCount() > 0 {
 			co.ReactionsTotal += r.GetTotalCount()
 			for k, v := range reactions(r) {
@@ -79,68 +98,85 @@ func (h *Engine) conversation(i GitHubItem, cs []CommentLike) *Conversation {
 			}
 		}
 
-		if !i.GetClosedAt().IsZero() && c.GetCreatedAt().After(i.GetClosedAt().Add(30*time.Second)) {
+		if !i.GetClosedAt().IsZero() && c.Created.After(i.GetClosedAt().Add(30*time.Second)) {
 			klog.V(1).Infof("#%d: comment after closed on %s: %+v", co.ID, i.GetClosedAt(), c)
 			co.ClosedCommentsTotal++
-			seenClosedCommenters[*c.GetUser().Login] = true
+			seenClosedCommenters[*c.User.Login] = true
 		}
 
-		if c.GetUser().GetLogin() == i.GetUser().GetLogin() {
-			co.LatestAuthorResponse = c.GetCreatedAt()
+		if c.User.GetLogin() == i.GetUser().GetLogin() {
+			co.LatestAuthorResponse = c.Created
 		}
-		if h.isMember(c.GetUser().GetLogin(), c.GetAuthorAssociation()) && !isBot(c.GetUser()) {
+
+		if c.User.GetLogin() == i.GetAssignee().GetLogin() {
+			co.LatestAssigneeResponse = c.Created
+		}
+
+		if h.isMember(c.User.GetLogin(), c.AuthorAssoc) && !isBot(c.User) {
 			if !co.LatestMemberResponse.After(co.LatestAuthorResponse) && !authorIsMember {
-				co.AccumulatedHoldTime += c.GetCreatedAt().Sub(co.LatestAuthorResponse)
+				co.AccumulatedHoldTime += c.Created.Sub(co.LatestAuthorResponse)
 			}
-			co.LatestMemberResponse = c.GetCreatedAt()
+			co.LatestMemberResponse = c.Created
 			if !seenMemberComment {
 				co.Tags = append(co.Tags, commentedTag())
 				seenMemberComment = true
 			}
 		}
 
-		if strings.Contains(c.GetBody(), "?") {
-			for _, line := range strings.Split(c.GetBody(), "\n") {
+		if strings.Contains(c.Body, "?") {
+			for _, line := range strings.Split(c.Body, "\n") {
 				line = strings.TrimSpace(line)
 				if strings.HasPrefix(line, ">") {
 					continue
 				}
 				if strings.Contains(line, "?") {
-					lastQuestion = c.GetCreatedAt()
+					klog.V(2).Infof("question at %s: %s", c.Created, line)
+					lastQuestion = c.Created
 				}
 			}
 		}
 
-		if !seenCommenters[*c.GetUser().Login] {
-			co.Commenters = append(co.Commenters, c.GetUser())
-			seenCommenters[*c.GetUser().Login] = true
+		if !seenCommenters[*c.User.Login] {
+			co.Commenters = append(co.Commenters, c.User)
+			seenCommenters[*c.User.Login] = true
 		}
 	}
 
 	if co.LatestMemberResponse.After(co.LatestAuthorResponse) {
+		klog.V(2).Infof("marking as send: latest member response (%s) is after latest author response (%s)", co.LatestMemberResponse, co.LatestAuthorResponse)
 		co.Tags = append(co.Tags, sendTag())
 		co.CurrentHoldTime = 0
 	} else if !authorIsMember {
+		klog.V(2).Infof("marking as recv: author is not member, latest member response (%s) is before latest author response (%s)", co.LatestMemberResponse, co.LatestAuthorResponse)
 		co.Tags = append(co.Tags, recvTag())
 		co.CurrentHoldTime += time.Since(co.LatestAuthorResponse)
 		co.AccumulatedHoldTime += time.Since(co.LatestAuthorResponse)
 	}
 
 	if lastQuestion.After(co.LatestMemberResponse) {
+		klog.V(2).Infof("marking as recv-q: last question (%s) comes after last member response (%s)", lastQuestion, co.LatestMemberResponse)
 		co.Tags = append(co.Tags, recvQTag())
+	}
+
+	if co.Milestone != nil && co.Milestone.GetState() == "open" {
+		co.Tags = append(co.Tags, openMilestoneTag())
+	}
+
+	if !co.LatestAssigneeResponse.IsZero() {
+		co.Tags = append(co.Tags, assigneeUpdatedTag())
 	}
 
 	if len(cs) > 0 {
 		last := cs[len(cs)-1]
-		assoc := strings.ToLower(last.GetAuthorAssociation())
+		assoc := strings.ToLower(last.AuthorAssoc)
 		if assoc == "none" {
-			if last.GetUser().GetLogin() == i.GetUser().GetLogin() {
+			if last.User.GetLogin() == i.GetUser().GetLogin() {
 				co.Tags = append(co.Tags, authorLast())
 			}
 		} else {
 			co.Tags = append(co.Tags, assocLast(assoc))
 		}
-		co.Updated = last.GetUpdatedAt()
+		co.Updated = last.Updated
 	}
 
 	if co.State == "closed" {
@@ -176,22 +212,25 @@ func (h *Engine) isMember(user string, role string) bool {
 	return false
 }
 
-// Add events to the conversation summary if useful
-func (h *Engine) addEvents(co *Conversation, timeline []*github.Timeline) {
-	priority := ""
-	for _, l := range co.Labels {
-		if strings.HasPrefix(l.GetName(), "priority") {
-			klog.V(1).Infof("found priority: %s", l.GetName())
-			priority = l.GetName()
-			break
+func dedupTags(tags []Tag) []Tag {
+	deduped := []Tag{}
+	seen := map[string]bool{}
+
+	for _, t := range tags {
+		if seen[t.ID] {
+			continue
 		}
+		deduped = append(deduped, t)
+		seen[t.ID] = true
 	}
 
-	for _, t := range timeline {
-		if t.GetEvent() == "labeled" && t.GetLabel().GetName() == priority {
-			klog.Infof("prioritized at %s", t.GetCreatedAt())
-			co.Prioritized = t.GetCreatedAt()
-		}
+	return deduped
+}
+
+func assignedTag() Tag {
+	return Tag{
+		ID:          "assigned",
+		Description: "Someone is assigned",
 	}
 }
 
@@ -220,6 +259,13 @@ func recvQTag() Tag {
 	return Tag{
 		ID:          "recv-q",
 		Description: "The author has asked a question since the last project member commented",
+	}
+}
+
+func openMilestoneTag() Tag {
+	return Tag{
+		ID:          "open-milestone",
+		Description: "The issue is associated to an open milestone",
 	}
 }
 

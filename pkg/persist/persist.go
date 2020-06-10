@@ -24,6 +24,13 @@ import (
 	"github.com/google/go-github/v31/github"
 )
 
+var (
+	// MaxSaveAge is the oldest allowable entry to persist
+	MaxSaveAge = 30 * 24 * time.Hour
+	// MaxLoadAge is the oldest allowable entry to load
+	MaxLoadAge = 45 * 24 * time.Hour
+)
+
 // Config is cache configuration
 type Config struct {
 	Type string
@@ -38,6 +45,7 @@ type Thing struct {
 	PullRequestComments []*github.PullRequestComment
 	IssueComments       []*github.IssueComment
 	Timeline            []*github.Timeline
+	Reviews             []*github.PullRequestReview
 	StringBool          map[string]bool
 }
 

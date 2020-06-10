@@ -18,11 +18,24 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/persist"
 	"k8s.io/klog/v2"
+)
+
+const (
+	Unreviewed          = "UNREVIEWED"
+	NewCommits          = "NEW_COMMITS"
+	NeedsReview         = "NEEDS_REVIEW"
+	ChangesRequested    = "CHANGES_REQUESTED"
+	Approved            = "APPROVED"
+	PushedAfterApproval = "PUSHED_AFTER_APPROVAL"
+	Commented           = "COMMENTED"
+	Merged              = "MERGED"
+	Closed              = "CLOSED"
 )
 
 // cachedPRs returns a list of cached PR's if possible
@@ -102,7 +115,7 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 	return allPRs, start, nil
 }
 
-func (h *Engine) cachedPRComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.PullRequestComment, time.Time, error) {
+func (h *Engine) cachedReviewComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.PullRequestComment, time.Time, error) {
 	key := fmt.Sprintf("%s-%s-%d-pr-comments", org, project, num)
 
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
@@ -110,11 +123,44 @@ func (h *Engine) cachedPRComments(ctx context.Context, org string, project strin
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", key, newerThan)
-	return h.updatePRComments(ctx, org, project, num, key)
+	return h.updateReviewComments(ctx, org, project, num, key)
 }
 
-func (h *Engine) updatePRComments(ctx context.Context, org string, project string, num int, key string) ([]*github.PullRequestComment, time.Time, error) {
-	klog.V(1).Infof("Downloading PR comments for %s/%s #%d", org, project, num)
+// prComments mixes together code review comments and pull-request comments
+func (h *Engine) prComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*Comment, time.Time, error) {
+	start := time.Now()
+
+	var comments []*Comment
+	cs, _, err := h.cachedIssueComments(ctx, org, project, num, newerThan)
+	if err != nil {
+		klog.Errorf("pr comments: %v", err)
+	}
+	for _, c := range cs {
+		comments = append(comments, NewComment(c))
+	}
+
+	rc, _, err := h.cachedReviewComments(ctx, org, project, num, newerThan)
+	if err != nil {
+		klog.Errorf("comments: %v", err)
+	}
+	for _, c := range rc {
+		nc := NewComment(c)
+		nc.ReviewID = c.GetPullRequestReviewID()
+		comments = append(comments, nc)
+	}
+
+	// Re-sort the mixture of review and issue comments in ascending time order
+	sort.Slice(comments, func(i, j int) bool { return comments[j].Created.After(comments[i].Created) })
+
+	if num == h.debugNumber {
+		klog.Errorf("debug comments: %s", formatStruct(comments))
+	}
+
+	return comments, start, err
+}
+
+func (h *Engine) updateReviewComments(ctx context.Context, org string, project string, num int, key string) ([]*github.PullRequestComment, time.Time, error) {
+	klog.V(1).Infof("Downloading review comments for %s/%s #%d", org, project, num)
 	start := time.Now()
 
 	opt := &github.PullRequestListCommentsOptions{
@@ -122,14 +168,16 @@ func (h *Engine) updatePRComments(ctx context.Context, org string, project strin
 	}
 	var allComments []*github.PullRequestComment
 	for {
-		klog.V(2).Infof("Downloading PR comments for %s/%s #%d (page %d)...", org, project, num, opt.Page)
+		klog.V(2).Infof("Downloading review comments for %s/%s #%d (page %d)...", org, project, num, opt.Page)
 		cs, resp, err := h.client.PullRequests.ListComments(ctx, org, project, num, opt)
+
 		if err != nil {
 			return cs, start, err
 		}
+
 		h.logRate(resp.Rate)
 
-		klog.V(2).Infof("Received %d comments", len(cs))
+		klog.V(2).Infof("Received %d review comments", len(cs))
 		allComments = append(allComments, cs...)
 		if resp.NextPage == 0 {
 			break
@@ -144,37 +192,132 @@ func (h *Engine) updatePRComments(ctx context.Context, org string, project strin
 	return allComments, start, nil
 }
 
-func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComment, timeline []*github.Timeline) *Conversation {
-	cl := []CommentLike{}
-	latestReview := time.Time{}
-	for _, c := range cs {
-		cl = append(cl, CommentLike(c))
-		if c.GetPullRequestReviewID() != 0 {
-			latestReview = c.GetCreatedAt()
-		}
+func (h *Engine) cachedReviews(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.PullRequestReview, time.Time, error) {
+	key := fmt.Sprintf("%s-%s-%d-pr-reviews", org, project, num)
+
+	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+		return x.Reviews, x.Created, nil
 	}
 
-	co := h.conversation(pr, cl)
-	co.Type = PullRequest
+	klog.V(1).Infof("cache miss for %s newer than %s", key, newerThan)
+	return h.updateReviews(ctx, org, project, num, key)
+}
 
-	h.addEvents(co, timeline)
+func (h *Engine) updateReviews(ctx context.Context, org string, project string, num int, key string) ([]*github.PullRequestReview, time.Time, error) {
+	klog.V(1).Infof("Downloading reviews for %s/%s #%d", org, project, num)
+	start := time.Now()
+
+	opt := &github.ListOptions{PerPage: 100}
+
+	var allReviews []*github.PullRequestReview
+	for {
+		klog.V(2).Infof("Downloading reviews for %s/%s #%d (page %d)...", org, project, num, opt.Page)
+		cs, resp, err := h.client.PullRequests.ListReviews(ctx, org, project, num, opt)
+
+		if err != nil {
+			return cs, start, err
+		}
+
+		h.logRate(resp.Rate)
+
+		klog.V(2).Infof("Received %d reviews", len(cs))
+		allReviews = append(allReviews, cs...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	if err := h.cache.Set(key, &persist.Thing{Reviews: allReviews}); err != nil {
+		klog.Errorf("set %q failed: %v", key, err)
+	}
+
+	return allReviews, start, nil
+}
+
+// reviewState parses review events to see where an issue was left off
+func reviewState(timeline []*github.Timeline, reviews []*github.PullRequestReview) string {
+	state := Unreviewed
+	lastCommitID := ""
+	lastPushTime := time.Time{}
+	open := true
 
 	for _, t := range timeline {
-		if t.GetEvent() == "committed" || t.GetEvent() == "head_ref_force_pushed" {
-			co.LatestCommit = t.GetCreatedAt()
-			if t.GetCreatedAt().After(co.Updated) {
-				co.Updated = t.GetCreatedAt()
+		klog.V(2).Infof("PR review event: %q at %s", t.GetEvent(), t.GetCreatedAt())
+		if t.GetEvent() == "merged" {
+			return Merged
+		}
+
+		if t.GetEvent() == "head_ref_force_pushed" {
+			// GitHub does not return a commit ID
+			lastPushTime = t.GetCreatedAt()
+		}
+
+		if t.GetEvent() == "committed" {
+			commit := t.GetCommitID()
+			if commit == "" && strings.Contains(t.GetURL(), "/commits/") {
+				parts := strings.Split(t.GetURL(), "/")
+				commit = parts[len(parts)-1]
 			}
+			klog.V(1).Infof("found commit id %s at %s", commit, t.GetCreatedAt(), formatStruct(t))
+			lastCommitID = commit
+		}
+
+		if t.GetEvent() == "reopened" {
+			open = true
+		}
+
+		if t.GetEvent() == "closed" {
+			open = false
 		}
 	}
 
-	if co.LatestCommit.After(co.LatestReview) {
-		co.Tags = append(co.Tags, Tag{ID: "new-commits", Description: "PR has commits since the last review"})
+	if !open {
+		return Closed
 	}
 
-	if !latestReview.IsZero() {
-		co.LatestReview = latestReview
+	klog.V(1).Infof("Found %d reviews, hoping one is for %s ...", len(reviews), lastCommitID)
+	lastReview := time.Time{}
+	for _, r := range reviews {
+		if r.GetCommitID() == lastCommitID || lastCommitID == "" {
+			klog.V(1).Infof("found %q review at %s for final commit: %s", r.GetState(), r.GetSubmittedAt(), lastCommitID)
+			lastReview = r.GetSubmittedAt()
+			state = r.GetState()
+		} else {
+			klog.V(1).Infof("found %q review at %s for older commit: %s", r.GetState(), r.GetSubmittedAt(), r.GetCommitID())
+		}
+	}
+
+	if state == Unreviewed && len(reviews) > 0 {
+		state = NewCommits
+	}
+
+	if state == Approved && lastReview.Before(lastPushTime) {
+		state = PushedAfterApproval
+	}
+
+	return state
+}
+
+func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Comment, timeline []*github.Timeline, reviews []*github.PullRequestReview) *Conversation {
+	co := h.conversation(pr, cs)
+	co.Type = PullRequest
+	h.addEvents(ctx, co, timeline)
+
+	co.ReviewState = reviewState(timeline, reviews)
+	if co.ReviewState != Unreviewed {
 		co.Tags = append(co.Tags, Tag{ID: "reviewed", Description: "PR has been reviewed at least once"})
+	}
+
+	switch co.ReviewState {
+	case Approved:
+		co.Tags = append(co.Tags, Tag{ID: "approved", Description: "Last review was an approval"})
+	case Commented:
+		co.Tags = append(co.Tags, Tag{ID: "reviewed-with-comment", Description: "Last review was a comment"})
+	case ChangesRequested:
+		co.Tags = append(co.Tags, Tag{ID: "changes-requested", Description: "Last review was a request for changes"})
+	case NewCommits:
+		co.Tags = append(co.Tags, Tag{ID: "new-commits", Description: "PR has commits since the last review"})
 	}
 
 	if pr.GetDraft() {
@@ -183,6 +326,10 @@ func (h *Engine) PRSummary(pr *github.PullRequest, cs []*github.PullRequestComme
 
 	// Technically not the same thing, but close enough for me.
 	co.ClosedBy = pr.GetMergedBy()
+	if pr.GetMerged() {
+		co.ReviewState = Merged
+		co.Tags = append(co.Tags, Tag{ID: "merged", Description: "PR has been merged"})
+	}
 
 	sort.Slice(co.Tags, func(i, j int) bool { return co.Tags[i].ID < co.Tags[j].ID })
 	return co

@@ -3,9 +3,7 @@ package hubbub
 import (
 	"regexp"
 	"strings"
-	"time"
 
-	"github.com/google/go-github/v31/github"
 	"github.com/imjasonmiller/godice"
 	"k8s.io/klog/v2"
 )
@@ -50,19 +48,6 @@ var removeWords = map[string]bool{
 	"we":      true,
 }
 
-// A subset of Conversation for related items (requires less memory than a Conversation)
-type RelatedConversation struct {
-	Organization string `json:"org"`
-	Project      string `json:"project"`
-	ID           int    `json:"int"`
-
-	URL     string       `json:"url"`
-	Title   string       `json:"title"`
-	Author  *github.User `json:"author"`
-	Type    string       `json:"type"`
-	Created time.Time    `json:"created"`
-}
-
 // normalize titles for a higher hit-rate
 func normalizeTitle(t string) string {
 	keep := []string{}
@@ -78,7 +63,7 @@ func normalizeTitle(t string) string {
 		keep = append(keep, word)
 	}
 
-	klog.V(3).Infof("normalized: %s", strings.Join(keep, " "))
+	klog.V(4).Infof("normalized: %s", strings.Join(keep, " "))
 	return strings.Join(keep, " ")
 }
 
@@ -98,7 +83,7 @@ func (h *Engine) updateSimilarityTables(rawTitle, url string) {
 		}
 
 		if !foundURL {
-			klog.V(1).Infof("updating %q with %v", rawTitle, otherURLs)
+			klog.V(4).Infof("updating %q with %v", rawTitle, otherURLs)
 			h.titleToURLs.Store(title, append(otherURLs, url))
 		}
 		return
@@ -114,7 +99,7 @@ func (h *Engine) updateSimilarityTables(rawTitle, url string) {
 		}
 
 		if godice.CompareString(title, otherTitle) > h.MinSimilarity {
-			klog.V(1).Infof("%q is similar to %q", rawTitle, otherTitle)
+			klog.V(4).Infof("%q is similar to %q", rawTitle, otherTitle)
 			similarTo = append(similarTo, otherTitle)
 		}
 		return true
@@ -124,7 +109,7 @@ func (h *Engine) updateSimilarityTables(rawTitle, url string) {
 
 	// Update them -> us title similarity
 	for _, other := range similarTo {
-		klog.V(1).Infof("updating %q to map to %s", other, title)
+		klog.V(4).Infof("updating %q to map to %s", other, title)
 		others, ok := h.similarTitles.Load(other)
 		if ok {
 			h.similarTitles.Store(other, append(others.([]string), title))
@@ -132,11 +117,12 @@ func (h *Engine) updateSimilarityTables(rawTitle, url string) {
 	}
 }
 
+// FindSimilar locates similar conversations to this one
 func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 	simco := []*RelatedConversation{}
 	title := normalizeTitle(co.Title)
 	similarURLs := []string{}
-	klog.V(1).Infof("finding similar items to #%d (%s)", co.ID, co.Type)
+	klog.V(4).Infof("finding similar items to #%d (%s)", co.ID, co.Type)
 
 	tres, ok := h.similarTitles.Load(title)
 	if !ok {
@@ -154,7 +140,7 @@ func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 		return nil
 	}
 
-	klog.V(2).Infof("#%d %q is similar to %v", co.ID, co.Title, similarURLs)
+	klog.V(4).Infof("#%d %q is similar to %v", co.ID, co.Title, similarURLs)
 
 	added := map[string]bool{}
 
@@ -171,32 +157,18 @@ func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 
 		oco := h.seen[url]
 		if oco == nil {
-			klog.V(1).Infof("find similar: no conversation found for %s -- must have been filtered out", url)
+			klog.V(3).Infof("find similar: no conversation found for %s -- must have been filtered out", url)
 			continue
 		}
 
 		if oco.Type != co.Type {
-			klog.V(2).Infof("Found similar item, but it's a %s and I am a %s", oco.Type, co.Type)
+			klog.V(4).Infof("Found similar item, but it's a %s and I am a %s", oco.Type, co.Type)
 			continue
 		}
 
-		klog.V(1).Infof("found similar %s %s: %q", oco.Type, oco.Title, url)
+		klog.V(3).Infof("found similar %s %s: %q", oco.Type, oco.Title, url)
 		simco = append(simco, makeRelated(h.seen[url]))
 		added[url] = true
 	}
 	return simco
-}
-
-func makeRelated(c *Conversation) *RelatedConversation {
-	return &RelatedConversation{
-		Organization: c.Organization,
-		Project:      c.Project,
-		ID:           c.ID,
-
-		URL:     c.URL,
-		Title:   c.Title,
-		Author:  c.Author,
-		Type:    c.Type,
-		Created: c.Created,
-	}
 }

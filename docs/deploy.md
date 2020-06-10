@@ -32,7 +32,7 @@ kubectl create secret generic triage-party-github-token -n triage-party --from-f
 
 If you are using minikube, this will open Triage Party in your web browser: `minikube service triage-party -n triage-party`
 
-For faster Pod restarts, configure a [persistent cache](persistent.md) using an external database or `PersistentVolumeClaim`
+For faster Pod restarts, configure a [persistent cache](persist.md) using an external database or `PersistentVolumeClaim`
 
 ### Google Cloud Run
 

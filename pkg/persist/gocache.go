@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package persist provides a bootstrap for the in-memory cache
-
 package persist
 
 import (
@@ -25,16 +23,15 @@ import (
 )
 
 var (
-	memExpireInterval  = 65 * 24 * time.Hour
 	memCleanupInterval = 15 * time.Minute
 )
 
 func createMem() *cache.Cache {
-	return cache.New(memExpireInterval, memCleanupInterval)
+	return cache.New(MaxLoadAge, memCleanupInterval)
 }
 
 func loadMem(items map[string]cache.Item) *cache.Cache {
-	return cache.NewFrom(memExpireInterval, memCleanupInterval, items)
+	return cache.NewFrom(MaxLoadAge, memCleanupInterval, items)
 }
 
 func setMem(c *cache.Cache, key string, th *Thing) {
@@ -43,7 +40,7 @@ func setMem(c *cache.Cache, key string, th *Thing) {
 	}
 
 	klog.V(1).Infof("Storing %s within in-memory cache", key)
-	c.Set(key, th, memExpireInterval)
+	c.Set(key, th, MaxLoadAge)
 }
 
 func newerThanMem(c *cache.Cache, key string, t time.Time) *Thing {

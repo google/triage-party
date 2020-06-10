@@ -77,8 +77,10 @@ func (m *Postgres) Initialize() error {
 }
 
 func (m *Postgres) loadItems() error {
-	klog.Infof("loading items from persist table ...")
-	rows, err := m.db.Queryx(`SELECT * FROM persist`)
+	newerThan := time.Now().Add(-1 * MaxLoadAge)
+
+	klog.Infof("loading items from persist table newer than %s ...", newerThan)
+	rows, err := m.db.Queryx(`SELECT * FROM persist WHERE saved > $1`, newerThan)
 	if err != nil {
 		return fmt.Errorf("query: %w", err)
 	}
@@ -124,6 +126,7 @@ func (m *Postgres) GetNewerThan(key string, t time.Time) *Thing {
 
 func (m *Postgres) Save() error {
 	start := time.Now()
+	maxAge := start.Add(-1 * MaxSaveAge)
 	items := m.cache.Items()
 
 	klog.Infof("*** Saving %d items to Postgres", len(items))
@@ -132,6 +135,12 @@ func (m *Postgres) Save() error {
 	}()
 
 	for k, v := range items {
+		th := v.Object.(*Thing)
+		if th.Created.Before(maxAge) {
+			klog.Infof("skipping %s (%s is too old)", k, th.Created)
+			continue
+		}
+
 		b := new(bytes.Buffer)
 		ge := gob.NewEncoder(b)
 		if err := ge.Encode(v); err != nil {
@@ -147,7 +156,7 @@ func (m *Postgres) Save() error {
 		}
 	}
 
-	return m.cleanup(start.Add(-1 * time.Hour))
+	return m.cleanup(maxAge)
 }
 
 // Cleanup deletes older cache items

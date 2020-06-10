@@ -48,12 +48,11 @@ type Conversation struct {
 
 	SelfInflicted bool `json:"self_inflicted"`
 
-	Mergeable bool `json:"mergeable"`
+	ReviewState string `json:"review_state"`
 
-	LatestAuthorResponse time.Time `json:"latest_author_response"`
-	LatestMemberResponse time.Time `json:"latest_member_response"`
-	LatestCommit         time.Time `json:"latest_commit"`
-	LatestReview         time.Time `json:"latest_review"`
+	LatestAuthorResponse   time.Time `json:"latest_author_response"`
+	LatestAssigneeResponse time.Time `json:"latest_assignee_response"`
+	LatestMemberResponse   time.Time `json:"latest_member_response"`
 
 	AccumulatedHoldTime time.Duration `json:"accumulated_hold_time"`
 	CurrentHoldTime     time.Duration `json:"current_hold_time"`
@@ -77,16 +76,51 @@ type Conversation struct {
 	ClosedAt              time.Time    `json:"closed_at"`
 	ClosedBy              *github.User `json:"closed_by"`
 
+	IssueRefs       []*RelatedConversation `json:"issue_refs"`
+	PullRequestRefs []*RelatedConversation `json:"pull_request_refs"`
+
 	Tags []Tag `json:"tags"`
 
 	// Similar issues to this one
 	Similar []*RelatedConversation `json:"similar"`
 
-	Milestone string `json:"milestone"`
+	Milestone *github.Milestone `json:"milestone"`
+}
+
+// A subset of Conversation for related items (requires less memory than a Conversation)
+type RelatedConversation struct {
+	Organization string `json:"org"`
+	Project      string `json:"project"`
+	ID           int    `json:"int"`
+	Tags         []Tag  `json:"tags"`
+
+	URL         string       `json:"url"`
+	Title       string       `json:"title"`
+	Author      *github.User `json:"author"`
+	Type        string       `json:"type"`
+	State       string       `json:"state"`
+	Created     time.Time    `json:"created"`
+	ReviewState string       `json:"review_state"`
 }
 
 // Tag is used for automatically labelling issues
 type Tag struct {
 	ID          string `json:"id"`
 	Description string `json:"description"`
+}
+
+func makeRelated(c *Conversation) *RelatedConversation {
+	return &RelatedConversation{
+		Organization: c.Organization,
+		Project:      c.Project,
+		ID:           c.ID,
+
+		URL:     c.URL,
+		Title:   c.Title,
+		Author:  c.Author,
+		Type:    c.Type,
+		State:   c.State,
+		Created: c.Created,
+		Tags:    c.Tags,
+	}
 }

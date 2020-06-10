@@ -32,11 +32,17 @@ type Collection struct {
 	Dedup        bool     `yaml:"dedup,omitempty"`
 	Hidden       bool     `yaml:"hidden,omitempty"`
 	UsedForStats bool     `yaml:"used_for_statistics,omitempty"`
+
+	// Kanban option
+	Display  string `yaml:"display"`
+	Overflow int    `yaml:"overflow"`
+	Selector string `yaml:"selector"`
 }
 
 // The result of Execute
 type CollectionResult struct {
-	Time time.Time
+	Collection *Collection
+	Time       time.Time
 
 	RuleResults []*RuleResult
 
@@ -88,7 +94,7 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 		os = append(os, ro)
 	}
 
-	r := SummarizeCollectionResult(os)
+	r := SummarizeCollectionResult(&s, os)
 	r.Time = newerThan
 
 	// If we are lucky, our results may be newer than we asked for!
@@ -101,10 +107,12 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 }
 
 // SummarizeCollectionResult adds together statistics about collection results {
-func SummarizeCollectionResult(os []*RuleResult) *CollectionResult {
+func SummarizeCollectionResult(s *Collection, os []*RuleResult) *CollectionResult {
 	klog.V(1).Infof("Summarizing collection result with %d rules...", len(os))
 
-	r := &CollectionResult{}
+	r := &CollectionResult{
+		Collection: s,
+	}
 
 	for _, oc := range os {
 		r.Total += len(oc.Items)

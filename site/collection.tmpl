@@ -19,6 +19,9 @@
           Avg age: {{ .CollectionResult.AvgAge | toDays }}, 
           Avg wait: {{ .CollectionResult.AvgCurrentHold | toDays }}
           </span>
+          {{ if eq .Collection.Display "kanban" }}
+            <span class="alt-view"><a href="/k/{{ .ID }}{{ $.GetVars }}">Kanban View</a></span>
+          {{ end }}
           </div>
           <script>
           function openAllTabs() {
@@ -56,9 +59,9 @@
 {{define "content"}}
   {{ $coll := .Collection }}
 
-  {{ if ne .Collection.Description "" }}
+  {{ if ne .Description "" }}
     <div class="box description">
-    <pre>{{ .Collection.Description }}</pre>
+    <pre>{{ .Description }}</pre>
     </div>
   {{ end }}
 
@@ -109,12 +112,32 @@
             <td class="cell-id"><a href="{{ .URL }}">{{ .ID }}</a></td>
             <td class="cell-author" data-order="{{ .Author.GetLogin }}">{{ .Author | Avatar }}</td>
             <td class="cell-desc">
-              <a href="{{ .URL }}" title="{{ .LastCommentBody }}"><strong>{{ .Title }}</strong></a>
-              {{ if .Similar }}<div class="similar"><ul>
-              {{ range .Similar }}
-                <li><a href="{{ .URL }}" title="Title is similar to #{{ .ID }}">Similar to {{ if eq .Type "pull_request" }}PR{{ end }}#{{ .ID }}: {{ .Title }}</a></li>
+              <a href="{{ .URL }}" title="@{{ .LastCommentAuthor.GetLogin}}: {{ .LastCommentBody }}"><strong>{{ .Title }}</strong></a>
+
+              {{ if .PullRequestRefs }}
+                <ul class="pull-requests">
+                  {{ range .PullRequestRefs }}
+                    {{ if eq .State "open" }}
+                      <li>
+                        <a href="{{ .URL }}">PR#{{ .ID }}: {{ .Title }}
+                          <div class="gh-tag tag-pr-{{.ReviewState | Class }}">{{.ReviewState | Class }}</div>
+                        </a>
+                      </li>
+                    {{ end }}
+                  {{ end }}
+                  </ul>
+                </div>
               {{ end }}
-              </div>
+
+
+              {{ if .Similar }}
+                <ul class="similar">
+                {{ range .Similar }}
+                  <li>
+                    <a href="{{ .URL }}" title="Title is similar to #{{ .ID }}">Similar: #{{ .ID }}: {{ .Title }} ({{ .State }})</a>
+                  </li>
+                {{ end }}
+                </ul>
               {{ end }}
             </td>
 
@@ -127,9 +150,9 @@
               {{ end }}
             {{ end }}   
             </td>
-            <td class="cell-create" data-order="{{ .Created | UnixNano }}">{{ .Created | HumanTime }}</td>
-            <td class="cell-update" data-order="{{ .Updated | UnixNano }}">{{ .Updated | HumanTime }}</td>
-            <td class="cell-response" data-order="{{ .LatestMemberResponse | UnixNano }}">{{ .LatestMemberResponse | HumanTime }}</td>
+            <td class="cell-create" data-order="{{ .Created | UnixNano }}">{{ .Created | RoughTime }}</td>
+            <td class="cell-update" data-order="{{ .Updated | UnixNano }}">{{ .Updated | RoughTime }}</td>
+            <td class="cell-response" data-order="{{ .LatestMemberResponse | UnixNano }}">{{ .LatestMemberResponse | RoughTime }}</td>
             <td class="cell-comments" data-order="{{ .CommentersTotal }}">{{ range .Commenters }}{{ . |  Avatar}}{{ end }}</td>
             <td class="cell-labels">
               {{ range .Labels }}

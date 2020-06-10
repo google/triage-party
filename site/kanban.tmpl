@@ -1,0 +1,162 @@
+{{ define "title" }}
+  {{ .SiteName }} {{ .Title }}
+{{ end }}
+
+{{ define "style" }}
+  <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
+  <link rel="stylesheet" href="/third_party/datatables-bulma/dataTables.bulma.css" />
+  <link rel="stylesheet" href="/static/css/kanban.css?{{.Version}}">
+{{ end }}
+
+{{define "subnav"}}
+
+<nav class="navbar secondary" role="navigation" aria-label="secondary navigation">
+  <div class="navbar-secondary-brand">
+  </div>
+  <div id="navbarBasicExample" class="navbar-menu">
+    <div class="navbar-center">
+          <div class="right-item">
+          <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
+          <span title="Data as of {{ .ResultAge | HumanDuration}} ago">{{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }}, 
+          Avg age: {{ .CollectionResult.AvgAge | toDays }}
+          {{ if .VelocityStats }}, Avg close rate: <a href="/s/{{.VelocityStats.Collection.ID }}">{{ printf "%.1f" $.ClosedPerDay }} issue(s) per day</a>{{ end }}
+          </span>
+          <span class="alt-view"><a href="/s/{{ .ID }}{{ $.GetVars }}">Item View</a></span>
+          </div>
+          <script>
+          function openAllTabs() {
+              {{ range .UniqueItems}}window.open("{{ .URL | toJS }}", "_tab{{ .ID }}");
+              {{ end }}
+          }
+          </script>
+
+    </div>
+  </div>
+    <div class="navbar-right">
+      <div class="navbar-form">
+          <div class="buttons">
+            <form style="display: inline-block;" action="/k/{{ .ID }}" method="get">
+                <select onchange="this.form.submit();" name="{{ .SelectorVar }}">
+                  {{ range .SelectorOptions }}
+                    <option value="{{ .Value }}" {{ if .Selected }}selected{{ end }}>{{ .Text }}</option>
+                  {{ end }}
+                </select>
+            </form>
+          </div>
+      </div>
+    </div>
+</nav>
+{{ end }}
+
+{{define "content"}}
+
+  {{ if ne .Description "" }}
+    <div class="box description">
+    <pre>{{ .Description }}</pre>
+    </div>
+  {{ end }}
+
+  <div class="box outcome kanban">
+      <div class="box-header collapsible">
+        <div class="box-head-left">
+          <h3>{{ .Milestone.Title }}</h3>
+          <h4 class="subtitle">Due: {{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | RoughTime }})</h4>
+          {{ if not .MilestoneETA.IsZero }}
+            <h4 class="subtitle {{ if .MilestoneVeryLate}}very-late-eta{{ else if gt .MilestoneCountOffset 0}}late-eta{{ else if lt .MilestoneCountOffset 0}}early-eta{{ end }}">ETA:
+                <span class="eta">
+                    {{ .MilestoneETA.Format "2006-01-02" }} 
+                    {{ if ne .MilestoneCountOffset 0 }}({{ LateTime .MilestoneETA .Milestone.DueOn }}, off by {{.MilestoneCountOffset}} issues)
+                    {{ end }}
+                </span>
+            </h4>
+          {{ end }}
+          <h5 class="stats">{{ .Milestone.GetOpenIssues}} open issues, {{ .Milestone.GetClosedIssues }} closed issues</h5>
+        </div>
+        <div class="box-head-right">
+        <!--  just save the space -->
+        </div>
+      </div>
+      <table id="kanban-table" class="compact is-size-6">
+    <thead>
+    <tr>
+      <th id="assignee-col">Assi</th>
+      {{ range .CollectionResult.RuleResults }}
+        <th id="{{ .Rule.ID | Class  }}" title="{{ .Rule | toYAML }}">{{ .Rule.Name}}</th>
+      {{ end }}
+    </tr>
+    <tbody>
+
+    {{ $col := .Collection }}
+
+    {{ range .Swimlanes }}
+    <tr class="swimlane {{ if not .User.ID }}unassigned-lane{{ end }}">
+      <td class="kanban-assignee" data-order="{{ .User.GetLogin }}">{{ .User | Avatar }}</td>
+      {{ range .Columns }}
+      <td class="kanban-column">
+        {{ if . }}
+          {{ range $x, $i := .Items }}
+            {{ $overflow := 0 }}
+            {{ if and (.Assignees) (ge $x $col.Overflow) }}
+              {{ $overflow = 1 }}
+              <br style="clear: both">
+            {{ end }}
+
+            <div class="sticky sticky-{{ $x }} {{ if $overflow }}sticky-overflow{{ end }} {{ range $i.Labels }} {{ .Name | Class }}{{ end }}">
+              <a href="{{ $i.URL }}" title="@{{ $i.LastCommentAuthor.GetLogin }}: {{ $i.LastCommentBody }}">
+                <span class="sticky-id">#{{ $i.ID }}: </span>
+                <span class="sticky-title">{{ $i.Title }}</span>
+              </a>
+
+              <div class="reactions">
+                {{ if $overflow }}🌊{{ end }}
+                {{ range $value, $count := $i.Reactions }}
+                  {{ if gt $count 1 }}
+                    <div class="reaction-{{ $value }} sticky-reaction"></div>
+                  {{ end }}
+                {{ end }}     
+              </div>            
+
+
+              <ul class="refs">
+                  {{ range .PullRequestRefs }}
+                     <li class="tag-default tag-pr-{{.ReviewState | Class }}"><a href="{{ .URL }}" title='"{{ .Title }}" by @{{.Author.GetLogin}} ({{.ReviewState}})'>{{ .ID }}</li>
+                  {{ end }}
+              </ul>
+            </div>
+          {{ end }}
+        {{ end }}
+      </td>
+      {{ end}}        
+    </tr>
+    {{ end }}
+    </table>
+{{ end }} 
+
+{{ define "js" }}
+<script src="/third_party/jquery/jquery-3.3.1.min.js"></script>
+<script src="/third_party/datatables/jquery.dataTables.min.js"></script>
+<script src="/third_party/datatables-bulma/dataTables.bulma.js"></script>
+<script>
+   $('#kanban-table').DataTable( {
+        "order": [[ 0, "asc" ]],
+        "paging": false,
+        "info": false,
+    });
+</script>
+<script>
+  var cols = document.getElementsByClassName("collapsible");
+  var i;
+  for (i = 0; i < cols.length; i++) {
+      cols[i].addEventListener("click", function () {
+          this.classList.toggle("active");
+          var content = this.nextElementSibling;
+          if (content.style.display === "block") {
+              content.style.display = "none";
+          } else {
+              content.style.display = "block";
+          }
+      });
+  }
+</script>
+
+{{ end }}

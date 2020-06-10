@@ -67,7 +67,7 @@ collections:
       Once a week, we meet up to address loose ends. Prioritize:
 
        * Keeping an open dialog with our users
-       * Raising the priority for hot issues        
+       * Raising the priority for hot issues
     rules:
       # SLO
       - issue-near-soon-slo
@@ -106,13 +106,23 @@ collections:
       - other-old
 
   - id: milestone
-    name: Next Milestone
-    description: Items on the next milestone
+    name: Milestone
+    description: >
+      A Kanban visualization of milestones, showing the flow of issues through each stage.
+
+        * Unassigned issues represent available work
+        * >2 issues assigned to the same person within a stage signifies a bottleneck 🌊
+    display: kanban
+    overflow: 3
+    selector: milestone
+    dedup: true
     rules:
-      - milestone-prs
-      - milestone-features
-      - milestone-bugs
-      - milestone-other
+      - milestone-not-started
+      - milestone-assignee-updated
+      - milestone-pr-needs-review
+      - milestone-pr-needs-work
+      - milestone-pr-needs-merge
+      - milestone-closed
 
   - id: tests
     name: Broken tests
@@ -129,7 +139,7 @@ collections:
       - similar-prs
       - similar-issues
 
-  - id: open
+  - id: __open__
     name: All open PR's and Issues that should be considered for repository stats (hidden)
     used_for_statistics: true
     hidden: true
@@ -137,7 +147,54 @@ collections:
       - open-prs
       - open-issues
 
+  - id: __velocity__
+    name: issues to include in velocity metrics
+    used_for_statistics: true
+    hidden: true
+    rules:
+      - closed-milestone-issues
+
 rules:
+  ### Kanban ###
+  milestone-not-started:
+    name: "Not started"
+    type: issue
+    filters:
+      - tag: open-milestone
+      - tag: "!assignee-updated"
+      - tag: "!(assignee-open-pr|assignee-closed-pr)"
+  milestone-assignee-updated:
+    name: "In Progress"
+    type: issue
+    filters:
+      - tag: open-milestone
+      - tag: "assignee-updated"
+      - tag: "!(pr-changes-requested|pr-reviewer-comment|pr-unreviewed|pr-new-commits|pr-approved|pr-changes-requested)"
+  milestone-pr-needs-work:
+    name: "PR needs work"
+    type: issue
+    filters:
+      - tag: "(pr-changes-requested|pr-reviewer-comment)"
+  milestone-pr-needs-review:
+    name: "PR needs Review"
+    type: issue
+    filters:
+      - tag: open-milestone
+      - tag: "(pr-unreviewed|pr-new-commits)"
+  milestone-pr-needs-merge:
+    name: "PR needs Merge"
+    type: issue
+    filters:
+      - tag: open-milestone
+      - tag: "(pr-approved|pr-approved-but-pushed)"  
+  milestone-closed:
+    name: "Finish Line"
+    type: issue
+    filters:
+      - tag: open-milestone
+      - state: closed
+      - updated: -30d
+
   ### Daily Triage ####
   # SLO violations
   issue-needs-priority-slo:
@@ -248,16 +305,16 @@ rules:
       - tag: recv
 
   issue-updated-has-question:
-      name: "Recently updated issue has a question"
-      resolution: "Add an answer"
-      type: issue
-      filters:
-        - tag: recv-q
-        - label: "!triage/needs-information"
-        - tag: "!member-last"
-        - tag: "!contributor-last"
-        - responded: +3d
-        - updated: -7d
+    name: "Recently updated issue has a question"
+    resolution: "Add an answer"
+    type: issue
+    filters:
+      - tag: recv-q
+      - label: "!triage/needs-information"
+      - tag: "!member-last"
+      - tag: "!contributor-last"
+      - responded: +3d
+      - updated: -7d
 
   ####### Weekly Triage #########
   # SLO nearing
@@ -350,7 +407,7 @@ rules:
     filters:
       - created: +20d
       - updated: +5d
-  
+
   # People with questions
   issue-has-question:
     name: "Overdue answers for a question"
@@ -443,39 +500,6 @@ rules:
     filters:
       - label: lifecycle/stale
 
-  # Milestone
-  milestone-features:
-    name: "v1.11.0 Features"
-    type: issue
-    resolution: Close em
-    filters:
-      - milestone: "v1.11.0 May28"
-      - label: "kind/feature"
-
-  milestone-bugs:
-    name: "v1.11.0 Bugs"
-    type: issue
-    resolution: Close em
-    filters:
-      - milestone: "v1.11.0 May28"
-      - label: kind/bug
-
-  milestone-other:
-    name: "v1.11.0 Other"
-    type: issue
-    resolution: Close em
-    filters:
-      - milestone: "v1.11.0 May28"
-      - label: "!kind/feature"
-      - label: "!kind/bug"
-
-  milestone-prs:
-    name: "v1.11.0 Pull Requests"
-    type: pull_request
-    resolution: Close em
-    filters:
-      - milestone: "v1.11.0 May28"
-
   ## Similar
   similar-prs:
     name: "Similar Pull Requests"
@@ -524,3 +548,12 @@ rules:
   open-prs:
     name: "Open PRs"
     type: pull_request
+
+  closed-milestone-issues:
+    name: "Recently closed milestone issues"
+    type: issue
+    filters:
+      - state: closed
+      - closed: -90d
+      - milestone: ".*"
+      - label: "!triage/duplicate"

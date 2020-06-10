@@ -72,9 +72,9 @@ func preFetchMatch(i GitHubItem, labels []*github.Label, fs []Filter) bool {
 			}
 		}
 
-		if f.Milestone != "" {
-			if i.GetMilestone().GetTitle() != f.Milestone {
-				klog.V(2).Infof("#%d milestone does not meet %s: %+v", i.GetNumber(), f.Milestone, i.GetMilestone())
+		if f.MilestoneRegex() != nil {
+			if ok := matchNegateRegex(i.GetMilestone().GetTitle(), f.MilestoneRegex(), f.MilestoneNegate()); !ok {
+				klog.V(2).Infof("#%d milestone does not meet %s", i.GetNumber(), f.MilestoneRegex())
 				return false
 			}
 		}
@@ -107,12 +107,6 @@ func postFetchMatch(co *Conversation, fs []Filter) bool {
 	for _, f := range fs {
 		klog.V(2).Infof("post-fetch matching item #%d against filter: %+v", co.ID, toYAML(f))
 
-		if f.TagRegex() != nil {
-			if ok := matchTag(co.Tags, f.TagRegex(), f.TagNegate()); !ok {
-				klog.V(4).Infof("#%d did not pass matchTag: %s vs %s %v", co.ID, co.Tags, f.TagRegex(), f.TagNegate())
-				return false
-			}
-		}
 		if f.Responded != "" {
 			if ok := matchDuration(co.LatestMemberResponse, f.Responded); !ok {
 				klog.V(4).Infof("#%d did not pass matchDuration: %s vs %s", co.ID, co.LatestMemberResponse, f.Responded)
@@ -173,6 +167,13 @@ func postFetchMatch(co *Conversation, fs []Filter) bool {
 // Check if an issue matches the summarized version, after events have been loaded
 func postEventsMatch(co *Conversation, fs []Filter) bool {
 	for _, f := range fs {
+		if f.TagRegex() != nil {
+			if ok := matchTag(co.Tags, f.TagRegex(), f.TagNegate()); !ok {
+				klog.V(4).Infof("#%d did not pass matchTag: %s vs %s %v", co.ID, co.Tags, f.TagRegex(), f.TagNegate())
+				return false
+			}
+		}
+
 		if f.Prioritized != "" {
 			if ok := matchDuration(co.Prioritized, f.Prioritized); !ok {
 				klog.V(4).Infof("#%d did not pass prioritized duration: %s vs %s", co.ID, co.LatestMemberResponse, f.Prioritized)
@@ -198,6 +199,13 @@ func matchLabel(labels []*github.Label, re *regexp.Regexp, negate bool) bool {
 
 // matchNegateRegex matches a value against a negatable regex
 func matchNegateRegex(value string, re *regexp.Regexp, negate bool) bool {
+	klog.V(2).Infof("Checking value %q against %s (negate=%v)", value, re, negate)
+
+	if value == "" && re.String() != "" && re.String() != "^$" {
+		klog.V(1).Infof("%q is empty, regexp %q is not, returning %v", value, re, negate)
+		return negate
+	}
+
 	if re.MatchString(value) {
 		klog.V(2).Infof("%q matches %s, returning %v", value, re, !negate)
 		return !negate

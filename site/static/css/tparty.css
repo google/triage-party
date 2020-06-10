@@ -197,6 +197,10 @@ td:last-child { padding-right: 0.2em !important; }
   color: #000;
 }
 
+.tag-default {
+  background-color: #e0e0e0;
+}
+
 .tag-send {
   background-color: #0f0;
 }
@@ -208,7 +212,68 @@ td:last-child { padding-right: 0.2em !important; }
 }
 
 .tag-closed {
-  background-color: #CA2339;
+  background-color: #CA2339 !important;
+}
+
+.tag-pr-unreviewed {
+  background-color: #F00 !important;
+  
+}
+
+.tag-pr-unreviewed {
+  background-color: #F08 !important;  
+}
+
+.tag-pr-unreviewed a {
+  color: #FFF !important;
+  font-weight: bold;
+  font-style: italic;
+}
+
+.tag-pr-new-commits {
+  background-color: #F80 !important;    
+}
+
+.tag-pr-new-commits a {
+  color: #FFF !important;
+  font-weight: bold;
+  font-style: italic;
+}
+
+.tag-pr-approved {
+  background-color: #00A125 !important;
+  color: #FFF !important;
+}
+.tag-pr-pushed-after-approval {
+  background-color: #40A125 !important;
+  color: #FFF !important;
+}
+
+.tag-pr-approved a {
+  color: #FFF !important;  
+}
+
+.tag-pr-merged {
+  background-color: #6418BD !important;
+  color: #FFF;
+}
+
+.tag-pr-merged a {
+  color: #FFF !important;
+}
+
+.tag-pr-closed {
+  background-color: #F00 !important;
+  color: #000;
+  text-decoration: line-through;
+}
+
+.tag-pr-closed a {
+  color: #FFF !important;  
+}
+
+.tag-pr-changes-requested {
+  background-color: #FF0 !important;
 }
 
 /* Fix bulma datatables funkiness */
@@ -348,4 +413,21 @@ td:last-child { padding-right: 0.2em !important; }
 
 .no-matches strong {
   color: #666;
+}
+
+.alt-view {
+  margin-left: 0.8em;
+  padding-left: 0.8em;
+  border-left: 1px dashed #5A35FF;  
+}
+
+.alt-view a {
+  color: #fff;
+  text-decoration: underline;  
+}
+
+.pull-requests {
+  list-style-type: disc;
+  margin-left: 1.5em;
+  font-size: small;
 }
