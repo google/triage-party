@@ -47,8 +47,9 @@ func avatarWide(u *github.User) template.HTML {
 	return template.HTML(fmt.Sprintf(`<a href="%s" title="%s"><img src="%s" width="96" height="96"></a>`, u.GetHTMLURL(), u.GetLogin(), u.GetAvatarURL()))
 }
 
-func groupByUser(results []*triage.RuleResult, milestoneID int) []*Swimlane {
+func groupByUser(results []*triage.RuleResult, milestoneID int, dedup bool) []*Swimlane {
 	lanes := map[string]*Swimlane{}
+	seenItem := map[string]bool{}
 
 	for i, r := range results {
 		for _, co := range r.Items {
@@ -64,6 +65,13 @@ func groupByUser(results []*triage.RuleResult, milestoneID int) []*Swimlane {
 			}
 
 			for _, a := range assignees {
+				// Dedup across users and columns
+				if dedup && seenItem[co.URL] {
+					continue
+				}
+
+				seenItem[co.URL] = true
+
 				assignee := a.GetLogin()
 				if lanes[assignee] == nil {
 					lanes[assignee] = &Swimlane{
@@ -143,7 +151,7 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 		klog.Infof("milestones choices: %+v", milestones)
 
 		p.Description = p.Collection.Description
-		p.Swimlanes = groupByUser(p.CollectionResult.RuleResults, chosen.GetNumber())
+		p.Swimlanes = groupByUser(p.CollectionResult.RuleResults, chosen.GetNumber(), p.Collection.Dedup)
 		p.SelectorOptions = milestones
 		p.SelectorVar = "milestone"
 		p.Milestone = chosen

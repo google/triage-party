@@ -57,6 +57,7 @@
 {{ end }}
 
 {{define "content"}}
+  {{ $coll := .Collection }}
 
   {{ if ne .Description "" }}
     <div class="box description">
@@ -103,8 +104,10 @@
       </thead>
       <tbody>
         {{ $dupes := .Duplicates }}
+        {{ $dupeCount := len .Duplicates }}
         {{ range .Items }}
-        {{ if or (lt $dupes 3) (not .Hidden) }}
+        {{ $previouslySeen := index $dupes .URL }}
+        {{ if or (not $coll.Dedup) (lt $dupeCount 3) (not $previouslySeen) }}
           <tr>
             <td class="cell-id"><a href="{{ .URL }}">{{ .ID }}</a></td>
             <td class="cell-author" data-order="{{ .Author.GetLogin }}">{{ .Author | Avatar }}</td>
@@ -162,11 +165,11 @@
           </tr>
           {{ end }}
         {{ end }}
-        {{ if gt .Duplicates 2 }}
-          <tr class="dupes"><td colspan="12">{{ .Duplicates }} previously listed 
-          {{ if eq .Duplicates 1 }}item{{ else }}items{{ end }} omitted{{ if lt .Duplicates 20 }}:
+        {{ if and ($coll.Dedup) (gt $dupeCount 2) }}
+          <tr class="dupes"><td colspan="12">{{ $dupeCount }} previously listed
+          {{ if eq $dupeCount 1 }}item{{ else }}items{{ end }} omitted{{ if lt $dupeCount 20 }}:
             {{ range .Items }}
-              {{ if .Hidden }}
+              {{ if index $dupes .URL }}
                 <a href="{{ .URL }}" title="{{ .Title }}">#{{ .ID }}</a>
               {{ end }}
             {{ end }}
