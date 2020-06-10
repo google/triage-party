@@ -21,12 +21,12 @@
 }
 
 .sticky {
-  font-family: Arial;
   background-color: #ffc;
   border: 1px solid #cc9;
-  padding: 0.8em;
-  margin-right: 0.9em;
-  margin-bottom: 0.9em;
+
+  padding: 0.6em;
+  margin: 0.4em;
+  
   clear: right;
   float: left;
   width: 10em;
@@ -36,30 +36,29 @@
 }
 
 .sticky-title {
-font-family: "Comic Sans MS", cursive, sans-serif;
-padding-right: 0.25em;
+  font-family: "Comic Sans MS", cursive, sans-serif;
+  padding-right: 0.25em;
 }
 
 .sticky-id {
-color: #555;
-font-size: 95%;
+  color: #866;
 }
 
 .sticky a {
-color: #191919;
+  color: #191919;
 }
 
 .kanban-assignee {
-width: 1em;
+  width: 1em;
 }
 
 #kanban-table td {
-border-right: 1px solid #e5e5e5;
-padding: 1em !important;
+  border-right: 1px solid #e5e5e5;
+  padding: 0.2em !important;
 }
 
 .sticky-reaction {
-display: inline !important;
+  display: inline !important;
 }
 
 
@@ -121,20 +120,33 @@ display: inline !important;
  box-shadow: 2px 2px 8px #333;
 }  
 
-.kanban-column {
-  min-width: 10em;
-}
-
 .late-eta {
   color: #FF0 !important;
   font-weight: bold !important;
 }
 
 .very-late-eta {
-  color: #F00 !important;
+  color: #FB54A3 !important;
   font-weight: bold !important;
+  font-size: 90% !important;
 }
 
 .early-eta {
   font-style: italic;
 }
+
+.refs {
+  margin-top: 0.3em;
+  float: right;
+}
+
+.refs li {
+  border: 1px solid rgba(0, 0, 0, .2);
+  padding-left: 0.3em;
+  padding-right: 0.3em;
+  display: inline-block;
+  word-wrap: break-word;
+  font-size: smaller;
+  background-color: #FFF;
+}
+

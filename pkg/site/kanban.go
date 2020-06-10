@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/triage"
@@ -31,13 +32,11 @@ import (
 
 var unassigned = "zz_unassigned"
 
-// veryLate is how long before a milestone is considered very late
-var veryLate = 24 * 6 * time.Hour
-
 // Swimlane is a row in a Kanban display.
 type Swimlane struct {
 	User    *github.User
 	Columns []*triage.RuleResult
+	Issues  int
 }
 
 func avatarWide(u *github.User) template.HTML {
@@ -53,6 +52,10 @@ func groupByUser(results []*triage.RuleResult, milestoneID int) []*Swimlane {
 
 	for i, r := range results {
 		for _, co := range r.Items {
+			if milestoneID != 0 && co.Milestone.GetNumber() != milestoneID {
+				continue
+			}
+
 			assignees := co.Assignees
 			if len(assignees) == 0 {
 				assignees = append(assignees, &github.User{
@@ -76,9 +79,8 @@ func groupByUser(results []*triage.RuleResult, milestoneID int) []*Swimlane {
 					}
 				}
 
-				if milestoneID == 0 || co.Milestone.GetNumber() == milestoneID {
-					lanes[assignee].Columns[i].Items = append(lanes[assignee].Columns[i].Items, co)
-				}
+				lanes[assignee].Columns[i].Items = append(lanes[assignee].Columns[i].Items, co)
+				lanes[assignee].Issues++
 			}
 		}
 	}
@@ -91,6 +93,10 @@ func groupByUser(results []*triage.RuleResult, milestoneID int) []*Swimlane {
 	return ls
 }
 
+func lateTime(t time.Time, ref time.Time) string {
+	return humanize.RelTime(t, ref, "early", "late")
+}
+
 // Kanban shows a kanban swimlane view of a collection.
 func (h *Handlers) Kanban() http.HandlerFunc {
 	fmap := template.FuncMap{
@@ -99,7 +105,8 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 		"toJSfunc":      toJSfunc,
 		"toDays":        toDays,
 		"HumanDuration": humanDuration,
-		"HumanTime":     humanTime,
+		"RoughTime":     roughTime,
+		"LateTime":      lateTime,
 		"UnixNano":      unixNano,
 		"Avatar":        avatarWide,
 		"Class":         className,
@@ -127,6 +134,12 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 		}
 
 		chosen, milestones := milestoneChoices(p.CollectionResult.RuleResults, milestoneID)
+		if chosen.GetNumber() == 0 {
+			klog.Errorf("milestone number is 0, given ID was %s", id)
+			http.Error(w, "milestone not found", 404)
+			return
+		}
+
 		klog.Infof("milestones choices: %+v", milestones)
 
 		p.Description = p.Collection.Description
@@ -135,22 +148,14 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 		p.SelectorVar = "milestone"
 		p.Milestone = chosen
 		p.ClosedPerDay = calcClosedPerDay(p.VelocityStats)
-		p.MilestoneETA = calcETA(chosen, p.ClosedPerDay)
 
-		dueOn := p.Milestone.GetDueOn()
+		etaDate, etaOffset, countOffset := calcETA(chosen, p.ClosedPerDay)
+		klog.Infof("milestone ETA is %s (offset: %s, %d issues)", etaDate, etaOffset, countOffset)
+		p.MilestoneETA = etaDate
+		p.MilestoneCountOffset = countOffset
 
-		if p.MilestoneETA.Format("2006-01-02") == dueOn.Format("2006-01-02") {
-			klog.Infof("milestone ETA is on time!")
-			p.MilestoneOnTarget = 0
-		} else if p.MilestoneETA.After(dueOn) {
-			p.MilestoneOnTarget = 1
-			p.MilestoneETADiff = p.MilestoneETA.Sub(dueOn)
-			if p.MilestoneETADiff > veryLate {
-				p.MilestoneOnTarget = 2
-			}
-		} else {
-			p.MilestoneOnTarget = -1
-			p.MilestoneETADiff = dueOn.Sub(p.MilestoneETA)
+		if etaOffset > 6*24*time.Hour {
+			p.MilestoneVeryLate = true
 		}
 
 		klog.V(2).Infof("page context: %+v", p)
@@ -175,7 +180,7 @@ func calcClosedPerDay(r *triage.CollectionResult) float64 {
 	for _, r := range r.RuleResults {
 		for _, co := range r.Items {
 			if !co.ClosedAt.IsZero() && co.ClosedAt.Before(oldestClosure) {
-				klog.Infof("#%d was closed at %s", co.ID, co.ClosedAt)
+				klog.V(1).Infof("#%d was closed at %s", co.ID, co.ClosedAt)
 				oldestClosure = co.ClosedAt
 			}
 		}
@@ -187,26 +192,29 @@ func calcClosedPerDay(r *triage.CollectionResult) float64 {
 	return closeRate
 }
 
-func calcETA(m *github.Milestone, closeRate float64) time.Time {
+func calcETA(m *github.Milestone, closeRate float64) (time.Time, time.Duration, int) {
 	if m == nil {
 		klog.Errorf("unable to calc ETA: no milestone")
-		return time.Time{}
+		return time.Time{}, time.Duration(0), 0
 	}
 
 	open := m.GetOpenIssues()
 
 	if open == 0 {
 		klog.Errorf("unable to calc ETA: no issues")
-		return time.Time{}
+		return time.Time{}, time.Duration(0), 0
 	}
 
 	if closeRate < 0.0001 {
 		klog.Errorf("unable to calc ETA: too low of a close rate: %f", closeRate)
-		return time.Time{}
+		return time.Time{}, time.Duration(0), 0
 	}
 
 	days := float64(open) / closeRate
-	return time.Now().AddDate(0, 0, int(days))
+	eta := time.Now().AddDate(0, 0, int(days))
+	overByDuration := eta.Sub(m.GetDueOn())
+	overByCount := int(overByDuration.Hours() / 24 / closeRate)
+	return eta, overByDuration, overByCount
 }
 
 func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Milestone, []Choice) {
@@ -214,6 +222,9 @@ func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Mi
 
 	for _, r := range results {
 		for _, co := range r.Items {
+			if co.Milestone == nil || co.Milestone.GetNumber() == 0 {
+				continue
+			}
 			mmap[co.Milestone.GetNumber()] = co.Milestone
 		}
 	}
@@ -228,7 +239,7 @@ func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Mi
 		return nil, nil
 	}
 
-	sort.Slice(milestones, func(i, j int) bool { return milestones[i].GetDueOn().After(milestones[j].GetDueOn()) })
+	sort.Slice(milestones, func(i, j int) bool { return milestones[i].GetDueOn().Before(milestones[j].GetDueOn()) })
 
 	if milestoneID == 0 {
 		milestoneID = milestones[0].GetNumber()

@@ -33,9 +33,10 @@ func (h *Handlers) Collection() http.HandlerFunc {
 		"toJSfunc":      toJSfunc,
 		"toDays":        toDays,
 		"HumanDuration": humanDuration,
-		"HumanTime":     humanTime,
+		"RoughTime":     roughTime,
 		"UnixNano":      unixNano,
 		"Avatar":        avatar,
+		"Class":         className,
 	}
 	t := template.Must(template.New("collection").Funcs(fmap).ParseFiles(
 		filepath.Join(h.baseDir, "collection.tmpl"),

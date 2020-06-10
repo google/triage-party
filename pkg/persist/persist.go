@@ -45,6 +45,7 @@ type Thing struct {
 	PullRequestComments []*github.PullRequestComment
 	IssueComments       []*github.IssueComment
 	Timeline            []*github.Timeline
+	Reviews             []*github.PullRequestReview
 	StringBool          map[string]bool
 }
 

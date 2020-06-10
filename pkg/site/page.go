@@ -25,7 +25,9 @@ import (
 )
 
 const (
-	OpenStatsName     = "__open__"
+	// OpenStatsName is the name of the rule containing open items stats
+	OpenStatsName = "__open__"
+	// VelocityStatsName is the name of the rulee containing velocity stats
 	VelocityStatsName = "__velocity__"
 )
 
