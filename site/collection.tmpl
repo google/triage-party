@@ -165,7 +165,7 @@
           </tr>
           {{ end }}
         {{ end }}
-        {{ if gt $dupeCount 2 }}
+        {{ if and ($coll.Dedup) (gt $dupeCount 2) }}
           <tr class="dupes"><td colspan="12">{{ $dupeCount }} previously listed
           {{ if eq $dupeCount 1 }}item{{ else }}items{{ end }} omitted{{ if lt $dupeCount 20 }}:
             {{ range .Items }}
