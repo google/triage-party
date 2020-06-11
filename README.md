@@ -20,6 +20,8 @@ Triage Party is a stateless Go web application, configured via YAML. While it ha
   * Follow-up latency by project members (`responded: +15d`)
   * Reactions (`reactions: >=5`)
   * Comment popularity (`comments-per-month: >0.9`)
+* Code review state-tracking (v1.2.0+)
+* Kanban dashboard (v1.2.0+)
 * Easily open groups of issues into browser tabs
 * YAML configuration for all pages, rules, and filters
 * GitHub Enterprise support (via `--github-api-url` cli flag)
@@ -89,6 +91,19 @@ Use the drop-down labelled `Solo` on the top-right of any page to enable multi-p
 1. When a player leaves, the meeting host "re-shards", and all players select the updated player count in the drop-down
 
 NOTE: Multi-player works best if the "Resolution" field of each rule has a clear action to resolve the item and remove it from the list.
+
+## Kanban mode (NEW)
+
+In v1.2.0-beta.1 and newer, you can see a Kanban dashboard presentation for a collection. For the time-being, you'll need to add these 3 lines to the collection you wish to be viewable as a Kanban dashboard:
+
+```
+    display: kanban
+    overflow: 3
+    selector: milestone
+    dedup: true
+```
+
+When v1.2.0 ships, all collections will be viewable using the /k/id URL path.
 
 ## Data freshness
 
