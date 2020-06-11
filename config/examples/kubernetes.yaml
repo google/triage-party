@@ -26,11 +26,9 @@ settings:
   # - collaborator
   # - owner
   # - member
-
   # Who else do we consider to be a project member? Default is empty.
   #members:
   # - tstromberg
-
 
 collections:
   - id: daily
@@ -97,7 +95,7 @@ collections:
     name: "Receive queue"
     description: >
       Issues that may be waiting for our response
-  
+
       NOTE: for this to work properly, GitHub token must have read access to read organization members
     rules:
       - question-recv
@@ -119,7 +117,7 @@ collections:
       - soon-features
       - soon-bugs
       - soon-other
-  
+
   - id: similar
     name: Similar
     description: Items which appear similar to one other. Review for duplicates or vague titles.
@@ -134,7 +132,6 @@ collections:
     rules:
       - open-prs
       - open-issues
-
 
 rules:
   ### Daily Triage ####
@@ -181,10 +178,8 @@ rules:
       - label: "!do-not-merge.*"
       - label: "!needs-rebase"
       - label: "!cncf-cla: no"
-      - tag: "!requested-changes"
+      - tag: "!changes-requested"
       - tag: "!send"
-      # Temporarily workaround inability to track PR eligibility
-      - updated: +1d
 
   # Issues missing initial feedback
   issue-needs-kind:
@@ -243,16 +238,16 @@ rules:
       - tag: recv
 
   issue-updated-has-question:
-      name: "Recently updated issue has a question"
-      resolution: "Add an answer"
-      type: issue
-      filters:
-        - tag: recv-q
-        - label: "!triage/needs-information"
-        - tag: "!member-last"
-        - tag: "!contributor-last"
-        - responded: +3d
-        - updated: -7d
+    name: "Recently updated issue has a question"
+    resolution: "Add an answer"
+    type: issue
+    filters:
+      - tag: recv-q
+      - label: "!triage/needs-information"
+      - tag: "!member-last"
+      - tag: "!contributor-last"
+      - responded: +3d
+      - updated: -7d
 
   ####### Weekly Triage #########
   # SLO nearing

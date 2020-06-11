@@ -118,11 +118,10 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 
 				ref := h.prRef(ctx, ri)
 				co.PullRequestRefs = append(co.PullRequestRefs, ref)
-				co.Tags = append(co.Tags, Tag{
-					ID:          fmt.Sprintf("pr-%s", strings.ToLower(strings.Replace(ref.ReviewState, "_", "-", -1))),
-					Description: fmt.Sprintf("Issue has a cross-referenced PR in state %s", co.ReviewState),
-				})
-
+				refTag := reviewStateTag(ref.ReviewState)
+				refTag.ID = fmt.Sprintf("pr-%s", refTag.ID)
+				refTag.Description = fmt.Sprintf("cross-referenced PR: %s", refTag.Description)
+				co.Tags = append(co.Tags, refTag)
 			} else {
 				co.IssueRefs = append(co.IssueRefs, h.issueRef(t.GetSource().GetIssue()))
 			}

@@ -28,7 +28,6 @@ settings:
   # - collaborator
   # - owner
   # - member
-
   # Who else do we consider to be a project member? Default is empty.
   #members:
   # - tstromberg
@@ -82,7 +81,7 @@ collections:
     name: "Receive queue"
     description: >
       Issues that may be waiting for our response
-  
+
       NOTE: for this to work properly, GitHub token must have read access to read organization members
     rules:
       - question-recv
@@ -144,10 +143,10 @@ rules:
       - label: "!needs-rebase"
       - label: "!.*wip"
       - label: "!cncf-cla: no"
-      - tag: "!requested-changes"
+      - tag: "!changes-requested"
       - tag: "!send"
       - tag: "!commented"
-      
+
       # Temporarily workaround inability to track PR eligibility
       - updated: +1d
 
@@ -289,7 +288,7 @@ rules:
       - created: +20d
       - updated: +5d
       - responded: +2d
-  
+
   ## Bug Scrub ##
   question-old:
     name: "Questions that have been open for >3 weeks"
@@ -365,7 +364,7 @@ rules:
       - label: "!.*(feature|enhancement).*"
       - label: "!.*bug"
       - label: ".*question"
-  
+
   # P0
   p0-features:
     name: "p0 Bugs"

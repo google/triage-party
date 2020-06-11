@@ -37,7 +37,7 @@ import (
 )
 
 // VERSION is what version of Triage Party we advertise as.
-const VERSION = "v1.2.0-beta"
+const VERSION = "v1.2.0-beta.1"
 
 var (
 	nonWordRe = regexp.MustCompile(`\W`)
@@ -245,7 +245,7 @@ func playerFilter(result *triage.CollectionResult, player int, players int) *tri
 
 		for _, i := range o.Items {
 			if (i.ID % players) == (player - 1) {
-				klog.Infof("%d belongs to player %d", i.ID, player)
+				klog.V(3).Infof("%d belongs to player %d", i.ID, player)
 				cs = append(cs, i)
 			}
 		}
