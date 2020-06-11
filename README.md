@@ -94,9 +94,12 @@ NOTE: Multi-player works best if the "Resolution" field of each rule has a clear
 
 ## Kanban mode (NEW)
 
-In v1.2.0-beta.1 and newer, you can see a Kanban dashboard presentation for a collection. The columns are based on the rule the issue was found in, and the rows are based on the assignee.
+In v1.2.0-beta.1 and newer, you can see a Kanban dashboard presentation for a collection. The columns are based on the rule the issue was found in, and the rows are based on the assignee. To see a real-world example:
 
-In v1.2.0-beta.1, the Kanban view only works for issues that are within a milestone. You'll need to add these configuration lines to the collection to make this view visable:
+* [minikube kanban dashboard](http://tinyurl.com/minikube-kanban)
+* [minikube kanban config](https://github.com/google/triage-party/blob/0ad4f584ac0db13a96548d3eca9d05e91e0b1a40/config/examples/minikube.yaml#L108)
+
+CAVEATS: In v1.2.0-beta.1, the Kanban view only works for issues that are within a milestone. You'll need to add these configuration lines to the collection to make this view visable:
 
 
 ```
