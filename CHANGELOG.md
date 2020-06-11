@@ -1,5 +1,21 @@
 # Release Notes
 
+## Version 1.2.0-beta.1 - 2020-06-10
+
+* Add Kanban visualization support (display: kanban) [#125](https://github.com/google/triage-party/pull/125)
+* Improve PR review tags, bump to v1.2.0-beta.1 [#130](https://github.com/google/triage-party/pull/130)
+* Respect 'dedup: false' collection state [#123](https://github.com/google/triage-party/pull/123)
+* Add MaxSaveAge/MaxLoadAge to avoid persisting stale data [#126](https://github.com/google/triage-party/pull/126)
+* Display statuses of similar conversations [#124](https://github.com/google/triage-party/pull/124)
+* Clarify recv-q, make it easier to debug [#120](https://github.com/google/triage-party/pull/120)
+* Include issue-like comments for PullRequests [#119](https://github.com/google/triage-party/pull/119)
+
+Thanks to:
+
+* Michael Plump
+* Shingo Omura
+* Thomas Stromberg
+
 ## Version 1.1.0 - 2020-05-19
 
 * Change Dockerfile to build source and make build-args optional [#110](https://github.com/google/triage-party/pull/110)
