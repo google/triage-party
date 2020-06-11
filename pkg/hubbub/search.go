@@ -174,7 +174,7 @@ func (h *Engine) timelineDate(i GitHubItem) time.Time {
 	latestXref := h.latestXref[i.GetHTMLURL()]
 
 	if latestXref.After(updatedAt) {
-		klog.Infof("%s was coss-referenced at %s, after last update %s", i.GetHTMLURL(), latestXref, updatedAt)
+		klog.Infof("%s was cross-referenced at %s, after last update %s", i.GetHTMLURL(), latestXref, updatedAt)
 		updatedAt = latestXref
 	} else if !latestXref.IsZero() {
 		klog.V(3).Infof("%s was cross-referenced at %s, before last update %s", i.GetHTMLURL(), latestXref, updatedAt)

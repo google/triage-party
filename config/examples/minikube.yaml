@@ -186,7 +186,7 @@ rules:
     type: issue
     filters:
       - tag: open-milestone
-      - tag: "(pr-approved|pr-approved-but-pushed)"  
+      - tag: "(pr-approved|pr-approved-but-pushed)"
   milestone-closed:
     name: "Finish Line"
     type: issue
@@ -240,7 +240,7 @@ rules:
       - label: "!do-not-merge.*"
       - label: "!needs-rebase"
       - label: "!cncf-cla: no"
-      - tag: "!requested-changes"
+      - tag: "!changes-requested"
       - tag: "!send"
       # Temporarily workaround inability to track PR eligibility
       - updated: +1d

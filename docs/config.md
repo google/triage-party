@@ -113,3 +113,13 @@ Triage Party has an automatic tagging mechanism that adds annotations which can 
 * `closed`: the issue or PR has been closed
 * `similar`: the issue or PR appears to be similar to another
 * `new-commits`: the PR has new commits since the last member response
+
+To determine review state, we support the following tags:
+
+* `approved`: Last review was an approval
+* `reviewed-with-comment`: Last review was a comment
+* `changes-requested`: Last review was a request for changes
+* `unreviewed`: PR has never been reviewed
+* `pushed-after-approval`: PR was pushed to after approval
+
+The afforementioned PR review tags are also added to linked issues, though with a `pr-` prefix. For instance, `pr-approved`.

@@ -16,7 +16,7 @@ settings:
   name: skaffold
   min_similarity: 0.8
   repos:
-    -  https://github.com/GoogleContainerTools/skaffold
+    - https://github.com/GoogleContainerTools/skaffold
 
 collections:
   - id: daily
@@ -215,14 +215,12 @@ rules:
     type: pull_request
     filters:
       - label: "!do-not-merge.*"
-      - label: "!needs-rebase"
       - label: "!.*wip"
       - label: "!cncf-cla: no"
       - title: "!.*WIP.*"
       - tag: "!draft"
-      - tag: "!requested-changes"
-      - tag: "!send"
-      - tag: "!commented"
+      - tag: "(new-commits|unreviewed)"
+      - tag: "recv"
       - updated: +1d
 
   # Issues missing initial feedback
@@ -242,7 +240,7 @@ rules:
       - label: "!area/.*"
       - label: "!meta/.*"
       # Open question: should this exclude questions?
-      # - label: "!kind/question"      
+      # - label: "!kind/question"
 
   issue-needs-priority:
     name: "Unprioritized bugs or features"
@@ -298,15 +296,15 @@ rules:
       - tag: recv
 
   issue-updated-has-question:
-      name: "Recently updated issue has open question"
-      resolution: "Add an answer"
-      type: issue
-      filters:
-        - tag: recv-q
-        - tag: "!member-last"
-        - tag: "!contributor-last"
-        - responded: +3d
-        - updated: -7d
+    name: "Recently updated issue has open question"
+    resolution: "Add an answer"
+    type: issue
+    filters:
+      - tag: recv-q
+      - tag: "!member-last"
+      - tag: "!contributor-last"
+      - responded: +3d
+      - updated: -7d
 
   ####### Weekly Triage #########
   discuss:
@@ -413,7 +411,7 @@ rules:
     type: issue
     filters:
       - label: needs-reproduction
-      - responded: +1w      
+      - responded: +1w
       - updated: +21d
 
   issue-stale-support:
@@ -465,7 +463,7 @@ rules:
       - updated: +5d
       - responded: +2d
       - label: "!triage/discuss"
-  
+
   # People with questions
   issue-has-question:
     name: "Reporter asked a question over a week ago"
