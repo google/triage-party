@@ -29,7 +29,6 @@ import (
 const (
 	Unreviewed          = "UNREVIEWED"
 	NewCommits          = "NEW_COMMITS"
-	NeedsReview         = "NEEDS_REVIEW"
 	ChangesRequested    = "CHANGES_REQUESTED"
 	Approved            = "APPROVED"
 	PushedAfterApproval = "PUSHED_AFTER_APPROVAL"
@@ -318,6 +317,14 @@ func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Co
 		co.Tags = append(co.Tags, Tag{ID: "changes-requested", Description: "Last review was a request for changes"})
 	case NewCommits:
 		co.Tags = append(co.Tags, Tag{ID: "new-commits", Description: "PR has commits since the last review"})
+	case Unreviewed:
+		co.Tags = append(co.Tags, Tag{ID: "unreviewed", Description: "PR has never been reviewed"})
+	case PushedAfterApproval:
+		co.Tags = append(co.Tags, Tag{ID: "pushed-after-approval", Description: "PR was pushed to after approval"})
+	case Closed, Merged:
+		klog.V(3).Infof("Not tagging review state %q (handled elsewhere)", co.ReviewState)
+	default:
+		klog.Errorf("No known tag for: %q", co.ReviewState)
 	}
 
 	if pr.GetDraft() {
