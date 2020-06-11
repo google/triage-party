@@ -298,33 +298,40 @@ func reviewState(timeline []*github.Timeline, reviews []*github.PullRequestRevie
 	return state
 }
 
+func reviewStateTag(st string) Tag {
+	switch st {
+	case Approved:
+		return Tag{ID: "approved", Description: "Last review was an approval"}
+	case Commented:
+		return Tag{ID: "reviewed-with-comment", Description: "Last review was a comment"}
+	case ChangesRequested:
+		return Tag{ID: "changes-requested", Description: "Last review was a request for changes"}
+	case NewCommits:
+		return Tag{ID: "new-commits", Description: "PR has commits since the last review"}
+	case Unreviewed:
+		return Tag{ID: "unreviewed", Description: "PR has never been reviewed"}
+	case PushedAfterApproval:
+		return Tag{ID: "pushed-after-approval", Description: "PR was pushed to after approval"}
+	case Closed:
+		return Tag{ID: "closed", Description: "PR was closed"}
+	case Merged:
+		return Tag{ID: "merged", Description: "PR was merged"}
+	default:
+		klog.Errorf("No known tag for: %q", st)
+	}
+	return Tag{}
+}
+
 func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Comment, timeline []*github.Timeline, reviews []*github.PullRequestReview) *Conversation {
 	co := h.conversation(pr, cs)
 	co.Type = PullRequest
 	h.addEvents(ctx, co, timeline)
 
 	co.ReviewState = reviewState(timeline, reviews)
+	co.Tags = append(co.Tags, reviewStateTag(co.ReviewState))
+
 	if co.ReviewState != Unreviewed {
 		co.Tags = append(co.Tags, Tag{ID: "reviewed", Description: "PR has been reviewed at least once"})
-	}
-
-	switch co.ReviewState {
-	case Approved:
-		co.Tags = append(co.Tags, Tag{ID: "approved", Description: "Last review was an approval"})
-	case Commented:
-		co.Tags = append(co.Tags, Tag{ID: "reviewed-with-comment", Description: "Last review was a comment"})
-	case ChangesRequested:
-		co.Tags = append(co.Tags, Tag{ID: "changes-requested", Description: "Last review was a request for changes"})
-	case NewCommits:
-		co.Tags = append(co.Tags, Tag{ID: "new-commits", Description: "PR has commits since the last review"})
-	case Unreviewed:
-		co.Tags = append(co.Tags, Tag{ID: "unreviewed", Description: "PR has never been reviewed"})
-	case PushedAfterApproval:
-		co.Tags = append(co.Tags, Tag{ID: "pushed-after-approval", Description: "PR was pushed to after approval"})
-	case Closed, Merged:
-		klog.V(3).Infof("Not tagging review state %q (handled elsewhere)", co.ReviewState)
-	default:
-		klog.Errorf("No known tag for: %q", co.ReviewState)
 	}
 
 	if pr.GetDraft() {
