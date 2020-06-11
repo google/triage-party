@@ -94,16 +94,18 @@ NOTE: Multi-player works best if the "Resolution" field of each rule has a clear
 
 ## Kanban mode (NEW)
 
-In v1.2.0-beta.1 and newer, you can see a Kanban dashboard presentation for a collection. For the time-being, you'll need to add these 3 lines to the collection you wish to be viewable as a Kanban dashboard:
+In v1.2.0-beta.1 and newer, you can see a Kanban dashboard presentation for a collection. The columns are based on the rule the issue was found in, and the rows are based on the assignee.
+
+In v1.2.0-beta.1, the Kanban view only works for issues that are within a milestone. You'll need to add these configuration lines to the collection to make this view visable:
+
 
 ```
     display: kanban
     overflow: 3
     selector: milestone
-    dedup: true
 ```
 
-When v1.2.0 ships, all collections will be viewable using the /k/id URL path.
+You may also find `dedup: true` to be a useful configuration option. When v1.2.0 ships, all collections will be viewable as a Kanban dashboard using the /k/id URL path.
 
 ## Data freshness
 
