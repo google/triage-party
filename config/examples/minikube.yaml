@@ -24,13 +24,16 @@ settings:
     - collaborator
     - owner
   members:
-    # Always consider these folks to be members
-    - afbjorklund
-    - josedonizetti
-    - medyagh
-    - priyawadhwa
-    - sharifelgamal
+    # From https://github.com/kubernetes/minikube/blob/master/OWNERS
     - tstromberg
+    - afbjorklund
+    - sharifelgamal
+    - RA489
+    - medyagh
+    - josedonizetti
+    - blueelvis
+    - priyawadhwa
+    - prasadkatti
 
 collections:
   - id: daily-triage
