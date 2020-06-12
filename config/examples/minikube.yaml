@@ -66,8 +66,6 @@ collections:
   - id: weekly
     name: Weekly Triage
     dedup: true
-    overflow: 3
-    selector: milestone
     description: >
       Once a week, we meet up to address loose ends. Prioritize:
 
