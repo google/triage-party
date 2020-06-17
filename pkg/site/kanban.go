@@ -102,7 +102,7 @@ func groupByUser(results []*triage.RuleResult, milestoneID int, dedup bool) []*S
 }
 
 func lateTime(t time.Time, ref time.Time) string {
-	return humanize.RelTime(t, ref, "early", "late")
+	return humanize.CustomRelTime(t, ref, "early", "late", defaultMagnitudes)
 }
 
 // Kanban shows a kanban swimlane view of a collection.
