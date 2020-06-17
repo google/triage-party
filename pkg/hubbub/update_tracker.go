@@ -42,6 +42,26 @@ func (h *Engine) mtime(i GitHubItem) time.Time {
 	return updatedAt
 }
 
+// mtimeRef is like mtime, but for related conversations
+func (h *Engine) mtimeRef(rc *RelatedConversation) time.Time {
+	updatedAt := rc.Updated
+	key := fmt.Sprintf("%s/%s#%d", rc.Organization, rc.Project, rc.ID)
+	updateSeen := h.updatedAt[key]
+
+	if updateSeen == updatedAt {
+		return updatedAt
+	}
+
+	if updateSeen.After(updatedAt) {
+		klog.V(1).Infof("%s has updates from %s, after last update %s", key, updateSeen, updatedAt)
+		return updateSeen
+	} else if !updatedAt.IsZero() {
+		klog.V(3).Infof("%s has updates from %s, before last update %s", key, updateSeen, updatedAt)
+	}
+
+	return updatedAt
+}
+
 func updateKey(i GitHubItem) string {
 	// https://github.com/kubernetes/minikube/pull/8431
 	parts := strings.Split(i.GetHTMLURL(), "/")

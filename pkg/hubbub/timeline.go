@@ -33,12 +33,12 @@ func (h *Engine) cachedTimeline(ctx context.Context, org string, project string,
 		return x.Timeline, nil
 	}
 
-	klog.V(1).Infof("cache miss for %s newer than %s", key, newerThan)
+	klog.Infof("cache miss for %s newer than %s", key, newerThan)
 	return h.updateTimeline(ctx, org, project, num, key)
 }
 
 func (h *Engine) updateTimeline(ctx context.Context, org string, project string, num int, key string) ([]*github.Timeline, error) {
-	klog.Infof("Downloading event timeline for %s/%s #%d", org, project, num)
+	//	klog.Infof("Downloading event timeline for %s/%s #%d", org, project, num)
 
 	opt := &github.ListOptions{
 		PerPage: 100,
@@ -118,7 +118,7 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 					continue
 				}
 
-				ref := h.prRef(ctx, ri, co.Seen)
+				ref := h.prRef(ctx, ri, co.Updated)
 				co.PullRequestRefs = append(co.PullRequestRefs, ref)
 				refTag := reviewStateTag(ref.ReviewState)
 				refTag.ID = fmt.Sprintf("pr-%s", refTag.ID)
@@ -137,6 +137,10 @@ func (h *Engine) prRef(ctx context.Context, pr GitHubItem, age time.Time) *Relat
 	newerThan := age
 	if h.mtime(pr).After(newerThan) {
 		newerThan = h.mtime(pr)
+	}
+
+	if !pr.GetClosedAt().IsZero() {
+		newerThan = pr.GetClosedAt()
 	}
 
 	klog.V(1).Infof("Creating PR reference for #%d, updated at %s(state=%s)", pr.GetNumber(), pr.GetUpdatedAt(), pr.GetState())
@@ -173,12 +177,18 @@ func (h *Engine) updateLinkedPRs(ctx context.Context, parent *Conversation, newe
 	newRefs := []*RelatedConversation{}
 
 	for _, ref := range parent.PullRequestRefs {
+		if h.mtimeRef(ref).After(newerThan) {
+			newerThan = h.mtimeRef(ref)
+		}
+	}
+
+	for _, ref := range parent.PullRequestRefs {
 		if newerThan.Before(ref.Seen) || newerThan == ref.Seen {
 			newRefs = append(newRefs, ref)
 			continue
 		}
 
-		klog.Infof("updating PR ref: %s/%s #%d from %s to %s", ref.Organization, ref.Project, ref.ID, ref.Seen, newerThan)
+		klog.V(1).Infof("updating PR ref: %s/%s #%d from %s to %s", ref.Organization, ref.Project, ref.ID, ref.Seen, newerThan)
 		pr, age, err := h.cachedPR(ctx, ref.Organization, ref.Project, ref.ID, newerThan)
 		if err != nil {
 			klog.Errorf("error updating cached PR: %v", err)

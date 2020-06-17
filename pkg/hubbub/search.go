@@ -105,6 +105,14 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	var filtered []*Conversation
 	klog.V(1).Infof("%s/%s aggregate issue count: %d, filtering for:\n%s", org, project, len(is), toYAML(fs))
 
+	// Avoids updating PR references on a quiet repository
+	mostRecentUpdate := time.Time{}
+	for _, i := range is {
+		if i.GetUpdatedAt().After(mostRecentUpdate) {
+			mostRecentUpdate = i.GetUpdatedAt()
+		}
+	}
+
 	for _, i := range is {
 		// Inconsistency warning: issues use a list of labels, prs a list of label pointers
 		labels := []*github.Label{}
@@ -157,7 +165,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 		// Some labels are judged by linked PR state. Ensure that they are updated to the same timestamp.
 		if len(co.PullRequestRefs) > 0 {
-			co.PullRequestRefs = h.updateLinkedPRs(ctx, co, age)
+			co.PullRequestRefs = h.updateLinkedPRs(ctx, co, mostRecentUpdate)
 		}
 
 		if !postEventsMatch(co, fs) {
