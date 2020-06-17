@@ -30,7 +30,7 @@ type GitHubItem interface {
 }
 
 // conversation creates a conversation from an issue-like
-func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
+func (h *Engine) conversation(i GitHubItem, cs []*Comment, age time.Time) *Conversation {
 	authorIsMember := false
 	if h.isMember(i.GetUser().GetLogin(), i.GetAuthorAssociation()) {
 		authorIsMember = true
@@ -43,6 +43,7 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment) *Conversation {
 		Title:                i.GetTitle(),
 		State:                i.GetState(),
 		Type:                 Issue,
+		Seen:                 age,
 		Created:              i.GetCreatedAt(),
 		CommentsTotal:        i.GetComments(),
 		ClosedAt:             i.GetClosedAt(),

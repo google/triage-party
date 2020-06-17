@@ -94,6 +94,8 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 				}
 			}
 
+			h.updateMtime(pr)
+
 			// TODO: update tables for cached entries too!
 			h.updateSimilarityTables(pr.GetTitle(), pr.GetHTMLURL())
 			allPRs = append(allPRs, pr)
@@ -112,6 +114,38 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 	klog.V(1).Infof("updatePRs %s returning %d PRs", key, len(allPRs))
 
 	return allPRs, start, nil
+}
+
+func (h *Engine) cachedPR(ctx context.Context, org string, project string, num int, newerThan time.Time) (*github.PullRequest, time.Time, error) {
+	key := fmt.Sprintf("%s-%s-%d-pr", org, project, num)
+
+	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+		return x.PullRequests[0], x.Created, nil
+	}
+
+	klog.V(1).Infof("cache miss for %s newer than %s", key, newerThan)
+	return h.updatePR(ctx, org, project, num, key)
+}
+
+// pr gets a single PR (not used very often)
+func (h *Engine) updatePR(ctx context.Context, org string, project string, num int, key string) (*github.PullRequest, time.Time, error) {
+	klog.V(1).Infof("Downloading single PR %s/%s #%d", org, project, num)
+	start := time.Now()
+
+	pr, resp, err := h.client.PullRequests.Get(ctx, org, project, num)
+
+	if err != nil {
+		return pr, start, err
+	}
+
+	h.logRate(resp.Rate)
+	h.updateMtime(pr)
+
+	if err := h.cache.Set(key, &persist.Thing{PullRequests: []*github.PullRequest{pr}}); err != nil {
+		klog.Errorf("set %q failed: %v", key, err)
+	}
+
+	return pr, start, nil
 }
 
 func (h *Engine) cachedReviewComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.PullRequestComment, time.Time, error) {
@@ -143,6 +177,8 @@ func (h *Engine) prComments(ctx context.Context, org string, project string, num
 		klog.Errorf("comments: %v", err)
 	}
 	for _, c := range rc {
+		h.updateMtimeLong(org, project, num, c.GetUpdatedAt())
+
 		nc := NewComment(c)
 		nc.ReviewID = c.GetPullRequestReviewID()
 		comments = append(comments, nc)
@@ -177,6 +213,9 @@ func (h *Engine) updateReviewComments(ctx context.Context, org string, project s
 		h.logRate(resp.Rate)
 
 		klog.V(2).Infof("Received %d review comments", len(cs))
+		for _, c := range cs {
+			h.updateMtimeLong(org, project, num, c.GetUpdatedAt())
+		}
 		allComments = append(allComments, cs...)
 		if resp.NextPage == 0 {
 			break
@@ -235,14 +274,14 @@ func (h *Engine) updateReviews(ctx context.Context, org string, project string, 
 }
 
 // reviewState parses review events to see where an issue was left off
-func reviewState(timeline []*github.Timeline, reviews []*github.PullRequestReview) string {
+func reviewState(pr GitHubItem, timeline []*github.Timeline, reviews []*github.PullRequestReview) string {
 	state := Unreviewed
 	lastCommitID := ""
 	lastPushTime := time.Time{}
 	open := true
 
 	for _, t := range timeline {
-		klog.V(2).Infof("PR review event: %q at %s", t.GetEvent(), t.GetCreatedAt())
+		klog.V(2).Infof("PR #%d review event: %q at %s", pr.GetNumber(), t.GetEvent(), t.GetCreatedAt())
 		if t.GetEvent() == "merged" {
 			return Merged
 		}
@@ -258,7 +297,6 @@ func reviewState(timeline []*github.Timeline, reviews []*github.PullRequestRevie
 				parts := strings.Split(t.GetURL(), "/")
 				commit = parts[len(parts)-1]
 			}
-			klog.V(1).Infof("found commit id %s at %s", commit, t.GetCreatedAt(), formatStruct(t))
 			lastCommitID = commit
 		}
 
@@ -275,7 +313,7 @@ func reviewState(timeline []*github.Timeline, reviews []*github.PullRequestRevie
 		return Closed
 	}
 
-	klog.V(1).Infof("Found %d reviews, hoping one is for %s ...", len(reviews), lastCommitID)
+	klog.V(1).Infof("PR #%d has %d reviews, hoping one is for %s ...", pr.GetNumber(), (reviews), lastCommitID)
 	lastReview := time.Time{}
 	for _, r := range reviews {
 		if r.GetCommitID() == lastCommitID || lastCommitID == "" {
@@ -322,12 +360,12 @@ func reviewStateTag(st string) Tag {
 	return Tag{}
 }
 
-func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Comment, timeline []*github.Timeline, reviews []*github.PullRequestReview) *Conversation {
-	co := h.conversation(pr, cs)
+func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Comment, timeline []*github.Timeline, reviews []*github.PullRequestReview, age time.Time) *Conversation {
+	co := h.conversation(pr, cs, age)
 	co.Type = PullRequest
 	h.addEvents(ctx, co, timeline)
 
-	co.ReviewState = reviewState(timeline, reviews)
+	co.ReviewState = reviewState(pr, timeline, reviews)
 	co.Tags = append(co.Tags, reviewStateTag(co.ReviewState))
 
 	if co.ReviewState != Unreviewed {

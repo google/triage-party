@@ -43,6 +43,9 @@ type Conversation struct {
 	// Latest comment or event
 	Updated time.Time `json:"updated"`
 
+	// Seen is the time we last saw this conversation
+	Seen time.Time `json:"seen"`
+
 	// When did this item reach the current priority?
 	Prioritized time.Time `json:"prioritized"`
 
@@ -100,6 +103,8 @@ type RelatedConversation struct {
 	Type        string       `json:"type"`
 	State       string       `json:"state"`
 	Created     time.Time    `json:"created"`
+	Updated     time.Time    `json:"updated"`
+	Seen        time.Time    `json:"seen"`
 	ReviewState string       `json:"review_state"`
 }
 
@@ -121,6 +126,8 @@ func makeRelated(c *Conversation) *RelatedConversation {
 		Type:    c.Type,
 		State:   c.State,
 		Created: c.Created,
+		Updated: c.Updated,
 		Tags:    c.Tags,
+		Seen:    c.Seen,
 	}
 }

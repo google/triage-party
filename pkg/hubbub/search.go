@@ -122,13 +122,13 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		comments := []*github.IssueComment{}
 		if i.GetState() == "open" && i.GetComments() > 0 {
 			klog.V(1).Infof("#%d - %q: need comments for final filtering", i.GetNumber(), i.GetTitle())
-			comments, _, err = h.cachedIssueComments(ctx, org, project, i.GetNumber(), i.GetUpdatedAt())
+			comments, _, err = h.cachedIssueComments(ctx, org, project, i.GetNumber(), h.mtime(i))
 			if err != nil {
 				klog.Errorf("comments: %v", err)
 			}
 		}
 
-		co := h.IssueSummary(i, comments)
+		co := h.IssueSummary(i, comments, age)
 		co.Labels = labels
 		h.seen[co.URL] = co
 
@@ -143,7 +143,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		}
 		klog.V(1).Infof("#%d - %q made it past post-fetch: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
 
-		updatedAt := h.timelineDate(i)
+		updatedAt := h.mtime(i)
 		var timeline []*github.Timeline
 		if i.GetState() == "open" && updatedAt.After(i.GetCreatedAt()) {
 			timeline, err = h.cachedTimeline(ctx, org, project, i.GetNumber(), updatedAt)
@@ -154,6 +154,11 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		}
 
 		h.addEvents(ctx, co, timeline)
+
+		// Some labels are judged by linked PR state. Ensure that they are updated to the same timestamp.
+		if len(co.PullRequestRefs) > 0 {
+			co.PullRequestRefs = h.updateLinkedPRs(ctx, co, age)
+		}
 
 		if !postEventsMatch(co, fs) {
 			klog.V(1).Infof("#%d - %q did not match post-events filter: %s", i.GetNumber(), i.GetTitle(), toYAML(fs))
@@ -166,21 +171,6 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 	klog.V(1).Infof("%d of %d issues within %s/%s matched filters %s", len(filtered), len(is), org, project, toYAML(fs))
 	return filtered, age, nil
-}
-
-// timelineDate is a workaround the GitHub misfeature that UpdatedAt is not incremented for cross-reference events
-func (h *Engine) timelineDate(i GitHubItem) time.Time {
-	updatedAt := i.GetUpdatedAt()
-	latestXref := h.latestXref[i.GetHTMLURL()]
-
-	if latestXref.After(updatedAt) {
-		klog.Infof("%s was cross-referenced at %s, after last update %s", i.GetHTMLURL(), latestXref, updatedAt)
-		updatedAt = latestXref
-	} else if !latestXref.IsZero() {
-		klog.V(3).Infof("%s was cross-referenced at %s, before last update %s", i.GetHTMLURL(), latestXref, updatedAt)
-	}
-
-	return updatedAt
 }
 
 // NeedsClosed returns whether or not the filters require closed items
@@ -282,18 +272,18 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		var comments []*Comment
 		// pr.GetComments() always returns 0 :(
 		if pr.GetState() == "open" && pr.GetUpdatedAt().After(pr.GetCreatedAt()) {
-			comments, _, err = h.prComments(ctx, org, project, pr.GetNumber(), pr.GetUpdatedAt())
+			comments, _, err = h.prComments(ctx, org, project, pr.GetNumber(), h.mtime(pr))
 			if err != nil {
 				klog.Errorf("comments: %v", err)
 			}
 
-			timeline, err = h.cachedTimeline(ctx, org, project, pr.GetNumber(), pr.GetUpdatedAt())
+			timeline, err = h.cachedTimeline(ctx, org, project, pr.GetNumber(), h.mtime(pr))
 			if err != nil {
 				klog.Errorf("timeline: %v", err)
 				continue
 			}
 
-			reviews, _, err = h.cachedReviews(ctx, org, project, pr.GetNumber(), pr.GetUpdatedAt())
+			reviews, _, err = h.cachedReviews(ctx, org, project, pr.GetNumber(), h.mtime(pr))
 			if err != nil {
 				klog.Errorf("reviews: %v", err)
 				continue
@@ -307,7 +297,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 			klog.Errorf("*** Debug PR timeline #%d:\n%s", pr.GetNumber(), formatStruct(timeline))
 		}
 
-		co := h.PRSummary(ctx, pr, comments, timeline, reviews)
+		co := h.PRSummary(ctx, pr, comments, timeline, reviews, age)
 		co.Labels = pr.Labels
 		co.Similar = h.FindSimilar(co)
 		if len(co.Similar) > 0 {

@@ -88,6 +88,7 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 				continue
 			}
 
+			h.updateMtime(i)
 			h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())
 			allIssues = append(allIssues, i)
 		}
@@ -172,13 +173,13 @@ func openByDefault(fs []Filter) []Filter {
 	return fs
 }
 
-func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment) *Conversation {
+func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment, age time.Time) *Conversation {
 	cl := []*Comment{}
 	for _, c := range cs {
 		cl = append(cl, NewComment(c))
 	}
 
-	co := h.conversation(i, cl)
+	co := h.conversation(i, cl, age)
 	r := i.GetReactions()
 	co.ReactionsTotal += r.GetTotalCount()
 	for k, v := range reactions(r) {
