@@ -67,7 +67,7 @@ type Engine struct {
 	members     map[string]bool
 
 	// Workaround because GitHub doesn't update issues if cross-references occur
-	latestXref map[string]time.Time
+	updatedAt map[string]time.Time
 
 	// indexes used for similarity matching
 	seen map[string]*Conversation
@@ -83,7 +83,7 @@ func New(cfg Config) *Engine {
 		MinSimilarity:      cfg.MinSimilarity,
 		debugNumber:        cfg.DebugNumber,
 
-		latestXref:  map[string]time.Time{},
+		updatedAt:   map[string]time.Time{},
 		memberRoles: map[string]bool{},
 		members:     map[string]bool{},
 	}

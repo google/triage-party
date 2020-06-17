@@ -27,6 +27,7 @@ import (
 
 func (h *Engine) cachedTimeline(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.Timeline, error) {
 	key := fmt.Sprintf("%s-%s-%d-timeline", org, project, num)
+	klog.V(1).Infof("Need timeline for %s as of %s", key, newerThan)
 
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
 		return x.Timeline, nil
@@ -50,6 +51,10 @@ func (h *Engine) updateTimeline(ctx context.Context, org string, project string,
 			return nil, err
 		}
 		h.logRate(resp.Rate)
+
+		for _, ev := range evs {
+			h.updateMtimeLong(org, project, num, ev.GetCreatedAt())
+		}
 
 		klog.V(2).Infof("Received %d timeline events", len(evs))
 		allEvents = append(allEvents, evs...)
@@ -103,10 +108,7 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 			}
 
 			ri := t.GetSource().GetIssue()
-			if t.GetCreatedAt().After(h.latestXref[ri.GetHTMLURL()]) {
-				h.latestXref[ri.GetHTMLURL()] = t.GetCreatedAt()
-				klog.V(2).Infof("updated xref time for %s: %s", ri.GetHTMLURL(), t.GetCreatedAt())
-			}
+			h.updateMtime(ri)
 
 			if co.Type == Issue && ri.IsPullRequest() {
 				refRepo := ri.GetRepository().GetFullName()
@@ -116,14 +118,14 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 					continue
 				}
 
-				ref := h.prRef(ctx, ri)
+				ref := h.prRef(ctx, ri, co.Seen)
 				co.PullRequestRefs = append(co.PullRequestRefs, ref)
 				refTag := reviewStateTag(ref.ReviewState)
 				refTag.ID = fmt.Sprintf("pr-%s", refTag.ID)
 				refTag.Description = fmt.Sprintf("cross-referenced PR: %s", refTag.Description)
 				co.Tags = append(co.Tags, refTag)
 			} else {
-				co.IssueRefs = append(co.IssueRefs, h.issueRef(t.GetSource().GetIssue()))
+				co.IssueRefs = append(co.IssueRefs, h.issueRef(t.GetSource().GetIssue(), co.Seen))
 			}
 		}
 	}
@@ -131,32 +133,66 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 	co.Tags = dedupTags(co.Tags)
 }
 
-func (h *Engine) prRef(ctx context.Context, pr *github.Issue) *RelatedConversation {
-	klog.V(1).Infof("Creating PR reference for #%d", pr.GetNumber())
+func (h *Engine) prRef(ctx context.Context, pr GitHubItem, age time.Time) *RelatedConversation {
+	newerThan := age
+	if h.mtime(pr).After(newerThan) {
+		newerThan = h.mtime(pr)
+	}
 
-	co := h.conversation(pr, nil)
+	klog.V(1).Infof("Creating PR reference for #%d, updated at %s(state=%s)", pr.GetNumber(), pr.GetUpdatedAt(), pr.GetState())
+
+	co := h.conversation(pr, nil, age)
 	rel := makeRelated(co)
 
-	timeline, err := h.cachedTimeline(ctx, co.Organization, co.Project, pr.GetNumber(), h.timelineDate(pr))
+	timeline, err := h.cachedTimeline(ctx, co.Organization, co.Project, pr.GetNumber(), newerThan)
 	if err != nil {
 		klog.Errorf("timeline: %v", err)
 	}
 
+	// mtime may have been updated by fetching tthe timeline
+	if h.mtime(pr).After(newerThan) {
+		newerThan = h.mtime(pr)
+	}
+
 	var reviews []*github.PullRequestReview
 	if pr.GetState() != "closed" {
-		reviews, _, err = h.cachedReviews(ctx, co.Organization, co.Project, pr.GetNumber(), pr.GetUpdatedAt())
+		reviews, _, err = h.cachedReviews(ctx, co.Organization, co.Project, pr.GetNumber(), newerThan)
 		if err != nil {
 			klog.Errorf("reviews: %v", err)
 		}
+	} else {
+		klog.V(1).Infof("PR #%d is closed, won't fetch review state", pr.GetNumber())
 	}
 
-	rel.ReviewState = reviewState(timeline, reviews)
+	rel.ReviewState = reviewState(pr, timeline, reviews)
 	klog.V(1).Infof("Determined PR #%d to be in review state %q", pr.GetNumber(), rel.ReviewState)
 	return rel
 }
 
-func (h *Engine) issueRef(i *github.Issue) *RelatedConversation {
-	co := h.conversation(i, nil)
+func (h *Engine) updateLinkedPRs(ctx context.Context, parent *Conversation, newerThan time.Time) []*RelatedConversation {
+	newRefs := []*RelatedConversation{}
+
+	for _, ref := range parent.PullRequestRefs {
+		if newerThan.Before(ref.Seen) || newerThan == ref.Seen {
+			newRefs = append(newRefs, ref)
+			continue
+		}
+
+		klog.Infof("updating PR ref: %s/%s #%d from %s to %s", ref.Organization, ref.Project, ref.ID, ref.Seen, newerThan)
+		pr, age, err := h.cachedPR(ctx, ref.Organization, ref.Project, ref.ID, newerThan)
+		if err != nil {
+			klog.Errorf("error updating cached PR: %v", err)
+			newRefs = append(newRefs, ref)
+			continue
+		}
+		newRefs = append(newRefs, h.prRef(ctx, pr, age))
+	}
+
+	return newRefs
+}
+
+func (h *Engine) issueRef(i *github.Issue, age time.Time) *RelatedConversation {
+	co := h.conversation(i, nil, age)
 	return makeRelated(co)
 }
 
