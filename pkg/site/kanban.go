@@ -17,6 +17,7 @@ package site
 import (
 	"fmt"
 	"html/template"
+	"math"
 	"net/http"
 	"path/filepath"
 	"sort"
@@ -218,10 +219,16 @@ func calcETA(m *github.Milestone, closeRate float64) (time.Time, time.Duration, 
 		return time.Time{}, time.Duration(0), 0
 	}
 
+	// How many will we get done by the due date?
+	daysToDue := m.GetDueOn().Sub(time.Now()).Hours() / 24
+	canShip := daysToDue * closeRate
+	klog.Errorf("%.2f days until due date, can ship %.2f items", daysToDue, canShip)
+
 	days := float64(open) / closeRate
 	eta := time.Now().AddDate(0, 0, int(days))
+
 	overByDuration := eta.Sub(m.GetDueOn())
-	overByCount := int(overByDuration.Hours() / 24 / closeRate)
+	overByCount := int(math.Ceil(float64(open) - canShip))
 	return eta, overByDuration, overByCount
 }
 
