@@ -19,7 +19,7 @@
           <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
           <span title="Data as of {{ .ResultAge | HumanDuration}} ago">{{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }}, 
           Avg age: {{ .CollectionResult.AvgAge | toDays }}
-          {{ if .VelocityStats }}, Avg close rate: <a href="/s/{{.VelocityStats.Collection.ID }}">{{ printf "%.1f" $.ClosedPerDay }} issue(s) per day</a>{{ end }}
+          {{ if .VelocityStats }}, Historical closure rate: <a href="/s/{{.VelocityStats.Collection.ID }}">{{ printf "%.1f" $.ClosedPerDay }} issue(s) per day</a>{{ end }}
           </span>
           <span class="alt-view"><a href="/s/{{ .ID }}{{ $.GetVars }}">Item View</a></span>
           </div>
@@ -62,10 +62,12 @@
           <h3>{{ .Milestone.Title }}</h3>
           <h4 class="subtitle">Due: {{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | RoughTime }})</h4>
           {{ if not .MilestoneETA.IsZero }}
-            <h4 class="subtitle {{ if .MilestoneVeryLate}}very-late-eta{{ else if gt .MilestoneCountOffset 0}}late-eta{{ else if lt .MilestoneCountOffset 0}}early-eta{{ end }}">ETA:
+            <h4 class="subtitle {{ if .MilestoneVeryLate}}very-late-eta{{ else if gt .MilestoneCountOffset 0}}late-eta{{ else if lt .MilestoneCountOffset 0}}early-eta{{ end }}">Completion ETA:
                 <span class="eta">
-                    {{ .MilestoneETA.Format "2006-01-02" }} 
-                    {{ if ne .MilestoneCountOffset 0 }}({{ LateTime .MilestoneETA .Milestone.DueOn }}, off by {{.MilestoneCountOffset}} issues)
+                    {{ .MilestoneETA.Format "~2006-01-02" }}
+                    {{ if ne .MilestoneCountOffset 0 }}({{ LateTime .MilestoneETA .Milestone.DueOn }},
+                       {{ if gt .MilestoneCountOffset 0 }}~{{.MilestoneCountOffset}} issues over historical capacity){{ end }}
+                       {{ if lt .MilestoneCountOffset 0 }}{{.MilestoneCountOffset}} issues off of historical capacity){{ end }}
                     {{ end }}
                 </span>
             </h4>
