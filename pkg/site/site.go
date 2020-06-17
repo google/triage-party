@@ -18,6 +18,7 @@ package site
 import (
 	"fmt"
 	"html/template"
+	"math"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -44,6 +45,25 @@ var (
 
 	// MaxPlayers is how many players to enable in the web interface.
 	MaxPlayers = 20
+
+	// Cut-off points for human duration (reversed order)
+	defaultMagnitudes = []humanize.RelTimeMagnitude{
+		{time.Second, "now", time.Second},
+		{2 * time.Second, "1 second %s", 1},
+		{time.Minute, "%d seconds %s", time.Second},
+		{2 * time.Minute, "1 minute %s", 1},
+		{time.Hour, "%d minutes %s", time.Minute},
+		{2 * time.Hour, "1 hour %s", 1},
+		{humanize.Day, "%d hours %s", time.Hour},
+		{2 * humanize.Day, "1 day %s", 1},
+		{20 * humanize.Day, "%d days %s", humanize.Day},
+		{8 * humanize.Week, "%d weeks %s", humanize.Week},
+		{humanize.Year, "%d months %s", humanize.Month},
+		{18 * humanize.Month, "1 year %s", 1},
+		{2 * humanize.Year, "2 years %s", 1},
+		{humanize.LongTime, "%d years %s", humanize.Year},
+		{math.MaxInt64, "a long while %s", 1},
+	}
 )
 
 // Config is how external users interact with this package.
@@ -205,7 +225,8 @@ func roughTime(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	}
-	ds := humanize.Time(t)
+
+	ds := humanize.CustomRelTime(t, time.Now(), "ago", "from now", defaultMagnitudes)
 	ds = strings.Replace(ds, " ago", "", 1)
 
 	ds = strings.Replace(ds, " minutes", "min", 1)
