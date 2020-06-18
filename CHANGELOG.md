@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 1.2.0-beta.2 - 2020-06-17
+
+Multiple improvements to the new Kanban display feature:
+
+* Improve reaction count display [#147](https://github.com/google/triage-party/pull/147)
+* Improve how Kanban is handled for unconfigured collections [#146](https://github.com/google/triage-party/pull/146)
+* Improve Kanban dashboard milestone handling & UI [#142](https://github.com/google/triage-party/pull/142)
+* Make timeline cache date calculation smarter [#141](https://github.com/google/triage-party/pull/141)
+* site: Make relative times more specific [#137](https://github.com/google/triage-party/pull/137)
+* Ensure that referenced PR's are the same age of parent issue [#136](https://github.com/google/triage-party/pull/136)
+
 ## Version 1.2.0-beta.1 - 2020-06-10
 
 * Add Kanban visualization support (display: kanban) [#125](https://github.com/google/triage-party/pull/125)
