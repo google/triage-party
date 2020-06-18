@@ -144,11 +144,9 @@
             <td class="cell-assignee" data-order="{{ range .Assignees }}{{ .GetLogin }}{{ end }}">{{ range .Assignees }}{{ . |  Avatar}}{{ end }}
 
             <td class="cell-reactions" data-order="{{ .ReactionsTotal }}">
-            {{ range $value, $count := .Reactions }}
-              {{ if gt $count 1 }}
-                <div class="reaction-{{ $value }}">{{ $count }}</div>
-              {{ end }}
-            {{ end }}   
+            {{- range $value, $count := .Reactions }}          
+               {{- if gt $count 0 }}<div class="reaction reaction-{{ $value }} reaction-total-{{ $count }}">{{ if gt $count 1 }}<span class="reaction-count">{{ $count }}</span></div>{{ end }}{{ end }}
+            {{ end }}
             </td>
             <td class="cell-create" data-order="{{ .Created | UnixNano }}">{{ .Created | RoughTime }}</td>
             <td class="cell-update" data-order="{{ .Updated | UnixNano }}">{{ .Updated | RoughTime }}</td>

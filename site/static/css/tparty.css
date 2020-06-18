@@ -391,6 +391,9 @@ td:last-child { padding-right: 0.2em !important; }
   content: "🎉";
 }
 
+.reaction-count {
+  padding-left: 0.5em;
+}
 
 .celebrate {
   text-align: center;
