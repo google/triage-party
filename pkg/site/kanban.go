@@ -54,7 +54,7 @@ func groupByUser(results []*triage.RuleResult, milestoneID int, dedup bool) []*S
 
 	for i, r := range results {
 		for _, co := range r.Items {
-			if milestoneID != 0 && co.Milestone.GetNumber() != milestoneID {
+			if milestoneID > 0 && co.Milestone.GetNumber() != milestoneID {
 				continue
 			}
 
@@ -128,7 +128,7 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := strings.TrimPrefix(r.URL.Path, "/k/")
-		milestoneID := getInt(r.URL, "milestone", 0)
+		milestoneID := getInt(r.URL, "milestone", -1)
 
 		p, err := h.collectionPage(r.Context(), id, isRefresh(r))
 		if err != nil {
@@ -143,13 +143,8 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 		}
 
 		chosen, milestones := milestoneChoices(p.CollectionResult.RuleResults, milestoneID)
-		if chosen.GetNumber() == 0 {
-			klog.Errorf("milestone number is 0, given ID was %s", id)
-			http.Error(w, "milestone not found", 404)
-			return
-		}
 
-		klog.Infof("milestones choices: %+v", milestones)
+		klog.Infof("milestones chosen: %d, choices: %+v", milestoneID, milestones)
 
 		p.Description = p.Collection.Description
 		p.Swimlanes = groupByUser(p.CollectionResult.RuleResults, chosen.GetNumber(), p.Collection.Dedup)
@@ -235,9 +230,15 @@ func calcETA(m *github.Milestone, closeRate float64) (time.Time, time.Duration, 
 func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Milestone, []Choice) {
 	mmap := map[int]*github.Milestone{}
 
+	notInMilestone := 0
+
 	for _, r := range results {
 		for _, co := range r.Items {
 			if co.Milestone == nil || co.Milestone.GetNumber() == 0 {
+				if notInMilestone == 0 {
+					klog.Infof("Found issue within %s that is not in a milestone: %s", r.Rule.ID, co.URL)
+				}
+				notInMilestone++
 				continue
 			}
 			mmap[co.Milestone.GetNumber()] = co.Milestone
@@ -256,8 +257,13 @@ func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Mi
 
 	sort.Slice(milestones, func(i, j int) bool { return milestones[i].GetDueOn().Before(milestones[j].GetDueOn()) })
 
-	if milestoneID == 0 {
-		milestoneID = milestones[0].GetNumber()
+	// Only auto-select a milestone if all issues are within a milestone
+	if milestoneID == -1 {
+		if len(milestones) > 0 && notInMilestone == 0 {
+			milestoneID = milestones[0].GetNumber()
+		} else {
+			milestoneID = 0 // all
+		}
 	}
 
 	choices := []Choice{}
@@ -276,6 +282,12 @@ func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Mi
 
 		choices = append(choices, c)
 	}
+
+	choices = append(choices, Choice{
+		Value:    0,
+		Text:     "All items",
+		Selected: milestoneID == 0,
+	})
 
 	return chosen, choices
 }
