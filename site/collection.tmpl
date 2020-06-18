@@ -19,9 +19,9 @@
           Avg age: {{ .CollectionResult.AvgAge | toDays }}, 
           Avg wait: {{ .CollectionResult.AvgCurrentHold | toDays }}
           </span>
-          {{ if eq .Collection.Display "kanban" }}
-            <span class="alt-view"><a href="/k/{{ .ID }}{{ $.GetVars }}">Kanban View</a></span>
-          {{ end }}
+          
+          <span class="alt-view"><a href="/k/{{ .ID }}{{ $.GetVars }}">Kanban</a></span>
+          
           </div>
           <script>
           function openAllTabs() {
@@ -89,17 +89,17 @@
       <table id="{{ .Rule.ID | toJSfunc  }}" class="compact is-size-6">
       <thead>
         <tr>
-          <td class="col-id">ID</td>
-          <td class="col-author" title="Author">Au</td>
-          <td class="col-desc" title="Description">Desc</td>
-          <td class="col-assignee" title="Assignee">As</td>
-          <td class="col-reactions" title="Reactions">Rea</td>
-          <td class="col-create" title="When issue was created">Cr</td>
-          <td class="col-update" title="When issue was last updated">Up</td>
-          <td class="col-response" title="When issue was last responded to">Re</td>
-          <td class="col-comments" title="Commenters">Cmntrs</td>
-          <td class="col-labels">Labels</td>
-          <td class="col-tags">Tags</td>
+          <td class="hd col-id">ID</td>
+          <td class="hd col-author" title="Author">Au</td>
+          <td class="hd col-desc" title="Description">Desc</td>
+          <td class="hd col-assignee" title="Assignee">As</td>
+          <td class="hd col-reactions" title="Reactions">Rea</td>
+          <td class="hd col-create" title="When issue was created">Cr</td>
+          <td class="hd col-update" title="When issue was last updated">Up</td>
+          <td class="hd col-response" title="When issue was last responded to">Re</td>
+          <td class="hd col-comments" title="Commenters">Cmntrs</td>
+          <td class="hd col-labels">Labels</td>
+          <td class="hd col-tags">Tags</td>
         </tr>
       </thead>
       <tbody>

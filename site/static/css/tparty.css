@@ -164,7 +164,15 @@ thead {
 
 thead {
   background-color: #7D68A3;
+}
 
+.hd {
+  border-right: 1px dashed #5D4883;
+  padding-left: 0.5em !important;
+}
+
+.hd:last-child {
+  border-right: none;
 }
 
 td { padding: 0.2rem !important; }

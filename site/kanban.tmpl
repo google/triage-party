@@ -21,7 +21,7 @@
           Avg age: {{ .CollectionResult.AvgAge | toDays }}
           {{ if .VelocityStats }}, Historical closure rate: <a href="/s/{{.VelocityStats.Collection.ID }}">{{ printf "%.1f" $.ClosedPerDay }} issue(s) per day</a>{{ end }}
           </span>
-          <span class="alt-view"><a href="/s/{{ .ID }}{{ $.GetVars }}">Item View</a></span>
+          <span class="alt-view"><a href="/s/{{ .ID }}{{ $.GetVars }}">Items</a></span>
           </div>
           <script>
           function openAllTabs() {
@@ -34,15 +34,18 @@
   </div>
     <div class="navbar-right">
       <div class="navbar-form">
-          <div class="buttons">
-            <form style="display: inline-block;" action="/k/{{ .ID }}" method="get">
-                <select onchange="this.form.submit();" name="{{ .SelectorVar }}">
-                  {{ range .SelectorOptions }}
-                    <option value="{{ .Value }}" {{ if .Selected }}selected{{ end }}>{{ .Text }}</option>
-                  {{ end }}
-                </select>
-            </form>
-          </div>
+          {{ if .SelectorOptions }}
+            <div class="buttons">
+                Milestone: 
+                <form style="display: inline-block;" action="/k/{{ .ID }}" method="get">
+                    <select onchange="this.form.submit();" name="{{ .SelectorVar }}">
+                      {{ range .SelectorOptions }}
+                        <option value="{{ .Value }}" {{ if .Selected }}selected{{ end }}>{{ .Text }}</option>
+                      {{ end }}
+                    </select>
+                </form>
+            </div>
+          {{ end }}
       </div>
     </div>
 </nav>
@@ -59,20 +62,25 @@
   <div class="box outcome kanban">
       <div class="box-header collapsible">
         <div class="box-head-left">
-          <h3>{{ .Milestone.Title }}</h3>
-          <h4 class="subtitle">Due: {{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | RoughTime }})</h4>
-          {{ if not .MilestoneETA.IsZero }}
-            <h4 class="subtitle {{ if .MilestoneVeryLate}}very-late-eta{{ else if gt .MilestoneCountOffset 0}}late-eta{{ else if lt .MilestoneCountOffset 0}}early-eta{{ end }}">Completion ETA:
-                <span class="eta">
-                    {{ .MilestoneETA.Format "~2006-01-02" }}
-                    {{ if ne .MilestoneCountOffset 0 }}({{ LateTime .MilestoneETA .Milestone.DueOn }},
-                       {{ if gt .MilestoneCountOffset 0 }}~{{.MilestoneCountOffset}} issues over historical capacity){{ end }}
-                       {{ if lt .MilestoneCountOffset 0 }}{{.MilestoneCountOffset}} issues off of historical capacity){{ end }}
-                    {{ end }}
-                </span>
-            </h4>
+          {{ if .Milestone }}
+            <h3>{{ .Title }}: {{ .Milestone.Title }}</h3>
+            <h4 class="subtitle">Due: {{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | RoughTime }})</h4>
+              {{ if not .MilestoneETA.IsZero }}
+                <h4 class="subtitle {{ if .MilestoneVeryLate}}very-late-eta{{ else if gt .MilestoneCountOffset 0}}late-eta{{ else if lt .MilestoneCountOffset 0}}early-eta{{ end }}">Completion ETA:
+                    <span class="eta">
+                        {{ .MilestoneETA.Format "~2006-01-02" }}
+                        {{ if ne .MilestoneCountOffset 0 }}({{ LateTime .MilestoneETA .Milestone.DueOn }},
+                          {{ if gt .MilestoneCountOffset 0 }}~{{.MilestoneCountOffset}} issues over historical capacity){{ end }}
+                          {{ if lt .MilestoneCountOffset 0 }}{{.MilestoneCountOffset}} issues off of historical capacity){{ end }}
+                        {{ end }}
+                    </span>
+                </h4>
+              {{ end }}
+              <h5 class="stats">{{ .Milestone.GetOpenIssues}} open issues, {{ .Milestone.GetClosedIssues }} closed issues</h5>
+          {{ else }}
+            <h3>{{ .Title }}</h3>
+            <h5 class="stats">{{ .Total }} unique items</h5>
           {{ end }}
-          <h5 class="stats">{{ .Milestone.GetOpenIssues}} open issues, {{ .Milestone.GetClosedIssues }} closed issues</h5>
         </div>
         <div class="box-head-right">
         <!--  just save the space -->
@@ -80,12 +88,13 @@
       </div>
       <table id="kanban-table" class="compact is-size-6">
     <thead>
-    <tr>
-      <th id="assignee-col">Assi</th>
-      {{ range .CollectionResult.RuleResults }}
-        <th id="{{ .Rule.ID | Class  }}" title="{{ .Rule | toYAML }}">{{ .Rule.Name}}</th>
-      {{ end }}
-    </tr>
+      <tr>
+        <th class="hd" id="assignee-col">Assi</th>
+        {{- range .CollectionResult.RuleResults }}
+        <th class="hd" id="{{ .Rule.ID | Class  }}" title="{{ .Rule | toYAML }}">{{ .Rule.Name}}</th>
+        {{ end }}
+      </tr>
+    </thead>
     <tbody>
 
     {{ $col := .Collection }}
