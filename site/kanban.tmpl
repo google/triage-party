@@ -64,14 +64,16 @@
         <div class="box-head-left">
           {{ if .Milestone }}
             <h3>{{ .Title }}: {{ .Milestone.Title }}</h3>
-            <h4 class="subtitle">Due: {{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | RoughTime }})</h4>
+            <h4 class="subtitle">Due: {{ if .Milestone.DueOn }}{{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | RoughTime }}){{ else }}Never{{ end }}</h4>
               {{ if not .MilestoneETA.IsZero }}
                 <h4 class="subtitle {{ if .MilestoneVeryLate}}very-late-eta{{ else if gt .MilestoneCountOffset 0}}late-eta{{ else if lt .MilestoneCountOffset 0}}early-eta{{ end }}">Completion ETA:
                     <span class="eta">
                         {{ .MilestoneETA.Format "~2006-01-02" }}
-                        {{ if ne .MilestoneCountOffset 0 }}({{ LateTime .MilestoneETA .Milestone.DueOn }},
-                          {{ if gt .MilestoneCountOffset 0 }}~{{.MilestoneCountOffset}} issues over historical capacity){{ end }}
-                          {{ if lt .MilestoneCountOffset 0 }}{{.MilestoneCountOffset}} issues off of historical capacity){{ end }}
+                        {{ if .Milestone.DueOn }}
+                          {{ if ne .MilestoneCountOffset 0 }}({{ LateTime .MilestoneETA .Milestone.DueOn }},
+                            {{ if gt .MilestoneCountOffset 0 }}~{{.MilestoneCountOffset}} issues over historical capacity){{ end }}
+                            {{ if lt .MilestoneCountOffset 0 }}{{.MilestoneCountOffset}} issues off of historical capacity){{ end }}
+                          {{ end }}
                         {{ end }}
                     </span>
                 </h4>
