@@ -7,6 +7,17 @@ Triage Party includes with two example configurations that are useful to get sta
 * [config](../config/config.yaml): uses label regular expressions that work for most GitHub projects
 * [kubernetes](../config/examples/kubernetes.yaml): for projects that use Kubernetes-style labels, particularly prioritization
 
+## Settings
+
+There are only a handful of site-wide settings worth mentioning:
+
+* `name`: Name of the your Triage Party site
+* `min_similarity`: On a scale from 0-1, how similar do two titles need to be before they are labelled as similar. The default is 0 (disabled), but a useful setting is 0.75
+* `repos`: A list of repositories to query by default
+* `member-roles`: Which GitHub roles to consider as project members
+* `members`: A list of people to hard-code as members of the project
+
+
 ## Collections
 
 Each page within Triage Party is represented by a `collection`. Each collection references a list of `rules` that can be shared across collections. Here is a simple collection, which creates a page named `I like soup!`, containing two rules:
@@ -19,6 +30,16 @@ collections:
       - discuss
       - many-reactions
 ```
+
+### Settings
+
+For collections, there are a few useful settings to mention:
+
+* `description`: description shown for this collection
+* `dedup` (bool): whether to filter out duplicate issues/PR's that show up among multiple rules
+* `display`: whether to show this page as `kanban` or `default`
+* `overflow`: flag issues if there are issues within a Kanban cell above or equal to this number
+
 
 ## Rules
 
@@ -110,16 +131,23 @@ Triage Party has an automatic tagging mechanism that adds annotations which can 
 * `member-last`: a member of the organization was the last commenter
 * `author-last`: the original author was the last commenter
 * `assigned`: the issue or PR has been assigned to someone
+* `assignee-updated`: the issue has been updated by its assignee
 * `closed`: the issue or PR has been closed
+* `merged`: PR was merged
+* `draft`: PR is a draft PR
 * `similar`: the issue or PR appears to be similar to another
-* `new-commits`: the PR has new commits since the last member response
+* `open-milestone`: the issue or PR appears in an open milestone
 
 To determine review state, we support the following tags:
 
 * `approved`: Last review was an approval
-* `reviewed-with-comment`: Last review was a comment
 * `changes-requested`: Last review was a request for changes
+* `reviewed-with-comment`: Last review was a comment
+* `new-commits`: the PR has new commits since the last member response
 * `unreviewed`: PR has never been reviewed
 * `pushed-after-approval`: PR was pushed to after approval
 
 The afforementioned PR review tags are also added to linked issues, though with a `pr-` prefix. For instance, `pr-approved`.
+
+## Display configuration
+
