@@ -40,7 +40,6 @@ For collections, there are a few useful settings to mention:
 * `display`: whether to show this page as `kanban` or `default`
 * `overflow`: flag issues if there are issues within a Kanban cell above or equal to this number
 
-
 ## Rules
 
 The first rule, `discuss`, include all items labelled as `triage/discuss`, whether they are pull requests or issues, open or closed.
