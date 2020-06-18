@@ -48,7 +48,7 @@ collections:
       # SLO violations
       - issue-needs-priority-slo
       - issue-needs-comment-slo
-      - issue-soon-slo
+      - issue-important-slo
       - issue-longterm-slo
       # Don't leave code reviews hanging
       - pr-reviewable
@@ -73,7 +73,7 @@ collections:
        * Raising the priority for hot issues
     rules:
       # SLO
-      - issue-near-soon-slo
+      - issue-near-important-slo
       - issue-near-longterm-slo
       # Issues needing reprioritization
       - many-reactions
@@ -109,15 +109,14 @@ collections:
       - other-old
 
   - id: milestone
-    name: Milestone
+    name: In Milestone
     description: >
       A Kanban visualization of milestones, showing the flow of issues through each stage.
 
         * Unassigned issues represent available work
-        * >2 issues assigned to the same person within a stage signifies a bottleneck 🌊
+        * >3 issues assigned to the same person within a stage signifies a bottleneck 🌊
     display: kanban
     overflow: 3
-    selector: milestone
     dedup: true
     rules:
       - milestone-not-started
@@ -125,7 +124,7 @@ collections:
       - milestone-pr-needs-review
       - milestone-pr-needs-work
       - milestone-pr-needs-merge
-      - milestone-closed
+      - milestone-recently-closed
 
   - id: tests
     name: Broken tests
@@ -134,6 +133,21 @@ collections:
       - failing-tests
       - flaky-tests
       - other-testing
+
+  - id: important
+    name: Important
+    description: >
+      Items labeled as priority/important-soon or priority/important-critical.
+    overflow: 3
+    dedup: true
+    rules:
+      - important-not-milestoned
+      - important-milestoned
+      - important-assignee-updated
+      - important-pr-needs-review
+      - important-pr-needs-work
+      - important-pr-needs-merge
+      - important-recently-closed
 
   - id: similar
     name: Similar
@@ -177,6 +191,7 @@ rules:
     name: "PR needs work"
     type: issue
     filters:
+      - tag: open-milestone
       - tag: "(pr-changes-requested|pr-reviewer-comment)"
   milestone-pr-needs-review:
     name: "PR needs Review"
@@ -190,11 +205,61 @@ rules:
     filters:
       - tag: open-milestone
       - tag: "(pr-approved|pr-approved-but-pushed)"
-  milestone-closed:
+  milestone-recently-closed:
     name: "Finish Line"
     type: issue
     filters:
       - tag: open-milestone
+      - state: closed
+      - updated: -30d
+
+  ### Kanban ###
+  important-not-milestoned:
+    name: "Not in milestone"
+    type: issue
+    filters:
+      - label: "priority/important-soon|priority/important-critical"
+      - tag: "!open-milestone"
+      - tag: "!assignee-updated"
+      - tag: "!(assignee-open-pr|assignee-closed-pr)"
+  important-milestoned:
+    name: "In Milestone"
+    type: issue
+    filters:
+      - label: "priority/important-soon|priority/important-critical"
+      - tag: open-milestone
+      - tag: "assignee-updated"
+      - tag: "!(pr-changes-requested|pr-reviewer-comment|pr-unreviewed|pr-new-commits|pr-approved|pr-changes-requested)"
+  important-assignee-updated:
+    name: "In Progress"
+    type: issue
+    filters:
+      - label: "priority/important-soon|priority/important-critical"
+      - tag: "assignee-updated"
+      - tag: "!(pr-changes-requested|pr-reviewer-comment|pr-unreviewed|pr-new-commits|pr-approved|pr-changes-requested)"
+  important-pr-needs-work:
+    name: "PR needs work"
+    type: issue
+    filters:
+      - label: "priority/important-soon|priority/important-critical"
+      - tag: "(pr-changes-requested|pr-reviewer-comment)"
+  important-pr-needs-review:
+    name: "PR needs Review"
+    type: issue
+    filters:
+      - label: "priority/important-soon|priority/important-critical"
+      - tag: "(pr-unreviewed|pr-new-commits)"
+  important-pr-needs-merge:
+    name: "PR needs Merge"
+    type: issue
+    filters:
+      - label: "priority/important-soon|priority/important-critical"
+      - tag: "(pr-approved|pr-approved-but-pushed)"
+  important-recently-closed:
+    name: "Recently closed"
+    type: issue
+    filters:
+      - label: "priority/important-soon|priority/important-critical"
       - state: closed
       - updated: -30d
 
@@ -218,7 +283,7 @@ rules:
       - tag: "recv"
       - created: +5d
 
-  issue-soon-slo:
+  issue-important-slo:
     name: "Important soon, but no updates in 60 days -- exceeds limit"
     resolution: "Downgrade to important-longterm"
     type: issue
@@ -321,12 +386,12 @@ rules:
 
   ####### Weekly Triage #########
   # SLO nearing
-  issue-near-soon-slo:
+  issue-near-important-slo:
     name: "Important soon, but no updates in 40 days -- nearing limit"
     resolution: "Downgrade to important-longterm"
     type: issue
     filters:
-      - label: "priority/important-soon"
+      - label: "priority/important-soon|priority/important-critical"
       - updated: +40d
 
   issue-near-longterm-slo:
