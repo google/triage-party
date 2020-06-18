@@ -50,7 +50,7 @@ var removeWords = map[string]bool{
 
 // normalize titles for a higher hit-rate
 func normalizeTitle(t string) string {
-	keep := []string{}
+	var keep []string
 	for _, word := range strings.Split(t, " ") {
 		word = nonLetter.ReplaceAllString(word, "")
 		if len(word) == 0 {
@@ -97,7 +97,10 @@ func (h *Engine) updateSimilarityTables(rawTitle, url string) {
 	similarTo := []string{}
 
 	h.titleToURLs.Range(func(k, v interface{}) bool {
-		otherTitle := k.(string)
+		otherTitle, ok := k.(string)
+		if !ok {
+			klog.V(1).Infof("key %q is not of type string", k)
+		}
 		if otherTitle == title {
 			return true
 		}

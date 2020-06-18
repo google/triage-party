@@ -13,7 +13,6 @@
 // limitations under the License.
 
 // Package persist provides a bootstrap for the in-memory cache
-
 package persist
 
 import (

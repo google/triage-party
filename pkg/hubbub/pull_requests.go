@@ -313,7 +313,7 @@ func reviewState(pr GitHubItem, timeline []*github.Timeline, reviews []*github.P
 		return Closed
 	}
 
-	klog.V(1).Infof("PR #%d has %d reviews, hoping one is for %s ...", pr.GetNumber(), (reviews), lastCommitID)
+	klog.V(1).Infof("PR #%d has %d reviews, hoping one is for %s ...", pr.GetNumber(), len(reviews), lastCommitID)
 	lastReview := time.Time{}
 	for _, r := range reviews {
 		if r.GetCommitID() == lastCommitID || lastCommitID == "" {
