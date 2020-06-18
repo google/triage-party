@@ -38,7 +38,7 @@ import (
 )
 
 // VERSION is what version of Triage Party we advertise as.
-const VERSION = "v1.2.0-beta.1"
+const VERSION = "v1.2.0-beta.2"
 
 var (
 	nonWordRe = regexp.MustCompile(`\W`)
