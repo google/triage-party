@@ -114,13 +114,20 @@ collections:
       - similar-prs
       - similar-issues
 
-  - id: open
+  - id: __open__
     name: All open PR's and Issues that should be considered for repository stats (hidden)
     used_for_statistics: true
     hidden: true
     rules:
       - open-prs
       - open-issues
+
+  - id: __velocity__
+    name: issues to include in velocity metrics
+    used_for_statistics: true
+    hidden: true
+    rules:
+      - closed-milestone-issues
 
 rules:
   ### Daily Triage ####
@@ -450,9 +457,16 @@ rules:
   open-issues:
     name: "Open Issues"
     type: issue
-    state: open
 
   open-prs:
     name: "Open PRs"
     type: pull_request
-    state: open
+
+  closed-milestone-issues:
+    name: "Recently closed milestone issues"
+    type: issue
+    filters:
+      - state: closed
+      - closed: -90d
+      - milestone: ".*"
+      - label: "!triage/duplicate"

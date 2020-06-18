@@ -121,14 +121,23 @@ collections:
       - p1-bugs
       - p1-other
 
-  - id: fixit
-    name: Fix-it
-    description: Candidates for the Skaffold Fix-It
+  - id: milestone
+    name: In Milestone
+    description: >
+      A Kanban visualization of milestones, showing the flow of issues through each stage.
+
+        * Unassigned issues represent available work
+        * >3 issues assigned to the same person within a stage signifies a bottleneck 🌊
+    display: kanban
+    overflow: 3
+    dedup: true
     rules:
-      - fixit-prs
-      - fixit-features
-      - fixit-bugs
-      - fixit-other
+      - milestone-not-started
+      - milestone-assignee-updated
+      - milestone-pr-needs-review
+      - milestone-pr-needs-work
+      - milestone-pr-needs-merge
+      - milestone-recently-closed
 
   - id: similar
     name: Similar
@@ -137,13 +146,21 @@ collections:
       - similar-prs
       - similar-issues
 
-  - id: open
+  - id: __open__
     name: All open PR's and Issues that should be considered for repository stats (hidden)
     used_for_statistics: true
     hidden: true
     rules:
       - open-prs
       - open-issues
+
+  - id: __velocity__
+    name: issues to include in velocity metrics
+    used_for_statistics: true
+    hidden: true
+    rules:
+      - closed-prioritized-issues
+      - closed-milestone-issues
 
 rules:
   ### Daily Triage ####
@@ -623,6 +640,47 @@ rules:
     filters:
       - label: "priority/p1"
 
+  ### Milestone Kanban ###
+  milestone-not-started:
+    name: "Not started"
+    type: issue
+    filters:
+      - tag: open-milestone
+      - tag: "!assignee-updated"
+      - tag: "!(assignee-open-pr|assignee-closed-pr)"
+  milestone-assignee-updated:
+    name: "In Progress"
+    type: issue
+    filters:
+      - tag: open-milestone
+      - tag: "assignee-updated"
+      - tag: "!(pr-changes-requested|pr-reviewer-comment|pr-unreviewed|pr-new-commits|pr-approved|pr-changes-requested)"
+  milestone-pr-needs-work:
+    name: "PR needs work"
+    type: issue
+    filters:
+      - tag: open-milestone
+      - tag: "(pr-changes-requested|pr-reviewer-comment)"
+  milestone-pr-needs-review:
+    name: "PR needs Review"
+    type: issue
+    filters:
+      - tag: open-milestone
+      - tag: "(pr-unreviewed|pr-new-commits)"
+  milestone-pr-needs-merge:
+    name: "PR needs Merge"
+    type: issue
+    filters:
+      - tag: open-milestone
+      - tag: "(pr-approved|pr-approved-but-pushed)"
+  milestone-recently-closed:
+    name: "Finish Line"
+    type: issue
+    filters:
+      - tag: open-milestone
+      - state: closed
+      - updated: -21d
+
   # Fix-It
   fixit-prs:
     name: "Fix-it PR's"
@@ -671,13 +729,29 @@ rules:
     filters:
       - tag: similar
 
-  # for stastistics generation
+  # for statistics generation
   open-issues:
     name: "Open Issues"
     type: issue
-    state: open
 
   open-prs:
     name: "Open PRs"
     type: pull_request
-    state: open
+
+  closed-prioritized-issues:
+    name: "Recently closed issues above >P2"
+    type: issue
+    filters:
+      - state: closed
+      - closed: -90d
+      - label: "priority/p[012]"
+      # Once Skaffold adopts milestones
+      # - milestone: ".*"
+
+  closed-milestone-issues:
+    name: "Recently closed issues within a milestone"
+    type: issue
+    filters:
+      - state: closed
+      - closed: -90d
+      - milestone: ".*"
