@@ -137,7 +137,7 @@ collections:
   - id: important
     name: Important
     description: >
-      Items labeled as priority/important-soon or priority/important-critical.
+      Items labeled as priority/important-soon or priority/critical-urgent.
     overflow: 3
     dedup: true
     rules:
@@ -172,7 +172,7 @@ collections:
       - closed-milestone-issues
 
 rules:
-  ### Kanban ###
+  ### Milestone Kanban ###
   milestone-not-started:
     name: "Not started"
     type: issue
@@ -213,12 +213,12 @@ rules:
       - state: closed
       - updated: -30d
 
-  ### Kanban ###
+  ### Important Kanban ###
   important-not-milestoned:
     name: "Not in milestone"
     type: issue
     filters:
-      - label: "priority/important-soon|priority/important-critical"
+      - label: "priority/important-soon|priority/critical-urgent"
       - tag: "!open-milestone"
       - tag: "!assignee-updated"
       - tag: "!(assignee-open-pr|assignee-closed-pr)"
@@ -226,7 +226,7 @@ rules:
     name: "In Milestone"
     type: issue
     filters:
-      - label: "priority/important-soon|priority/important-critical"
+      - label: "priority/important-soon|priority/critical-urgent"
       - tag: open-milestone
       - tag: "assignee-updated"
       - tag: "!(pr-changes-requested|pr-reviewer-comment|pr-unreviewed|pr-new-commits|pr-approved|pr-changes-requested)"
@@ -234,32 +234,32 @@ rules:
     name: "In Progress"
     type: issue
     filters:
-      - label: "priority/important-soon|priority/important-critical"
+      - label: "priority/important-soon|priority/critical-urgent"
       - tag: "assignee-updated"
       - tag: "!(pr-changes-requested|pr-reviewer-comment|pr-unreviewed|pr-new-commits|pr-approved|pr-changes-requested)"
   important-pr-needs-work:
     name: "PR needs work"
     type: issue
     filters:
-      - label: "priority/important-soon|priority/important-critical"
+      - label: "priority/important-soon|priority/critical-urgent"
       - tag: "(pr-changes-requested|pr-reviewer-comment)"
   important-pr-needs-review:
     name: "PR needs Review"
     type: issue
     filters:
-      - label: "priority/important-soon|priority/important-critical"
+      - label: "priority/important-soon|priority/critical-urgent"
       - tag: "(pr-unreviewed|pr-new-commits)"
   important-pr-needs-merge:
     name: "PR needs Merge"
     type: issue
     filters:
-      - label: "priority/important-soon|priority/important-critical"
+      - label: "priority/important-soon|priority/critical-urgent"
       - tag: "(pr-approved|pr-approved-but-pushed)"
   important-recently-closed:
     name: "Recently closed"
     type: issue
     filters:
-      - label: "priority/important-soon|priority/important-critical"
+      - label: "priority/important-soon|priority/critical-urgent"
       - state: closed
       - updated: -30d
 
@@ -391,7 +391,7 @@ rules:
     resolution: "Downgrade to important-longterm"
     type: issue
     filters:
-      - label: "priority/important-soon|priority/important-critical"
+      - label: "priority/important-soon|priority/critical-urgent"
       - updated: +40d
 
   issue-near-longterm-slo:
@@ -608,7 +608,7 @@ rules:
       - label: "!kind/flake"
       - label: "!kind/failing"
 
-  # for stastistics generation
+  # for statistics generation
   open-issues:
     name: "Open Issues"
     type: issue
