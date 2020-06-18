@@ -1,1 +1,7 @@
 /* Put your CSS overrides here */
+
+/* example: priority/critical-urgent Kanban (sticky note) has a firetruck in front */
+.priority-critical-urgent .sticky-id:before {
+      content: "🚒";
+      padding-right: 0.5em;
+}

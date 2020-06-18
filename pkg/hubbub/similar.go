@@ -68,6 +68,10 @@ func normalizeTitle(t string) string {
 }
 
 func (h *Engine) updateSimilarityTables(rawTitle, url string) {
+	if h.MinSimilarity == 0 {
+		return
+	}
+
 	title := normalizeTitle(rawTitle)
 
 	result, existing := h.titleToURLs.LoadOrStore(title, []string{url})
@@ -119,6 +123,10 @@ func (h *Engine) updateSimilarityTables(rawTitle, url string) {
 
 // FindSimilar locates similar conversations to this one
 func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
+	if h.MinSimilarity == 0 {
+		return nil
+	}
+
 	simco := []*RelatedConversation{}
 	title := normalizeTitle(co.Title)
 	similarURLs := []string{}

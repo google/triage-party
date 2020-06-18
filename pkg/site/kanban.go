@@ -180,9 +180,16 @@ func calcClosedPerDay(r *triage.CollectionResult) float64 {
 	}
 
 	oldestClosure := time.Now()
+	// dedup
+	seen := map[string]bool{}
 
 	for _, r := range r.RuleResults {
 		for _, co := range r.Items {
+			if seen[co.URL] {
+				continue
+			}
+			seen[co.URL] = true
+
 			if !co.ClosedAt.IsZero() && co.ClosedAt.Before(oldestClosure) {
 				klog.V(1).Infof("#%d was closed at %s", co.ID, co.ClosedAt)
 				oldestClosure = co.ClosedAt
@@ -191,7 +198,7 @@ func calcClosedPerDay(r *triage.CollectionResult) float64 {
 	}
 
 	days := time.Since(oldestClosure).Hours() / 24
-	closeRate := days / float64(r.TotalIssues)
+	closeRate := days / float64(len(seen))
 	klog.Infof("close rate is %.2f (%.1f days of data, %d issues)", closeRate, days, r.TotalIssues)
 	return closeRate
 }
