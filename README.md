@@ -94,21 +94,19 @@ NOTE: Multi-player works best if the "Resolution" field of each rule has a clear
 
 ## Kanban mode (NEW)
 
-In v1.2.0-beta.1 and newer, you can see a Kanban dashboard presentation for a collection. The columns are based on the rule the issue was found in, and the rows are based on the assignee. To see a real-world example:
+![kanban mode](docs/images/kanban.png)
+
+In v1.2.0, pages can now be displayed as a Kanban dashboard. The columns are based on the rule the issue was fonud in, and the rows are swim-lanes based on the assignee. To see a real-world example:
 
 * [minikube kanban dashboard](http://tinyurl.com/minikube-kanban)
 * [minikube kanban config](https://github.com/google/triage-party/blob/0ad4f584ac0db13a96548d3eca9d05e91e0b1a40/config/examples/minikube.yaml#L108)
 
-CAVEATS: In v1.2.0-beta.1, the Kanban view only works for issues that are within a milestone. You'll need to add these configuration lines to the collection to make this view visable:
+Best practices for designing a useful Kanban dashboard:
 
-
-```
-    display: kanban
-    overflow: 3
-    selector: milestone
-```
-
-You may also find `dedup: true` to be a useful configuration option. When v1.2.0 ships, all collections will be viewable as a Kanban dashboard using the /k/id URL path.
+* Rules should be designed and ordered in a way that represents progress: `Not started` -> `Started` -> `Under Review` -> `Completed`
+* Rules work best when they are mutually excusive (no issue matches multiple rules)
+* If a collection should be displayed in Kanban form by default, specify `display: kanban` in its configuration.
+* For velocity measurements and time estimate support, create a rule named `__velocity__` containing recently closed issues to include. See the example configuration.
 
 ## Data freshness
 
