@@ -117,7 +117,7 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 	return allPRs, start, nil
 }
 
-func (h *Engine) cachedPR(ctx context.Context, org string, project string, num int, newerThan time.Time) (*github.PullRequest, time.Time, error) {
+func (h *Engine) cachedPR(ctx context.Context, org string, project string, num int, newerThan time.Time, fetch bool) (*github.PullRequest, time.Time, error) {
 	key := fmt.Sprintf("%s-%s-%d-pr", org, project, num)
 
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
@@ -125,6 +125,10 @@ func (h *Engine) cachedPR(ctx context.Context, org string, project string, num i
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", key, newerThan)
+	if !fetch {
+		return nil, time.Time{}, nil
+	}
+
 	return h.updatePR(ctx, org, project, num, key)
 }
 
@@ -231,7 +235,7 @@ func (h *Engine) updateReviewComments(ctx context.Context, org string, project s
 	return allComments, start, nil
 }
 
-func (h *Engine) cachedReviews(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.PullRequestReview, time.Time, error) {
+func (h *Engine) cachedReviews(ctx context.Context, org string, project string, num int, newerThan time.Time, fetch bool) ([]*github.PullRequestReview, time.Time, error) {
 	key := fmt.Sprintf("%s-%s-%d-pr-reviews", org, project, num)
 
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
@@ -239,6 +243,9 @@ func (h *Engine) cachedReviews(ctx context.Context, org string, project string, 
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", key, newerThan)
+	if !fetch {
+		return nil, time.Time{}, nil
+	}
 	return h.updateReviews(ctx, org, project, num, key)
 }
 
@@ -367,10 +374,10 @@ func reviewStateTag(st string) tag.Tag {
 	return tag.Tag{}
 }
 
-func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Comment, timeline []*github.Timeline, reviews []*github.PullRequestReview, age time.Time) *Conversation {
+func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Comment, timeline []*github.Timeline, reviews []*github.PullRequestReview, age time.Time, fetch bool) *Conversation {
 	co := h.conversation(pr, cs, age)
 	co.Type = PullRequest
-	h.addEvents(ctx, co, timeline)
+	h.addEvents(ctx, co, timeline, fetch)
 
 	co.ReviewState = reviewState(pr, timeline, reviews)
 	co.Tags = append(co.Tags, reviewStateTag(co.ReviewState))

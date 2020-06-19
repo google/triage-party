@@ -130,12 +130,10 @@ func main() {
 	}
 
 	u := updater.New(updater.Config{
-		Party:      tp,
-		MinRefresh: *minRefresh,
-		MaxRefresh: *maxRefresh,
-		PersistFunc: func() error {
-			return c.Save()
-		},
+		Party:       tp,
+		MinRefresh:  *minRefresh,
+		MaxRefresh:  *maxRefresh,
+		PersistFunc: c.Save,
 	})
 
 	if *dryRun {
@@ -169,7 +167,7 @@ func main() {
 		BaseDirectory: findPath(*siteDir),
 		Updater:       u,
 		Party:         tp,
-		WarnAge:       (*maxRefresh * 2),
+		WarnAge:       (*maxRefresh * 4),
 		Name:          sn,
 	})
 
