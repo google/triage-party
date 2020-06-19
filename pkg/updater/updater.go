@@ -275,6 +275,11 @@ func (u *Updater) shouldPersist(updated bool) bool {
 		return false
 	}
 
+	if u.updateCycles < 2 {
+		klog.Infof("Only on cycle %d, will wait longer before persist", u.updateCycles)
+		return false
+	}
+
 	sinceSave := time.Since(u.lastPersist)
 
 	// Avoid write contention by fuzzing
