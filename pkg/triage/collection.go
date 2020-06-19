@@ -82,7 +82,8 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 			return nil, err
 		}
 
-		ro, err := p.ExecuteRule(ctx, t, seen, newerThan)
+		hidden := s.Hidden && s.UsedForStats
+		ro, err := p.ExecuteRule(ctx, t, seen, newerThan, hidden)
 		if err != nil {
 			return nil, fmt.Errorf("rule %q: %w", t.Name, err)
 		}

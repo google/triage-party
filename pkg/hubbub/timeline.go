@@ -22,6 +22,7 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/persist"
+	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
 )
 
@@ -103,7 +104,7 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 				klog.V(1).Infof("cross-referenced by the assignee, updating assigned response")
 				if t.GetCreatedAt().After(co.LatestAssigneeResponse) {
 					co.LatestAssigneeResponse = t.GetCreatedAt()
-					co.Tags = append(co.Tags, assigneeUpdatedTag())
+					co.Tags = append(co.Tags, tag.AssigneeUpdated)
 				}
 			}
 
@@ -122,7 +123,7 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 				co.PullRequestRefs = append(co.PullRequestRefs, ref)
 				refTag := reviewStateTag(ref.ReviewState)
 				refTag.ID = fmt.Sprintf("pr-%s", refTag.ID)
-				refTag.Description = fmt.Sprintf("cross-referenced PR: %s", refTag.Description)
+				refTag.Desc = fmt.Sprintf("cross-referenced PR: %s", refTag.Desc)
 				co.Tags = append(co.Tags, refTag)
 			} else {
 				co.IssueRefs = append(co.IssueRefs, h.issueRef(t.GetSource().GetIssue(), co.Seen))
@@ -130,7 +131,7 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 		}
 	}
 
-	co.Tags = dedupTags(co.Tags)
+	co.Tags = tag.Dedup(co.Tags)
 }
 
 func (h *Engine) prRef(ctx context.Context, pr GitHubItem, age time.Time) *RelatedConversation {
@@ -204,11 +205,4 @@ func (h *Engine) updateLinkedPRs(ctx context.Context, parent *Conversation, newe
 func (h *Engine) issueRef(i *github.Issue, age time.Time) *RelatedConversation {
 	co := h.conversation(i, nil, age)
 	return makeRelated(co)
-}
-
-func assigneeUpdatedTag() Tag {
-	return Tag{
-		ID:          "assignee-updated",
-		Description: "The assignee has updated the issue",
-	}
 }

@@ -140,7 +140,7 @@ func executeRule(ctx context.Context, tp *triage.Party) {
 		klog.Exitf("rule: %v", err)
 	}
 
-	rr, err := tp.ExecuteRule(ctx, r, nil, time.Time{})
+	rr, err := tp.ExecuteRule(ctx, r, nil, time.Time{}, false)
 	if err != nil {
 		klog.Exitf("execute: %v", err)
 	}

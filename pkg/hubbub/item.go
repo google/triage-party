@@ -1,3 +1,17 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package hubbub
 
 import (
@@ -7,6 +21,8 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"k8s.io/klog/v2"
+
+	"github.com/google/triage-party/pkg/tag"
 )
 
 // GitHubItem is an interface that matches both GitHub Issues and PullRequests
@@ -62,7 +78,7 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment, age time.Time) *Conve
 
 	if i.GetAssignee() != nil {
 		co.Assignees = append(co.Assignees, i.GetAssignee())
-		co.Tags = append(co.Tags, assignedTag())
+		co.Tags = append(co.Tags, tag.Assigned)
 	}
 
 	if !authorIsMember {
@@ -119,7 +135,7 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment, age time.Time) *Conve
 			}
 			co.LatestMemberResponse = c.Created
 			if !seenMemberComment {
-				co.Tags = append(co.Tags, commentedTag())
+				co.Tags = append(co.Tags, tag.Commented)
 				seenMemberComment = true
 			}
 		}
@@ -145,26 +161,26 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment, age time.Time) *Conve
 
 	if co.LatestMemberResponse.After(co.LatestAuthorResponse) {
 		klog.V(2).Infof("marking as send: latest member response (%s) is after latest author response (%s)", co.LatestMemberResponse, co.LatestAuthorResponse)
-		co.Tags = append(co.Tags, sendTag())
+		co.Tags = append(co.Tags, tag.Send)
 		co.CurrentHoldTime = 0
 	} else if !authorIsMember {
 		klog.V(2).Infof("marking as recv: author is not member, latest member response (%s) is before latest author response (%s)", co.LatestMemberResponse, co.LatestAuthorResponse)
-		co.Tags = append(co.Tags, recvTag())
+		co.Tags = append(co.Tags, tag.Recv)
 		co.CurrentHoldTime += time.Since(co.LatestAuthorResponse)
 		co.AccumulatedHoldTime += time.Since(co.LatestAuthorResponse)
 	}
 
 	if lastQuestion.After(co.LatestMemberResponse) {
 		klog.V(2).Infof("marking as recv-q: last question (%s) comes after last member response (%s)", lastQuestion, co.LatestMemberResponse)
-		co.Tags = append(co.Tags, recvQTag())
+		co.Tags = append(co.Tags, tag.RecvQ)
 	}
 
 	if co.Milestone != nil && co.Milestone.GetState() == "open" {
-		co.Tags = append(co.Tags, openMilestoneTag())
+		co.Tags = append(co.Tags, tag.OpenMilestone)
 	}
 
 	if !co.LatestAssigneeResponse.IsZero() {
-		co.Tags = append(co.Tags, assigneeUpdatedTag())
+		co.Tags = append(co.Tags, tag.AssigneeUpdated)
 	}
 
 	if len(cs) > 0 {
@@ -172,16 +188,16 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment, age time.Time) *Conve
 		assoc := strings.ToLower(last.AuthorAssoc)
 		if assoc == "none" {
 			if last.User.GetLogin() == i.GetUser().GetLogin() {
-				co.Tags = append(co.Tags, authorLast())
+				co.Tags = append(co.Tags, tag.AuthorLast)
 			}
 		} else {
-			co.Tags = append(co.Tags, assocLast(assoc))
+			co.Tags = append(co.Tags, tag.RoleLast(assoc))
 		}
 		co.Updated = last.Updated
 	}
 
 	if co.State == "closed" {
-		co.Tags = append(co.Tags, closedTag())
+		co.Tags = append(co.Tags, tag.Closed)
 	}
 
 	co.CommentersTotal = len(seenCommenters)
@@ -211,82 +227,4 @@ func (h *Engine) isMember(user string, role string) bool {
 	}
 
 	return false
-}
-
-func dedupTags(tags []Tag) []Tag {
-	deduped := []Tag{}
-	seen := map[string]bool{}
-
-	for _, t := range tags {
-		if seen[t.ID] {
-			continue
-		}
-		deduped = append(deduped, t)
-		seen[t.ID] = true
-	}
-
-	return deduped
-}
-
-func assignedTag() Tag {
-	return Tag{
-		ID:          "assigned",
-		Description: "Someone is assigned",
-	}
-}
-
-func commentedTag() Tag {
-	return Tag{
-		ID:          "commented",
-		Description: "A project member has commented on this",
-	}
-}
-
-func sendTag() Tag {
-	return Tag{
-		ID:          "send",
-		Description: "A project member commented more recently than the author",
-	}
-}
-
-func recvTag() Tag {
-	return Tag{
-		ID:          "recv",
-		Description: "The author commented more recently than a project member",
-	}
-}
-
-func recvQTag() Tag {
-	return Tag{
-		ID:          "recv-q",
-		Description: "The author has asked a question since the last project member commented",
-	}
-}
-
-func openMilestoneTag() Tag {
-	return Tag{
-		ID:          "open-milestone",
-		Description: "The issue is associated to an open milestone",
-	}
-}
-
-func authorLast() Tag {
-	return Tag{
-		ID:          "author-last",
-		Description: "The last commenter was the original author",
-	}
-}
-
-func assocLast(role string) Tag {
-	return Tag{
-		ID:          fmt.Sprintf("%s-last", role),
-		Description: fmt.Sprintf("The last commenter was a project %s", role),
-	}
-}
-
-func closedTag() Tag {
-	return Tag{
-		ID:          "closed",
-		Description: "This item has been closed",
-	}
 }
