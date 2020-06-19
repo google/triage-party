@@ -17,6 +17,7 @@ package updater
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -205,14 +206,13 @@ func (u *Updater) update(ctx context.Context, s triage.Collection, newerThan tim
 
 // Run a single collection, optionally forcing an update
 func (u *Updater) RefreshCollection(ctx context.Context, id string, newerThan time.Time, force bool) (bool, error) {
-	updated := false
 	klog.V(3).Infof("RefreshCollection: %s newer than %s, force=%v (locking mutex)", id, newerThan, force)
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
 	s, err := u.party.LookupCollection(id)
 	if err != nil {
-		return updated, err
+		return false, err
 	}
 
 	if err := u.shouldUpdate(s.ID, force); err != nil {
@@ -220,17 +220,16 @@ func (u *Updater) RefreshCollection(ctx context.Context, id string, newerThan ti
 
 		err := u.update(ctx, s, newerThan)
 		if err != nil {
-			return updated, err
+			return false, err
 		}
-		updated = true
 	}
-	return updated, nil
+	return true, nil
 }
 
 // Persist saves results to the persistence layer
 func (u *Updater) Persist() error {
 	if !u.persistStart.IsZero() {
-		return fmt.Errorf("already persisting!")
+		return errors.New("already persisting")
 	}
 
 	// advisory lock
@@ -291,7 +290,7 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) (bool, error) {
 	}()
 
 	if force {
-		klog.Warningf(">>> RunOnce has force enabled")
+		klog.Warning(">>> RunOnce has force enabled")
 	} else {
 		klog.V(3).Infof("RunOnce: force=%v", force)
 	}
@@ -308,7 +307,7 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) (bool, error) {
 
 	newerThan := start.Add(-2 * minFlushAge)
 	if u.updateCycles == 0 {
-		klog.Infof("have not yet completed a cycle - will accept stale results")
+		klog.Info("have not yet completed a cycle - will accept stale results")
 		newerThan = time.Time{}
 	}
 
