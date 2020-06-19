@@ -11,11 +11,12 @@
 <nav class="navbar secondary" role="navigation" aria-label="secondary navigation">
   <div class="navbar-secondary-brand">
   </div>
+  
   <div id="navbarBasicExample" class="navbar-menu">
     <div class="navbar-center">
           <div class="right-item">
           <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
-          <span title="Data as of {{ .ResultAge | HumanDuration}} ago">{{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }}, 
+          <span title="Data as of {{ .ResultAge | HumanDuration}} ago">{{ if eq (len .UniqueItems) .Total }}{{ .Total }} unique items{{ else }}Showing {{ len .UniqueItems }} of {{ .Total}} unique items{{ end }}, 
           Avg age: {{ .CollectionResult.AvgAge | toDays }}, 
           Avg wait: {{ .CollectionResult.AvgCurrentHold | toDays }}
           </span>
