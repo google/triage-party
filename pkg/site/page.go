@@ -17,6 +17,7 @@ package site
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"time"
 
 	"github.com/google/triage-party/pkg/hubbub"
@@ -70,7 +71,7 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 	warning := ""
 
 	if time.Since(result.LatestInput) > h.warnAge {
-		warning = fmt.Sprintf("Service started %s ago, and is still downloading data. Data may be up to %s old, and incompletely tagged. Use Shift-Reload to force a refresh.", humanDuration(time.Since(h.startTime)), humanDuration(time.Since(result.LatestInput)))
+		warning = fmt.Sprintf(`Service started %s ago, and is still downloading data. Data may be up to %s old and incomplete. Use <a href='https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh.`, humanDuration(time.Since(h.startTime)), humanDuration(time.Since(result.LatestInput)))
 	}
 
 	total := 0
@@ -96,7 +97,7 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		CollectionResult: result,
 		Total:            len(unique),
 		Types:            "Issues",
-		Warning:          warning,
+		Warning:          template.HTML(warning),
 		UniqueItems:      unique,
 		ResultAge:        time.Since(age),
 	}

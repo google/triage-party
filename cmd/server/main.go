@@ -167,7 +167,7 @@ func main() {
 		BaseDirectory: findPath(*siteDir),
 		Updater:       u,
 		Party:         tp,
-		WarnAge:       (*maxRefresh * 4),
+		WarnAge:       *maxRefresh * 4,
 		Name:          sn,
 	})
 
