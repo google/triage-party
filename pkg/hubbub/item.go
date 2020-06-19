@@ -209,8 +209,8 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment, age time.Time) *Conve
 
 	// Loose, but good enough
 	months := time.Since(co.Created).Hours() / 24 / 30
-	co.CommentersPerMonth = float64(co.CommentersTotal) / float64(months)
-	co.ReactionsPerMonth = float64(co.ReactionsTotal) / float64(months)
+	co.CommentersPerMonth = float64(co.CommentersTotal) / months
+	co.ReactionsPerMonth = float64(co.ReactionsTotal) / months
 	return co
 }
 

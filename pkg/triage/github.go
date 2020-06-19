@@ -45,7 +45,7 @@ func MustReadToken(path string, env string) string {
 		klog.Infof("loaded %d byte github token from %s", len(token), env)
 	}
 
-	token = strings.TrimSpace(string(token))
+	token = strings.TrimSpace(token)
 	if len(token) < 8 {
 		klog.Exitf("github token impossibly small: %q", token)
 	}

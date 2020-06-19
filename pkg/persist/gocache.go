@@ -50,7 +50,10 @@ func newerThanMem(c *cache.Cache, key string, t time.Time) *Thing {
 		return nil
 	}
 
-	th := x.(*Thing)
+	th, ok := x.(*Thing)
+	if !ok {
+		klog.V(1).Infof("%s is not of type Thing", key)
+	}
 
 	if th.Created.Before(t) {
 		klog.V(2).Infof("%s in cache, but %s is older than %s", key, logu.STime(th.Created), logu.STime(t))

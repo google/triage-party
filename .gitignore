@@ -25,6 +25,9 @@ vendor/
 # vim
 *~
 
+#goland
+.idea
+
 # macOS
 .DS_Store
 

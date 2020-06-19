@@ -175,7 +175,7 @@ func closedAge(fs []hubbub.Filter) time.Duration {
 
 	if oldest == 0 {
 		klog.Warningf("I need closed data, but I'm not sure how old: picking 4 days")
-		return time.Duration(24 * 4 * time.Hour)
+		return 24 * 4 * time.Hour
 	}
 
 	return oldest
