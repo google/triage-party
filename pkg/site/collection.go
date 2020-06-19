@@ -50,7 +50,6 @@ func (h *Handlers) Collection() http.HandlerFunc {
 		playerChoices := []string{"Select a player"}
 		players := getInt(r.URL, "players", 1)
 		player := getInt(r.URL, "player", 0)
-		mode := getInt(r.URL, "mode", 0)
 		index := getInt(r.URL, "index", 1)
 
 		for i := 0; i < players; i++ {
@@ -74,21 +73,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 
 		if player > 0 && players > 1 {
 			p.CollectionResult = playerFilter(result, player, players)
-		}
-
-		embedURL := ""
-
-		if mode == 1 {
-			searchIndex := 0
-
-			for _, o := range result.RuleResults {
-				for _, i := range o.Items {
-					searchIndex++
-					if searchIndex == index {
-						embedURL = i.URL
-					}
-				}
-			}
+			p.UniqueItems = uniqueItems(p.CollectionResult.RuleResults)
 		}
 
 		getVars := ""
@@ -101,9 +86,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 		p.Player = player
 		p.Players = players
 		p.Description = p.Collection.Description
-		p.Mode = mode
 		p.Index = index
-		p.EmbedURL = embedURL
 		p.GetVars = getVars
 
 		klog.V(2).Infof("page context: %+v", p)

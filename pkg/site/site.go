@@ -126,9 +126,7 @@ type Page struct {
 	Players       int
 	PlayerChoices []string
 	PlayerNums    []int
-	Mode          int
 	Index         int
-	EmbedURL      string
 
 	AverageResponseLatency time.Duration
 	TotalPullRequests      int

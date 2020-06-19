@@ -82,34 +82,12 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		total += len(o.Items)
 	}
 
-	uniqueFiltered := []*hubbub.Conversation{}
-	seenFiltered := map[int]bool{}
-
-	for _, o := range result.RuleResults {
-		for _, i := range o.Items {
-			if !seenFiltered[i.ID] {
-				uniqueFiltered = append(uniqueFiltered, i)
-				seenFiltered[i.ID] = true
-			}
-		}
-	}
-
-	unique := []*hubbub.Conversation{}
-	seen := map[int]bool{}
-
-	for _, o := range result.RuleResults {
-		for _, i := range o.Items {
-			if !seen[i.ID] {
-				unique = append(unique, i)
-				seen[i.ID] = true
-			}
-		}
-	}
-
 	age := result.LatestInput
 	if result.NewerThan.After(age) {
 		age = result.NewerThan
 	}
+
+	unique := uniqueItems(result.RuleResults)
 
 	p := &Page{
 		ID:               s.ID,
@@ -121,10 +99,9 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		Description:      s.Description,
 		CollectionResult: result,
 		Total:            len(unique),
-		TotalShown:       len(uniqueFiltered),
 		Types:            "Issues",
 		Warning:          warning,
-		UniqueItems:      uniqueFiltered,
+		UniqueItems:      unique,
 		ResultAge:        time.Since(age),
 	}
 
@@ -143,4 +120,19 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 	}
 
 	return p, nil
+}
+
+func uniqueItems(results []*triage.RuleResult) []*hubbub.Conversation {
+	items := []*hubbub.Conversation{}
+	seen := map[string]bool{}
+
+	for _, r := range results {
+		for _, i := range r.Items {
+			if !seen[i.URL] {
+				seen[i.URL] = true
+				items = append(items, i)
+			}
+		}
+	}
+	return items
 }
