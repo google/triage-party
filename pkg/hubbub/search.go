@@ -133,7 +133,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 		if needComments(i, fs) && i.GetComments() > 0 {
 			klog.V(1).Infof("#%d - %q: need comments for final filtering", i.GetNumber(), i.GetTitle())
-			comments, _, err = h.cachedIssueComments(ctx, org, project, i.GetNumber(), h.mtime(i))
+			comments, _, err = h.cachedIssueComments(ctx, org, project, i.GetNumber(), h.mtime(i), !newerThan.IsZero())
 			if err != nil {
 				klog.Errorf("comments: %v", err)
 			}
@@ -283,7 +283,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		var comments []*Comment
 
 		if needComments(pr, fs) {
-			comments, _, err = h.prComments(ctx, org, project, pr.GetNumber(), h.mtime(pr))
+			comments, _, err = h.prComments(ctx, org, project, pr.GetNumber(), h.mtime(pr), !newerThan.IsZero())
 			if err != nil {
 				klog.Errorf("comments: %v", err)
 			}
