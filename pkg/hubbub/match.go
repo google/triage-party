@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v31/github"
+	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
 )
 
@@ -168,7 +169,7 @@ func postFetchMatch(co *Conversation, fs []Filter) bool {
 func postEventsMatch(co *Conversation, fs []Filter) bool {
 	for _, f := range fs {
 		if f.TagRegex() != nil {
-			if ok := matchTag(co.Tags, f.TagRegex(), f.TagNegate()); !ok {
+			if ok, _ := matchTag(co.Tags, f.TagRegex(), f.TagNegate()); !ok {
 				klog.V(4).Infof("#%d did not pass matchTag: %s vs %s %v", co.ID, co.Tags, f.TagRegex(), f.TagNegate())
 				return false
 			}
@@ -215,14 +216,14 @@ func matchNegateRegex(value string, re *regexp.Regexp, negate bool) bool {
 	return negate
 }
 
-func matchTag(tags []Tag, re *regexp.Regexp, negate bool) bool {
-	for _, s := range tags {
-		if re.MatchString(s.ID) {
-			return !negate
+func matchTag(tags []tag.Tag, re *regexp.Regexp, negate bool) (bool, tag.Tag) {
+	for _, t := range tags {
+		if re.MatchString(t.ID) {
+			return !negate, t
 		}
 	}
 	// Returns 'false' normally, 'true' when negate is true
-	return negate
+	return negate, tag.None
 }
 
 func ParseDuration(ds string) (time.Duration, bool, bool) {

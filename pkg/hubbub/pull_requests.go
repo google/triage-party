@@ -23,6 +23,7 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/persist"
+	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
 )
 
@@ -276,6 +277,12 @@ func (h *Engine) updateReviews(ctx context.Context, org string, project string, 
 // reviewState parses review events to see where an issue was left off
 func reviewState(pr GitHubItem, timeline []*github.Timeline, reviews []*github.PullRequestReview) string {
 	state := Unreviewed
+
+	if len(timeline) == 0 && len(reviews) == 0 {
+		klog.Infof("Asked for a review state for PR#%d, but have no input data", pr.GetNumber())
+		return Unreviewed
+	}
+
 	lastCommitID := ""
 	lastPushTime := time.Time{}
 	open := true
@@ -336,28 +343,28 @@ func reviewState(pr GitHubItem, timeline []*github.Timeline, reviews []*github.P
 	return state
 }
 
-func reviewStateTag(st string) Tag {
+func reviewStateTag(st string) tag.Tag {
 	switch st {
 	case Approved:
-		return Tag{ID: "approved", Description: "Last review was an approval"}
+		return tag.Approved
 	case Commented:
-		return Tag{ID: "reviewed-with-comment", Description: "Last review was a comment"}
+		return tag.ReviewedWithComment
 	case ChangesRequested:
-		return Tag{ID: "changes-requested", Description: "Last review was a request for changes"}
+		return tag.ChangesRequested
 	case NewCommits:
-		return Tag{ID: "new-commits", Description: "PR has commits since the last review"}
+		return tag.NewCommits
 	case Unreviewed:
-		return Tag{ID: "unreviewed", Description: "PR has never been reviewed"}
+		return tag.Unreviewed
 	case PushedAfterApproval:
-		return Tag{ID: "pushed-after-approval", Description: "PR was pushed to after approval"}
+		return tag.PushedAfterApproval
 	case Closed:
-		return Tag{ID: "closed", Description: "PR was closed"}
+		return tag.Closed
 	case Merged:
-		return Tag{ID: "merged", Description: "PR was merged"}
+		return tag.Merged
 	default:
 		klog.Errorf("No known tag for: %q", st)
 	}
-	return Tag{}
+	return tag.Tag{}
 }
 
 func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Comment, timeline []*github.Timeline, reviews []*github.PullRequestReview, age time.Time) *Conversation {
@@ -368,19 +375,15 @@ func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Co
 	co.ReviewState = reviewState(pr, timeline, reviews)
 	co.Tags = append(co.Tags, reviewStateTag(co.ReviewState))
 
-	if co.ReviewState != Unreviewed {
-		co.Tags = append(co.Tags, Tag{ID: "reviewed", Description: "PR has been reviewed at least once"})
-	}
-
 	if pr.GetDraft() {
-		co.Tags = append(co.Tags, Tag{ID: "draft", Description: "Draft PR"})
+		co.Tags = append(co.Tags, tag.Draft)
 	}
 
 	// Technically not the same thing, but close enough for me.
 	co.ClosedBy = pr.GetMergedBy()
 	if pr.GetMerged() {
 		co.ReviewState = Merged
-		co.Tags = append(co.Tags, Tag{ID: "merged", Description: "PR has been merged"})
+		co.Tags = append(co.Tags, tag.Merged)
 	}
 
 	sort.Slice(co.Tags, func(i, j int) bool { return co.Tags[i].ID < co.Tags[j].ID })

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v31/github"
+	"github.com/google/triage-party/pkg/tag"
 )
 
 // Issue is a type representing an issue
@@ -82,7 +83,7 @@ type Conversation struct {
 	IssueRefs       []*RelatedConversation `json:"issue_refs"`
 	PullRequestRefs []*RelatedConversation `json:"pull_request_refs"`
 
-	Tags []Tag `json:"tags"`
+	Tags []tag.Tag `json:"tags"`
 
 	// Similar issues to this one
 	Similar []*RelatedConversation `json:"similar"`
@@ -92,10 +93,10 @@ type Conversation struct {
 
 // A subset of Conversation for related items (requires less memory than a Conversation)
 type RelatedConversation struct {
-	Organization string `json:"org"`
-	Project      string `json:"project"`
-	ID           int    `json:"int"`
-	Tags         []Tag  `json:"tags"`
+	Organization string    `json:"org"`
+	Project      string    `json:"project"`
+	ID           int       `json:"int"`
+	Tags         []tag.Tag `json:"tags"`
 
 	URL         string       `json:"url"`
 	Title       string       `json:"title"`
@@ -106,12 +107,6 @@ type RelatedConversation struct {
 	Updated     time.Time    `json:"updated"`
 	Seen        time.Time    `json:"seen"`
 	ReviewState string       `json:"review_state"`
-}
-
-// Tag is used for automatically labelling issues
-type Tag struct {
-	ID          string `json:"id"`
-	Description string `json:"description"`
 }
 
 func makeRelated(c *Conversation) *RelatedConversation {

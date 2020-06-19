@@ -125,15 +125,34 @@ func (u *Updater) ForceRefresh(ctx context.Context, id string) *triage.Collectio
 }
 
 // shouldUpdate returns an error if a collection needs an update
-func (u *Updater) shouldUpdate(id string, force bool) error {
+func (u *Updater) shouldUpdate(id string, usedForStats bool, force bool) error {
+	// The first cycle is based on a pared down set of results for faster initial load
+	if u.updateCycles < 2 {
+		return fmt.Errorf("cycle count is only %d", u.updateCycles)
+	}
+
 	result, ok := u.cache[id]
 	if !ok {
 		return fmt.Errorf("results are not cached")
 	}
 
-	resultAge := time.Since(result.Time)
-	if resultAge > u.maxRefresh {
-		return fmt.Errorf("%s at %s is older than max refresh age (%s), should update", id, logu.STime(result.Time), resultAge)
+	rtime := result.NewerThan
+
+	// There can be a lengthy run time on larger repos
+	if result.LatestInput.After(rtime) {
+		rtime = result.LatestInput
+	}
+
+	resultAge := time.Since(rtime)
+	maxRefresh := u.maxRefresh
+
+	// stats-based metrics can wait longer to refresh
+	if usedForStats {
+		maxRefresh *= 3
+	}
+
+	if resultAge > maxRefresh {
+		return fmt.Errorf("%s at %s is older than max refresh age (%s), should update", id, logu.STime(result.NewerThan), resultAge)
 	}
 
 	if force {
@@ -155,7 +174,7 @@ func (u *Updater) shouldUpdate(id string, force bool) error {
 	requestAge := time.Since(u.lastRequested(id))
 	secondRequestDiff := u.lastRequested(id).Sub(u.secondLastRequested(id))
 	needAge := ((requestAge + secondRequestDiff) / 2) + u.minRefresh
-	if resultAge > needAge {
+	if resultAge > needAge && !usedForStats {
 		return fmt.Errorf("result age (%s) too old based on popularity", resultAge)
 	}
 
@@ -200,7 +219,7 @@ func (u *Updater) update(ctx context.Context, s triage.Collection, newerThan tim
 		return err
 	}
 	u.cache[s.ID] = r
-	klog.Infof("<<< updated %q to %s <<<", s.ID, logu.STime(r.Time))
+	klog.Infof("<<< updated %q to %s (latest input: %s) <<<", s.ID, logu.STime(r.NewerThan), logu.STime(r.LatestInput))
 	return nil
 }
 
@@ -215,15 +234,14 @@ func (u *Updater) RefreshCollection(ctx context.Context, id string, newerThan ti
 		return false, err
 	}
 
-	if err := u.shouldUpdate(s.ID, force); err != nil {
-		klog.Infof("reason for updating %q: %v", s.ID, err)
-
-		err := u.update(ctx, s, newerThan)
-		if err != nil {
-			return false, err
-		}
+	err = u.shouldUpdate(s.ID, s.UsedForStats, force)
+	if err == nil {
+		return false, nil
 	}
-	return true, nil
+
+	klog.Infof("reason for updating %q: %v", s.ID, err)
+	err = u.update(ctx, s, newerThan)
+	return true, err
 }
 
 // Persist saves results to the persistence layer
@@ -297,6 +315,7 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) (bool, error) {
 
 	sts, err := u.party.ListCollections()
 	if err != nil {
+		updated = false
 		return updated, err
 	}
 
@@ -318,6 +337,7 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) (bool, error) {
 		if err != nil {
 			klog.Errorf("%s failed to update: %v", s.ID, err)
 			failed = append(failed, s.ID)
+			continue
 		}
 		if runUpdated {
 			updated = true
@@ -334,7 +354,7 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) (bool, error) {
 // Update loop
 func (u *Updater) Loop(ctx context.Context) error {
 	// Loop if everything goes to plan
-	klog.Infof("Looping: data will be updated between %s and %s", u.minRefresh, u.maxRefresh)
+	klog.Infof("Looping: data will be updated between %s and %s (loop every %s)", u.minRefresh, u.maxRefresh, u.loopEvery)
 	ticker := time.NewTicker(u.loopEvery)
 	defer ticker.Stop()
 	for range ticker.C {

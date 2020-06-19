@@ -104,7 +104,7 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 }
 
 // ExecuteRule executes a rule. seen is optional.
-func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, newerThan time.Time) (*RuleResult, error) {
+func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, newerThan time.Time, hidden bool) (*RuleResult, error) {
 	klog.V(1).Infof("executing rule %q for results newer than %s", t.ID, logu.STime(newerThan))
 	rcs := []*hubbub.Conversation{}
 	var latest time.Time
@@ -121,11 +121,11 @@ func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, 
 		var cs []*hubbub.Conversation
 		switch t.Type {
 		case hubbub.Issue:
-			cs, ts, err = p.engine.SearchIssues(ctx, org, project, t.Filters, newerThan)
+			cs, ts, err = p.engine.SearchIssues(ctx, org, project, t.Filters, newerThan, hidden)
 		case hubbub.PullRequest:
-			cs, ts, err = p.engine.SearchPullRequests(ctx, org, project, t.Filters, newerThan)
+			cs, ts, err = p.engine.SearchPullRequests(ctx, org, project, t.Filters, newerThan, hidden)
 		default:
-			cs, ts, err = p.engine.SearchAny(ctx, org, project, t.Filters, newerThan)
+			cs, ts, err = p.engine.SearchAny(ctx, org, project, t.Filters, newerThan, hidden)
 		}
 
 		if err != nil {
