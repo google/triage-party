@@ -17,6 +17,7 @@ package site
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"time"
 
 	"github.com/google/triage-party/pkg/hubbub"
@@ -96,7 +97,7 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		CollectionResult: result,
 		Total:            len(unique),
 		Types:            "Issues",
-		Warning:          warning,
+		Warning:          template.HTML(warning),
 		UniqueItems:      unique,
 		ResultAge:        time.Since(age),
 	}

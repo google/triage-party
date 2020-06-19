@@ -115,7 +115,7 @@ type Page struct {
 	ID          string
 	Title       string
 	Description string
-	Warning     string
+	Warning     template.HTML
 	Total       int
 	TotalShown  int
 	Types       string
