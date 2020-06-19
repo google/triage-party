@@ -66,11 +66,15 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		klog.V(2).Infof("lookup %q result: %d items", id, len(result.RuleResults))
 	}
 
-	dataAge = result.Time
+	dataAge = result.LatestInput
 	warning := ""
 
-	if time.Since(result.Time) > h.warnAge {
-		warning = fmt.Sprintf("Serving results from %s ago. Service started %s ago and is downloading new data. Use Shift-Reload to force refresh at any time.", humanDuration(time.Since(result.Time)), humanDuration(time.Since(h.startTime)))
+	if result.NewerThan.IsZero() {
+		warning = fmt.Sprintf("Service started %s ago, and is still downloading tagging data. Use Shift-Reload to force a refresh.", humanDuration(time.Since(h.startTime)))
+	}
+
+	if time.Since(result.LatestInput) > h.warnAge {
+		warning = fmt.Sprintf("Service started %s ago, and is still downloading data. Data may be up to %s old, and incompletely tagged. Use Shift-Reload to force a refresh.", humanDuration(time.Since(h.startTime)), humanDuration(time.Since(result.LatestInput)))
 	}
 
 	total := 0
@@ -102,6 +106,11 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		}
 	}
 
+	age := result.LatestInput
+	if result.NewerThan.After(age) {
+		age = result.NewerThan
+	}
+
 	p := &Page{
 		ID:               s.ID,
 		Version:          VERSION,
@@ -116,7 +125,7 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		Types:            "Issues",
 		Warning:          warning,
 		UniqueItems:      uniqueFiltered,
-		ResultAge:        time.Since(result.Time),
+		ResultAge:        time.Since(age),
 	}
 
 	for _, s := range sts {

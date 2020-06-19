@@ -336,34 +336,36 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 }
 
 func needComments(i GitHubItem, fs []Filter, newerThan time.Time, hidden bool) bool {
-	if i.GetState() != "open" {
-		return false
-	}
-
 	if newerThan.IsZero() {
 		return false
 	}
 
 	for _, f := range fs {
-		if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
-			if t.NeedsComments {
-				klog.Infof("need comments due to tag %s matching filter %s", formatStruct(t), formatStruct(f))
-				return true
+		if f.TagRegex() != nil {
+			if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
+				if t.NeedsComments {
+					klog.V(1).Infof("#%d - need comments due to tag %s (negate=%v)", i.GetNumber(), f.TagRegex(), f.TagNegate())
+					return true
+				}
 			}
 		}
 
 		if f.ClosedCommenters != "" || f.ClosedComments != "" {
-			klog.Infof("need comments due to filter %s", formatStruct(f))
+			klog.V(1).Infof("#%d - need comments due to closed comments", i.GetNumber())
 			return true
 		}
 
 		if f.Responded != "" || f.Commenters != "" {
-			klog.Infof("need comments due to filter %s", formatStruct(f))
+			klog.V(1).Infof("#%d - need comments due to responded/commenters filter", i.GetNumber())
 			return true
 		}
 	}
 
 	if newerThan.IsZero() {
+		return false
+	}
+
+	if i.GetState() != "open" {
 		return false
 	}
 
@@ -389,14 +391,16 @@ func needTimeline(i GitHubItem, fs []Filter, newerThan time.Time, hidden bool) b
 	}
 
 	for _, f := range fs {
-		if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
-			if t.NeedsTimeline {
-				klog.Infof("need timeline due to tag %s matching filter %s", formatStruct(t), formatStruct(f))
-				return true
+		if f.TagRegex() != nil {
+			if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
+				if t.NeedsTimeline {
+					klog.V(1).Infof("#%d - need timeline due to tag %s (negate=%v)", i.GetNumber(), f.TagRegex(), f.TagNegate())
+					return true
+				}
 			}
 		}
 		if f.Prioritized != "" {
-			klog.Infof("need timeline due to prioritized filter %s", formatStruct(f))
+			klog.V(1).Infof("#%d need timeline due to prioritized filter: %s", i.GetNumber(), f.Prioritized)
 			return true
 		}
 	}
@@ -423,10 +427,12 @@ func needReviews(i GitHubItem, fs []Filter, newerThan time.Time, hidden bool) bo
 	}
 
 	for _, f := range fs {
-		if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
-			if t.NeedsReviews {
-				klog.Infof("need reviews due to tag %s matching filter %s", formatStruct(t), formatStruct(f))
-				return true
+		if f.TagRegex() != nil {
+			if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
+				if t.NeedsReviews {
+					klog.V(1).Infof("#%d - need reviews due to tag %s (negate=%v)", i.GetNumber(), f.TagRegex(), f.TagNegate())
+					return true
+				}
 			}
 		}
 	}
