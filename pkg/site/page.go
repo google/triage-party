@@ -71,7 +71,7 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 	warning := ""
 
 	if time.Since(result.LatestInput) > h.warnAge {
-		warning = fmt.Sprintf(`Service started %s ago, and is still downloading data. Data may be up to %s old and incomplete. Use <a href='https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh.`, humanDuration(time.Since(h.startTime)), humanDuration(time.Since(result.LatestInput)))
+		warning = fmt.Sprintf(`Service restarted %s ago, and is still downloading data. Data may be up to %s old and incomplete. You may use <a href="https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh at any time.`, humanDuration(time.Since(h.startTime)), humanDuration(time.Since(result.LatestInput)))
 	}
 
 	total := 0
