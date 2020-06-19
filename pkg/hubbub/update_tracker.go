@@ -65,6 +65,11 @@ func (h *Engine) mtimeRef(rc *RelatedConversation) time.Time {
 func updateKey(i GitHubItem) string {
 	// https://github.com/kubernetes/minikube/pull/8431
 	parts := strings.Split(i.GetHTMLURL(), "/")
+	if len(parts) < 7 {
+		klog.Errorf("unexpected URL: %s -> %v", i.GetHTMLURL(), parts)
+		return ""
+	}
+
 	num := parts[len(parts)-1]
 	project := parts[len(parts)-3]
 	org := parts[len(parts)-4]

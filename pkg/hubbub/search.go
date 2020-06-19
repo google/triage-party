@@ -131,7 +131,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 		comments := []*github.IssueComment{}
 
-		if needComments(i, fs, newerThan, hidden) && i.GetComments() > 0 {
+		if needComments(i, fs) && i.GetComments() > 0 {
 			klog.V(1).Infof("#%d - %q: need comments for final filtering", i.GetNumber(), i.GetTitle())
 			comments, _, err = h.cachedIssueComments(ctx, org, project, i.GetNumber(), h.mtime(i))
 			if err != nil {
@@ -156,19 +156,19 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 		updatedAt := h.mtime(i)
 		var timeline []*github.Timeline
-		if needTimeline(i, fs, newerThan, hidden) {
-			timeline, err = h.cachedTimeline(ctx, org, project, i.GetNumber(), updatedAt)
+		if needTimeline(i, fs, hidden) {
+			timeline, err = h.cachedTimeline(ctx, org, project, i.GetNumber(), updatedAt, !newerThan.IsZero())
 			if err != nil {
 				klog.Errorf("timeline: %v", err)
 				continue
 			}
 		}
 
-		h.addEvents(ctx, co, timeline)
+		h.addEvents(ctx, co, timeline, !newerThan.IsZero())
 
 		// Some labels are judged by linked PR state. Ensure that they are updated to the same timestamp.
-		if needReviews(i, fs, newerThan, hidden) && len(co.PullRequestRefs) > 0 {
-			co.PullRequestRefs = h.updateLinkedPRs(ctx, co, mostRecentUpdate)
+		if needReviews(i, fs, hidden) && len(co.PullRequestRefs) > 0 {
+			co.PullRequestRefs = h.updateLinkedPRs(ctx, co, mostRecentUpdate, !newerThan.IsZero())
 		}
 
 		if !postEventsMatch(co, fs) {
@@ -282,24 +282,23 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		var reviews []*github.PullRequestReview
 		var comments []*Comment
 
-		// pr.GetComments() always returns 0 :(
-		if needComments(pr, fs, newerThan, hidden) {
+		if needComments(pr, fs) {
 			comments, _, err = h.prComments(ctx, org, project, pr.GetNumber(), h.mtime(pr))
 			if err != nil {
 				klog.Errorf("comments: %v", err)
 			}
 		}
 
-		if needTimeline(pr, fs, newerThan, hidden) {
-			timeline, err = h.cachedTimeline(ctx, org, project, pr.GetNumber(), h.mtime(pr))
+		if needTimeline(pr, fs, hidden) {
+			timeline, err = h.cachedTimeline(ctx, org, project, pr.GetNumber(), h.mtime(pr), !newerThan.IsZero())
 			if err != nil {
 				klog.Errorf("timeline: %v", err)
 				continue
 			}
 		}
 
-		if needReviews(pr, fs, newerThan, hidden) {
-			reviews, _, err = h.cachedReviews(ctx, org, project, pr.GetNumber(), h.mtime(pr))
+		if needReviews(pr, fs, hidden) {
+			reviews, _, err = h.cachedReviews(ctx, org, project, pr.GetNumber(), h.mtime(pr), !newerThan.IsZero())
 			if err != nil {
 				klog.Errorf("reviews: %v", err)
 				continue
@@ -310,7 +309,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 			klog.Errorf("*** Debug PR timeline #%d:\n%s", pr.GetNumber(), formatStruct(timeline))
 		}
 
-		co := h.PRSummary(ctx, pr, comments, timeline, reviews, age)
+		co := h.PRSummary(ctx, pr, comments, timeline, reviews, age, !newerThan.IsZero())
 		co.Labels = pr.Labels
 		co.Similar = h.FindSimilar(co)
 		if len(co.Similar) > 0 {
@@ -335,11 +334,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 	return filtered, latest, nil
 }
 
-func needComments(i GitHubItem, fs []Filter, newerThan time.Time, hidden bool) bool {
-	if newerThan.IsZero() {
-		return false
-	}
-
+func needComments(i GitHubItem, fs []Filter) bool {
 	for _, f := range fs {
 		if f.TagRegex() != nil {
 			if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
@@ -361,19 +356,17 @@ func needComments(i GitHubItem, fs []Filter, newerThan time.Time, hidden bool) b
 		}
 	}
 
-	if newerThan.IsZero() {
-		return false
-	}
-
 	if i.GetState() != "open" {
 		return false
 	}
+
+	// Implementation note: hidden pages need comments too for generating Avg Wait time
 
 	// Do we need it? Not really. But it's useful for users to see the tags
 	return true
 }
 
-func needTimeline(i GitHubItem, fs []Filter, newerThan time.Time, hidden bool) bool {
+func needTimeline(i GitHubItem, fs []Filter, hidden bool) bool {
 	if i.GetState() != "open" {
 		return false
 	}
@@ -383,10 +376,6 @@ func needTimeline(i GitHubItem, fs []Filter, newerThan time.Time, hidden bool) b
 	}
 
 	if i.GetComments() == 0 {
-		return false
-	}
-
-	if newerThan.IsZero() {
 		return false
 	}
 
@@ -405,15 +394,14 @@ func needTimeline(i GitHubItem, fs []Filter, newerThan time.Time, hidden bool) b
 		}
 	}
 
-	if newerThan.IsZero() || hidden {
+	if hidden {
 		return false
 	}
 
-	// Do we need it? Not really. But it's useful for users to see the tags
 	return true
 }
 
-func needReviews(i GitHubItem, fs []Filter, newerThan time.Time, hidden bool) bool {
+func needReviews(i GitHubItem, fs []Filter, hidden bool) bool {
 	if i.GetState() != "open" {
 		return false
 	}
@@ -422,7 +410,7 @@ func needReviews(i GitHubItem, fs []Filter, newerThan time.Time, hidden bool) bo
 		return false
 	}
 
-	if newerThan.IsZero() {
+	if hidden {
 		return false
 	}
 
@@ -437,11 +425,6 @@ func needReviews(i GitHubItem, fs []Filter, newerThan time.Time, hidden bool) bo
 		}
 	}
 
-	if newerThan.IsZero() {
-		return false
-	}
-
-	// Do we need it? Not really. But it's useful for users to see the tags
 	return true
 }
 

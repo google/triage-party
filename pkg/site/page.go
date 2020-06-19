@@ -70,7 +70,7 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 	warning := ""
 
 	if result.NewerThan.IsZero() {
-		warning = fmt.Sprintf("Service started %s ago, and is still downloading tagging data. Use Shift-Reload to force a refresh.", humanDuration(time.Since(h.startTime)))
+		warning = fmt.Sprintf("Service started %s ago, and is still downloading data. Tagging may be incomplete. Use Shift-Reload to force a refresh.", humanDuration(time.Since(h.startTime)))
 	}
 
 	if time.Since(result.LatestInput) > h.warnAge {
