@@ -153,11 +153,15 @@ func (h *Engine) updatePR(ctx context.Context, org string, project string, num i
 	return pr, start, nil
 }
 
-func (h *Engine) cachedReviewComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.PullRequestComment, time.Time, error) {
+func (h *Engine) cachedReviewComments(ctx context.Context, org string, project string, num int, newerThan time.Time, fetch bool) ([]*github.PullRequestComment, time.Time, error) {
 	key := fmt.Sprintf("%s-%s-%d-pr-comments", org, project, num)
 
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
 		return x.PullRequestComments, x.Created, nil
+	}
+
+	if !fetch {
+		return nil, time.Time{}, nil
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", key, newerThan)
@@ -165,11 +169,11 @@ func (h *Engine) cachedReviewComments(ctx context.Context, org string, project s
 }
 
 // prComments mixes together code review comments and pull-request comments
-func (h *Engine) prComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*Comment, time.Time, error) {
+func (h *Engine) prComments(ctx context.Context, org string, project string, num int, newerThan time.Time, fetch bool) ([]*Comment, time.Time, error) {
 	start := time.Now()
 
 	var comments []*Comment
-	cs, _, err := h.cachedIssueComments(ctx, org, project, num, newerThan)
+	cs, _, err := h.cachedIssueComments(ctx, org, project, num, newerThan, fetch)
 	if err != nil {
 		klog.Errorf("pr comments: %v", err)
 	}
@@ -177,7 +181,7 @@ func (h *Engine) prComments(ctx context.Context, org string, project string, num
 		comments = append(comments, NewComment(c))
 	}
 
-	rc, _, err := h.cachedReviewComments(ctx, org, project, num, newerThan)
+	rc, _, err := h.cachedReviewComments(ctx, org, project, num, newerThan, fetch)
 	if err != nil {
 		klog.Errorf("comments: %v", err)
 	}

@@ -107,11 +107,15 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 	return allIssues, start, nil
 }
 
-func (h *Engine) cachedIssueComments(ctx context.Context, org string, project string, num int, newerThan time.Time) ([]*github.IssueComment, time.Time, error) {
+func (h *Engine) cachedIssueComments(ctx context.Context, org string, project string, num int, newerThan time.Time, fetch bool) ([]*github.IssueComment, time.Time, error) {
 	key := fmt.Sprintf("%s-%s-%d-issue-comments", org, project, num)
 
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
 		return x.IssueComments, x.Created, nil
+	}
+
+	if !fetch {
+		return nil, time.Time{}, nil
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", key, logu.STime(newerThan))
