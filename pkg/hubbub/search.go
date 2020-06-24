@@ -367,6 +367,11 @@ func needComments(i GitHubItem, fs []Filter) bool {
 }
 
 func needTimeline(i GitHubItem, fs []Filter, hidden bool) bool {
+	if i.GetMilestone() != nil {
+		klog.V(2).Infof("#%d needs timeline: part of milestone", i.GetNumber())
+		return true
+	}
+
 	if i.GetState() != "open" {
 		klog.V(2).Infof("#%d no timeline required: in state %q", i.GetNumber(), i.GetState())
 		return false
