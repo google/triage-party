@@ -37,7 +37,7 @@ See these fine examples in the wild:
 
 ## Requirements
 
-* [GitHub API token with read access](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
+* [GitHub API token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line), with `public_repo` permissions (read-only)
 
 ## Try it
 
