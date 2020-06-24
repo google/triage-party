@@ -110,7 +110,7 @@ func executeCollection(ctx context.Context, tp *triage.Party) {
 		klog.Exitf("collection: %v", err)
 	}
 
-	r, err := tp.ExecuteCollection(ctx, s, time.Time{})
+	r, err := tp.ExecuteCollection(ctx, s, time.Now())
 	if err != nil {
 		klog.Exitf("execute: %v", err)
 	}
@@ -140,7 +140,7 @@ func executeRule(ctx context.Context, tp *triage.Party) {
 		klog.Exitf("rule: %v", err)
 	}
 
-	rr, err := tp.ExecuteRule(ctx, r, nil, time.Time{}, false)
+	rr, err := tp.ExecuteRule(ctx, r, nil, time.Now(), false)
 	if err != nil {
 		klog.Exitf("execute: %v", err)
 	}
