@@ -367,15 +367,18 @@ func needComments(i GitHubItem, fs []Filter) bool {
 }
 
 func needTimeline(i GitHubItem, fs []Filter, hidden bool) bool {
+	if i.GetMilestone() != nil {
+		klog.V(2).Infof("#%d needs timeline: part of milestone", i.GetNumber())
+		return true
+	}
+
 	if i.GetState() != "open" {
+		klog.V(2).Infof("#%d no timeline required: in state %q", i.GetNumber(), i.GetState())
 		return false
 	}
 
 	if i.GetUpdatedAt() == i.GetCreatedAt() {
-		return false
-	}
-
-	if i.GetComments() == 0 {
+		klog.V(2).Infof("#%d no timeline required: no update since creation", i.GetNumber())
 		return false
 	}
 
@@ -395,6 +398,7 @@ func needTimeline(i GitHubItem, fs []Filter, hidden bool) bool {
 	}
 
 	if hidden {
+		klog.V(2).Infof("#%d no timeline required: on a hidden page", i.GetNumber())
 		return false
 	}
 
