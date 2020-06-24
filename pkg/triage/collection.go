@@ -63,7 +63,7 @@ type CollectionResult struct {
 
 // ExecuteCollection executes a collection.
 func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan time.Time) (*CollectionResult, error) {
-	klog.V(1).Infof("executing collection %q: %s", s.ID, s.RuleIDs)
+	klog.V(1).Infof("executing collection %q: %s (newer than %s)", s.ID, s.RuleIDs, newerThan)
 	start := time.Now()
 
 	os := []*RuleResult{}
