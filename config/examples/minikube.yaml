@@ -72,6 +72,7 @@ collections:
        * Keeping an open dialog with our users
        * Raising the priority for hot issues
     rules:
+      - discuss
       # SLO
       - issue-near-important-slo
       - issue-near-longterm-slo
@@ -385,6 +386,13 @@ rules:
       - updated: -7d
 
   ####### Weekly Triage #########
+  discuss:
+    name: "Items for discussion"
+    resolution: "Discuss and remove label"
+    filters:
+      - label: triage/discuss
+      - state: "all"
+
   # SLO nearing
   issue-near-important-slo:
     name: "Important soon, but no updates in 40 days -- nearing limit"
