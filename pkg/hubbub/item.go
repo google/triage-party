@@ -16,6 +16,8 @@ package hubbub
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,6 +25,21 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/google/triage-party/pkg/tag"
+)
+
+var (
+	// wordRelRefRe parses relative issue references, like "fixes #3402"
+	wordRelRefRe = regexp.MustCompile(`\s#(\d+)\b`)
+
+	// puncRelRefRe parses relative issue references, like "fixes #3402."
+	puncRelRefRe = regexp.MustCompile(`\s\#(\d+)[\.\!:\?]`)
+
+	// absRefRe parses absolute issue references, like "fixes http://github.com/minikube/issues/432"
+	absRefRe = regexp.MustCompile(`https*://github.com/(\w+)/(\w+)/[ip][us]\w+/(\d+)`)
+
+	// codeRe matches code
+	codeRe    = regexp.MustCompile("(?s)```.*?```")
+	detailsRe = regexp.MustCompile(`(?s)<details>.*</details>`)
 )
 
 // GitHubItem is an interface that matches both GitHub Issues and PullRequests
@@ -75,6 +92,7 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment, age time.Time) *Conve
 	urlParts := strings.Split(i.GetHTMLURL(), "/")
 	co.Organization = urlParts[3]
 	co.Project = urlParts[4]
+	h.parseRefs(i.GetBody(), co, i.GetUpdatedAt())
 
 	if i.GetAssignee() != nil {
 		co.Assignees = append(co.Assignees, i.GetAssignee())
@@ -90,12 +108,13 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment, age time.Time) *Conve
 	seenClosedCommenters := map[string]bool{}
 	seenMemberComment := false
 
-	if co.ID == h.debugNumber {
+	if h.debug[co.ID] {
 		klog.Errorf("debug conversation: %s", formatStruct(co))
 	}
 
 	for _, c := range cs {
-		if co.ID == h.debugNumber {
+		h.parseRefs(c.Body, co, c.Updated)
+		if h.debug[co.ID] {
 			klog.Errorf("debug conversation comment: %s", formatStruct(c))
 		}
 
@@ -227,4 +246,78 @@ func (h *Engine) isMember(user string, role string) bool {
 	}
 
 	return false
+}
+
+// parse any references and update mention time
+func (h *Engine) parseRefs(text string, co *Conversation, t time.Time) {
+
+	// remove code samples which mention unrelated issues
+	text = codeRe.ReplaceAllString(text, "<code></code>")
+	text = detailsRe.ReplaceAllString(text, "<details></details>")
+
+	var ms [][]string
+	ms = append(ms, wordRelRefRe.FindAllStringSubmatch(text, -1)...)
+	ms = append(ms, puncRelRefRe.FindAllStringSubmatch(text, -1)...)
+
+	seen := map[string]bool{}
+
+	for _, m := range ms {
+		i, err := strconv.Atoi(m[1])
+		if err != nil {
+			klog.Errorf("unable to parse int from %s: %v", err)
+			continue
+		}
+
+		if i == co.ID {
+			continue
+		}
+
+		rc := &RelatedConversation{
+			Organization: co.Organization,
+			Project:      co.Project,
+			ID:           i,
+			Seen:         t,
+		}
+
+		if t.After(h.mtimeRef(rc)) {
+			klog.Infof("%s later referenced #%d at %s: %s", co.URL, i, t, text)
+			h.updateMtimeLong(co.Organization, co.Project, i, t)
+		}
+
+		if !seen[fmt.Sprintf("%s/%d", rc.Project, rc.ID)] {
+			co.IssueRefs = append(co.IssueRefs, rc)
+		}
+		seen[fmt.Sprintf("%s/%d", rc.Project, rc.ID)] = true
+	}
+
+	for _, m := range absRefRe.FindAllStringSubmatch(text, -1) {
+		org := m[1]
+		project := m[2]
+		i, err := strconv.Atoi(m[3])
+		if err != nil {
+			klog.Errorf("unable to parse int from %s: %v", err)
+			continue
+		}
+
+		if i == co.ID && org == co.Organization && project == co.Project {
+			continue
+		}
+
+		rc := &RelatedConversation{
+			Organization: org,
+			Project:      project,
+			ID:           i,
+			Seen:         t,
+		}
+
+		if t.After(h.mtimeRef(rc)) {
+			klog.Infof("%s later referenced %s/%s #%d at %s: %s", co.URL, org, project, i, t, text)
+			h.updateMtimeLong(org, project, i, t)
+		}
+
+		if !seen[fmt.Sprintf("%s/%d", rc.Project, rc.ID)] {
+			co.IssueRefs = append(co.IssueRefs, rc)
+		}
+		seen[fmt.Sprintf("%s/%d", rc.Project, rc.ID)] = true
+	}
 }

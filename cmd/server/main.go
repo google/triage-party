@@ -33,6 +33,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -64,7 +65,7 @@ var (
 	dryRun        = flag.Bool("dry-run", false, "run queries, don't start a server")
 	port          = flag.Int("port", 8080, "port to run server at")
 	siteName      = flag.String("name", "", "override site name from config file")
-	number        = flag.Int("num", 0, "only display results for this GitHub numbe (debug)")
+	numbers       = flag.String("nums", "", "only display results for these comma-delimited issue/PR numbers (debug)")
 
 	maxRefresh = flag.Duration("max-refresh", 60*time.Minute, "Maximum time between collection runs")
 	minRefresh = flag.Duration("min-refresh", 60*time.Second, "Minimum time between collection runs")
@@ -103,16 +104,25 @@ func main() {
 		klog.Exitf("persist initialize for %s: %v", c, err)
 	}
 
+	var debugNums []int
+	for _, n := range strings.Split(*numbers, ",") {
+		i, err := strconv.Atoi(n)
+		if err == nil {
+			debugNums = append(debugNums, i)
+		}
+	}
+
 	cfg := triage.Config{
-		Client:      client,
-		Cache:       c,
-		DebugNumber: *number,
+		Client:       client,
+		Cache:        c,
+		DebugNumbers: debugNums,
 	}
 
 	if *reposOverride != "" {
 		cfg.Repos = strings.Split(*reposOverride, ",")
 	}
 
+	klog.Infof("triage runtime config: %+v", cfg)
 	tp := triage.New(cfg)
 	if err := tp.Load(f); err != nil {
 		klog.Exitf("load from %s: %v", cp, err)

@@ -88,7 +88,7 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 				continue
 			}
 
-			h.updateMtime(i)
+			h.updateMtime(i, i.GetUpdatedAt())
 			h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())
 			allIssues = append(allIssues, i)
 		}

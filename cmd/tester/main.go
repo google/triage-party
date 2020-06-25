@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -40,11 +41,11 @@ var (
 	persistPath     = flag.String("persist-path", "", "Where to persist cache to (automatic)")
 	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
 	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via GITHUB_TOKEN")
+	numbers         = flag.String("nums", "", "only display results for these comma-delimited issue/PR numbers (debug)")
 
 	// tester specific
 	collection = flag.String("collection", "", "collection")
 	rule       = flag.String("rule", "", "rule")
-	number     = flag.Int("num", 0, "only display results for this GitHub number")
 )
 
 func main() {
@@ -78,16 +79,25 @@ func main() {
 		klog.Exitf("persist initialize from %s: %v", c, err)
 	}
 
+	var debugNums []int
+	for _, n := range strings.Split(*numbers, ",") {
+		i, err := strconv.Atoi(n)
+		if err == nil {
+			debugNums = append(debugNums, i)
+		}
+	}
+
 	cfg := triage.Config{
-		Client:      client,
-		Cache:       c,
-		DebugNumber: *number,
+		Client:       client,
+		Cache:        c,
+		DebugNumbers: debugNums,
 	}
 
 	if *reposOverride != "" {
 		cfg.Repos = strings.Split(*reposOverride, ",")
 	}
 
+	klog.Infof("tester runtime config: %+v", cfg)
 	tp := triage.New(cfg)
 	if err := tp.Load(f); err != nil {
 		klog.Exitf("load %s: %v", *configPath, err)

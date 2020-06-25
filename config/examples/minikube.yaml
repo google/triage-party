@@ -424,6 +424,7 @@ rules:
   many-commenters:
     name: "many commenters, low priority"
     resolution: "Upgrade to priority-soon, priority-longterm, or longterm-support"
+    type: issue
     filters:
       - commenters: ">2"
       - commenters-per-month: ">1.9"
@@ -431,6 +432,7 @@ rules:
       - label: "!priority/important-soon"
       - label: "!priority/important-longterm"
       - label: "!long-term-support"
+      - responded: "+30d"
 
   issue-zombies:
     name: "Screaming into the void"

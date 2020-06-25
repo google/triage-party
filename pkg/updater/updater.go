@@ -225,7 +225,7 @@ func (u *Updater) update(ctx context.Context, s triage.Collection, newerThan tim
 
 // Run a single collection, optionally forcing an update
 func (u *Updater) RefreshCollection(ctx context.Context, id string, newerThan time.Time, force bool) (bool, error) {
-	klog.V(3).Infof("RefreshCollection: %s newer than %s, force=%v (locking mutex)", id, newerThan, force)
+	klog.V(5).Infof("RefreshCollection: %s newer than %s, force=%v (locking mutex)", id, newerThan, force)
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
@@ -315,7 +315,7 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) (bool, error) {
 	if force {
 		klog.Warning(">>> RunOnce has force enabled")
 	} else {
-		klog.V(3).Infof("RunOnce: force=%v", force)
+		klog.V(5).Infof("RunOnce: force=%v", force)
 	}
 
 	sts, err := u.party.ListCollections()

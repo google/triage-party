@@ -24,28 +24,21 @@ import (
 
 // mtime is a workaround the GitHub misfeature that UpdatedAt is not incremented for cross-reference events
 func (h *Engine) mtime(i GitHubItem) time.Time {
-	updatedAt := i.GetUpdatedAt()
-	key := updateKey(i)
-	updateSeen := h.updatedAt[key]
+	return h.mtimeKey(i.GetUpdatedAt(), updateKey(i))
+}
 
-	if updateSeen == updatedAt {
-		return updatedAt
-	}
-
-	if updateSeen.After(updatedAt) {
-		klog.V(1).Infof("%s has updates from %s, after last update %s", key, updateSeen, updatedAt)
-		return updateSeen
-	} else if !updatedAt.IsZero() {
-		klog.V(3).Infof("%s has updates from %s, before last update %s", key, updateSeen, updatedAt)
-	}
-
-	return updatedAt
+// mtimeCo is like mtime, but for conversations
+func (h *Engine) mtimeCo(co *Conversation) time.Time {
+	return h.mtimeKey(co.Updated, fmt.Sprintf("%s/%s#%d", co.Organization, co.Project, co.ID))
 }
 
 // mtimeRef is like mtime, but for related conversations
 func (h *Engine) mtimeRef(rc *RelatedConversation) time.Time {
-	updatedAt := rc.Updated
-	key := fmt.Sprintf("%s/%s#%d", rc.Organization, rc.Project, rc.ID)
+	return h.mtimeKey(rc.Updated, fmt.Sprintf("%s/%s#%d", rc.Organization, rc.Project, rc.ID))
+}
+
+func (h *Engine) mtimeKey(idea time.Time, key string) time.Time {
+	updatedAt := idea
 	updateSeen := h.updatedAt[key]
 
 	if updateSeen == updatedAt {
@@ -53,7 +46,9 @@ func (h *Engine) mtimeRef(rc *RelatedConversation) time.Time {
 	}
 
 	if updateSeen.After(updatedAt) {
-		klog.V(1).Infof("%s has updates from %s, after last update %s", key, updateSeen, updatedAt)
+		if !updatedAt.IsZero() {
+			klog.Infof("YAY! %s has updates from %s, after last update %s", key, updateSeen, updatedAt)
+		}
 		return updateSeen
 	} else if !updatedAt.IsZero() {
 		klog.V(3).Infof("%s has updates from %s, before last update %s", key, updateSeen, updatedAt)
@@ -76,19 +71,26 @@ func updateKey(i GitHubItem) string {
 	return fmt.Sprintf("%s/%s#%s", org, project, num)
 }
 
-func (h *Engine) updateMtime(i GitHubItem) {
+func (h *Engine) updateMtime(i GitHubItem, t time.Time) {
 	key := updateKey(i)
-	h.updateMtimeByKey(key, i.GetUpdatedAt())
+	h.updateMtimeByKey(key, t)
 }
 
-func (h *Engine) updateMtimeLong(org string, project string, num int, ts time.Time) {
+func (h *Engine) updateCoMtime(co *Conversation, t time.Time) {
+	key := fmt.Sprintf("%s/%s#%d", co.Organization, co.Project, co.ID)
+	h.updateMtimeByKey(key, t)
+}
+
+func (h *Engine) updateMtimeLong(org string, project string, num int, t time.Time) {
 	key := fmt.Sprintf("%s/%s#%d", org, project, num)
-	h.updateMtimeByKey(key, ts)
+	h.updateMtimeByKey(key, t)
 }
 
 func (h *Engine) updateMtimeByKey(key string, ts time.Time) {
 	if ts.After(h.updatedAt[key]) {
-		klog.V(3).Infof("Updating %s last update time for %s to %s", key, h.updatedAt[key], ts)
+		if !h.updatedAt[key].IsZero() {
+			klog.Infof("Updating %s last update time for %s to %s", key, h.updatedAt[key], ts)
+		}
 		h.updatedAt[key] = ts
 	}
 }
