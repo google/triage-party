@@ -28,8 +28,11 @@ import (
 )
 
 var (
-	// relRefRe parses relative issue references, like "fixes #3402."
-	relRefRe = regexp.MustCompile(`\s\#(\d+)[\.\!:\?]*\b`)
+	// wordRelRefRe parses relative issue references, like "fixes #3402"
+	wordRelRefRe = regexp.MustCompile(`\s#(\d+)\b`)
+
+	// puncRelRefRe parses relative issue references, like "fixes #3402."
+	puncRelRefRe = regexp.MustCompile(`\s\#(\d+)[\.\!:\?]`)
 
 	// absRefRe parses absolute issue references, like "fixes http://github.com/minikube/issues/432"
 	absRefRe = regexp.MustCompile(`https*://github.com/(\w+)/(\w+)/[ip][us]\w+/(\d+)`)
@@ -252,22 +255,39 @@ func (h *Engine) parseRefs(text string, co *Conversation, t time.Time) {
 	text = codeRe.ReplaceAllString(text, "<code></code>")
 	text = detailsRe.ReplaceAllString(text, "<details></details>")
 
-	for _, m := range relRefRe.FindAllStringSubmatch(text, -1) {
+	var ms [][]string
+	ms = append(ms, wordRelRefRe.FindAllStringSubmatch(text, -1)...)
+	ms = append(ms, puncRelRefRe.FindAllStringSubmatch(text, -1)...)
+
+	seen := map[string]bool{}
+
+	for _, m := range ms {
 		i, err := strconv.Atoi(m[1])
 		if err != nil {
 			klog.Errorf("unable to parse int from %s: %v", err)
 			continue
 		}
 
-		klog.Infof("YAY! %s referenced #%d (suf=%s) at %s: %s", co.URL, i, t, text)
-		h.updateMtimeLong(co.Organization, co.Project, i, t)
+		if i == co.ID {
+			continue
+		}
 
-		co.IssueRefs = append(co.IssueRefs, &RelatedConversation{
+		rc := &RelatedConversation{
 			Organization: co.Organization,
 			Project:      co.Project,
 			ID:           i,
 			Seen:         t,
-		})
+		}
+
+		if t.After(h.mtimeRef(rc)) {
+			klog.Infof("%s later referenced #%d at %s: %s", co.URL, i, t, text)
+			h.updateMtimeLong(co.Organization, co.Project, i, t)
+		}
+
+		if !seen[fmt.Sprintf("%s/%d", rc.Project, rc.ID)] {
+			co.IssueRefs = append(co.IssueRefs, rc)
+		}
+		seen[fmt.Sprintf("%s/%d", rc.Project, rc.ID)] = true
 	}
 
 	for _, m := range absRefRe.FindAllStringSubmatch(text, -1) {
@@ -279,14 +299,25 @@ func (h *Engine) parseRefs(text string, co *Conversation, t time.Time) {
 			continue
 		}
 
-		klog.Infof("YAY! %s referenced %s/%s #%d at %s: %s", co.URL, org, project, i, t, text)
-		h.updateMtimeLong(org, project, i, t)
+		if i == co.ID && org == co.Organization && project == co.Project {
+			continue
+		}
 
-		co.IssueRefs = append(co.IssueRefs, &RelatedConversation{
+		rc := &RelatedConversation{
 			Organization: org,
 			Project:      project,
 			ID:           i,
 			Seen:         t,
-		})
+		}
+
+		if t.After(h.mtimeRef(rc)) {
+			klog.Infof("%s later referenced %s/%s #%d at %s: %s", co.URL, org, project, i, t, text)
+			h.updateMtimeLong(org, project, i, t)
+		}
+
+		if !seen[fmt.Sprintf("%s/%d", rc.Project, rc.ID)] {
+			co.IssueRefs = append(co.IssueRefs, rc)
+		}
+		seen[fmt.Sprintf("%s/%d", rc.Project, rc.ID)] = true
 	}
 }
