@@ -87,10 +87,12 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	seen := map[string]bool{}
 
 	for _, i := range append(open, closed...) {
-		if h.debugNumber != 0 {
-			if i.GetNumber() == h.debugNumber {
+		if len(h.debug) > 0 {
+			klog.Infof("DEBUG FILTER: %s", h.debug)
+			if h.debug[i.GetNumber()] {
 				klog.Errorf("*** Found debug issue #%d:\n%s", i.GetNumber(), formatStruct(*i))
 			} else {
+				klog.V(2).Infof("Ignoring #%d - does not match debug filter: %v", i.GetNumber(), h.debug)
 				continue
 			}
 		}
@@ -156,7 +158,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 		updatedAt := h.mtime(i)
 		var timeline []*github.Timeline
-		if needTimeline(i, fs, hidden) {
+		if needTimeline(i, fs, false, hidden) {
 			timeline, err = h.cachedTimeline(ctx, org, project, i.GetNumber(), updatedAt, !newerThan.IsZero())
 			if err != nil {
 				klog.Errorf("timeline: %v", err)
@@ -261,15 +263,19 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 			latest = pr.GetUpdatedAt()
 		}
 
-		if h.debugNumber != 0 {
-			if pr.GetNumber() == h.debugNumber {
+		klog.Infof("Found PR %s - updated at %s", pr.GetHTMLURL(), pr.GetUpdatedAt())
+		if len(h.debug) > 0 {
+			if h.debug[pr.GetNumber()] {
 				klog.Errorf("*** Found debug PR #%d:\n%s", pr.GetNumber(), formatStruct(*pr))
 			} else {
+				klog.V(2).Infof("Ignoring #%s - does not match debug filter: %v", pr.GetHTMLURL(), h.debug)
 				continue
 			}
 		}
 		prs = append(prs, pr)
 	}
+
+	klog.V(1).Infof("PR inspect count: %d", len(prs))
 
 	for _, pr := range prs {
 		klog.V(3).Infof("Found PR #%d with labels: %+v", pr.GetNumber(), pr.Labels)
@@ -289,7 +295,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 			}
 		}
 
-		if needTimeline(pr, fs, hidden) {
+		if needTimeline(pr, fs, true, hidden) {
 			timeline, err = h.cachedTimeline(ctx, org, project, pr.GetNumber(), h.mtime(pr), !newerThan.IsZero())
 			if err != nil {
 				klog.Errorf("timeline: %v", err)
@@ -305,7 +311,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 			}
 		}
 
-		if pr.GetNumber() == h.debugNumber {
+		if h.debug[pr.GetNumber()] {
 			klog.Errorf("*** Debug PR timeline #%d:\n%s", pr.GetNumber(), formatStruct(timeline))
 		}
 
@@ -366,7 +372,7 @@ func needComments(i GitHubItem, fs []Filter) bool {
 	return true
 }
 
-func needTimeline(i GitHubItem, fs []Filter, hidden bool) bool {
+func needTimeline(i GitHubItem, fs []Filter, pr bool, hidden bool) bool {
 	if i.GetMilestone() != nil {
 		klog.V(2).Infof("#%d needs timeline: part of milestone", i.GetNumber())
 		return true
@@ -380,6 +386,11 @@ func needTimeline(i GitHubItem, fs []Filter, hidden bool) bool {
 	if i.GetUpdatedAt() == i.GetCreatedAt() {
 		klog.V(2).Infof("#%d no timeline required: no update since creation", i.GetNumber())
 		return false
+	}
+
+	if pr {
+		klog.V(2).Infof("#%d timeline required: is open PR", i.GetNumber())
+		return true
 	}
 
 	for _, f := range fs {

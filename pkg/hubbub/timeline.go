@@ -93,7 +93,7 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 	thisRepo := fmt.Sprintf("%s/%s", co.Organization, co.Project)
 
 	for _, t := range timeline {
-		if h.debugNumber == co.ID {
+		if h.debug[co.ID] {
 			klog.Errorf("debug timeline event %q: %s", t.GetEvent(), formatStruct(t))
 		}
 
@@ -112,7 +112,14 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 			}
 
 			ri := t.GetSource().GetIssue()
-			h.updateMtime(ri)
+			klog.Infof("Found xref: #%d -> #%d at %s", co.ID, ri.GetNumber(), t.GetCreatedAt())
+
+			// Push the item timestamps as far forwards as possible for the best possible timeline fetch
+			h.updateCoMtime(co, t.GetCreatedAt())
+			h.updateCoMtime(co, ri.GetUpdatedAt())
+			h.updateMtime(ri, t.GetCreatedAt())
+			h.updateMtime(ri, ri.GetUpdatedAt())
+			h.updateMtime(ri, co.Updated)
 
 			if co.Type == Issue && ri.IsPullRequest() {
 				refRepo := ri.GetRepository().GetFullName()
@@ -122,7 +129,8 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 					continue
 				}
 
-				ref := h.prRef(ctx, ri, co.Updated, fetch)
+				klog.Infof("Found cross-referenced PR: #%d, updating PR ref", ri.GetNumber())
+				ref := h.prRef(ctx, ri, h.mtimeCo(co), fetch)
 				co.PullRequestRefs = append(co.PullRequestRefs, ref)
 				refTag := reviewStateTag(ref.ReviewState)
 				refTag.ID = fmt.Sprintf("pr-%s", refTag.ID)

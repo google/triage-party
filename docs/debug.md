@@ -38,7 +38,7 @@ From this I was able to see the `debug comments: null` hint that allowed me to i
 If you find it useful to add debugging that only triggers on a particular issue or PR number, this code block is useful:
 
 ```go
-if h.debugNumber == pr.GetNumber() {
+if h.debug[pr.GetNumber()] {
     klog.Infof("debug response: %+v", formatStruct(resp))
 }
 ```
