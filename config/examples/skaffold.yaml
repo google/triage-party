@@ -243,11 +243,11 @@ rules:
   # Issues missing initial feedback
   issue-needs-kind:
     name: "Unkinded Issues"
-    resolution: "Add a kind/ label"
+    resolution: "Add a kind/ or meta/ label"
     type: issue
     filters:
       - label: "!kind/.*"
-      - label: "!kind/question"
+      - label: "!meta/.*"
 
   issue-needs-area:
     name: "Uncategorized Issues"
