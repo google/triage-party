@@ -71,9 +71,9 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		total += len(o.Items)
 	}
 
-	age := result.LatestInput
-	if result.NewerThan.After(age) {
-		age = result.NewerThan
+	dataAge = result.LatestInput
+	if result.NewerThan.After(dataAge) {
+		dataAge = result.NewerThan
 	}
 
 	unique := uniqueItems(result.RuleResults)
@@ -90,15 +90,13 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		Total:            len(unique),
 		Types:            "Issues",
 		UniqueItems:      unique,
-		ResultAge:        time.Since(age),
+		ResultAge:        time.Since(dataAge),
 	}
-
-	dataAge = result.LatestInput
 
 	if result.RuleResults == nil {
 		p.Warning = template.HTML(fmt.Sprintf(`Service started %s ago, and is still downloading required data. Page will refresh after 5 seconds ...`, humanDuration(time.Since(h.startTime))))
-	} else if time.Since(result.LatestInput) > h.warnAge {
-		p.Notification = template.HTML(fmt.Sprintf(`Service started %s ago, and is still downloading fresh data. Data may be up to %s old. You may use <a href="https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh at any time.`, humanDuration(time.Since(h.startTime)), humanDuration(time.Since(result.LatestInput))))
+	} else if time.Since(dataAge) > h.warnAge {
+		p.Notification = template.HTML(fmt.Sprintf(`Service started %s ago, and is still downloading fresh data. Data may be up to %s old. You may use <a href="https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh at any time.`, humanDuration(time.Since(h.startTime)), humanDuration(time.Since(dataAge))))
 	}
 
 	for _, s := range sts {
