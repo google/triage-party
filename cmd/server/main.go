@@ -187,6 +187,11 @@ func main() {
 	http.HandleFunc("/k/", s.Kanban())
 	http.HandleFunc("/healthz", s.Healthz())
 	http.HandleFunc("/threadz", s.Threadz())
+
+	// In case the previous handlers are removed by errant security systems
+	http.HandleFunc("/health", s.Healthz())
+	http.HandleFunc("/threads", s.Threadz())
+
 	http.HandleFunc("/", s.Root())
 
 	listenAddr := fmt.Sprintf(":%s", os.Getenv("PORT"))
