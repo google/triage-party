@@ -143,7 +143,6 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 		co := h.IssueSummary(i, comments, age)
 		co.Labels = labels
-		h.seen[co.URL] = co
 
 		co.Similar = h.FindSimilar(co)
 		if len(co.Similar) > 0 {
@@ -322,7 +321,6 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 			co.Tags = append(co.Tags, tag.Similar)
 		}
 
-		h.seen[co.URL] = co
 		if !postFetchMatch(co, fs) {
 			klog.V(4).Infof("PR #%d did not pass postFetchMatch with filter: %v", pr.GetNumber(), fs)
 			continue

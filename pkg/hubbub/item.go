@@ -62,8 +62,33 @@ type GitHubItem interface {
 	String() string
 }
 
-// conversation creates a conversation from an issue-like
+// conversation returns a cached conversation from an issue-like
 func (h *Engine) conversation(i GitHubItem, cs []*Comment, age time.Time) *Conversation {
+	key := i.GetHTMLURL()
+	cached, ok := h.seen[key]
+	if ok {
+		if cached.Updated != i.GetUpdatedAt() && cached.Updated.Before(i.GetUpdatedAt()) {
+			klog.V(1).Infof("cache for %s too old: %s, need %s", key, cached.Updated, i.GetUpdatedAt())
+			h.seen[key] = h.createConversation(i, cs, age)
+			return h.seen[key]
+		}
+
+		if cached.CommentsTotal < len(cs) {
+			klog.V(1).Infof("cache for %s has too few comments: %d, need %d", key, cached.CommentsTotal, len(cs))
+			h.seen[key] = h.createConversation(i, cs, age)
+			return h.seen[key]
+		}
+
+		return h.seen[key]
+	}
+
+	h.seen[key] = h.createConversation(i, cs, age)
+	return h.seen[key]
+}
+
+// createConversation creates a conversation from an issue-like
+func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) *Conversation {
+
 	authorIsMember := false
 	if h.isMember(i.GetUser().GetLogin(), i.GetAuthorAssociation()) {
 		authorIsMember = true
@@ -78,6 +103,7 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment, age time.Time) *Conve
 		Type:                 Issue,
 		Seen:                 age,
 		Created:              i.GetCreatedAt(),
+		Updated:              i.GetUpdatedAt(),
 		CommentsTotal:        i.GetComments(),
 		ClosedAt:             i.GetClosedAt(),
 		SelfInflicted:        authorIsMember,
@@ -212,7 +238,10 @@ func (h *Engine) conversation(i GitHubItem, cs []*Comment, age time.Time) *Conve
 		} else {
 			co.Tags = append(co.Tags, tag.RoleLast(assoc))
 		}
-		co.Updated = last.Updated
+
+		if last.Updated.After(co.Updated) {
+			co.Updated = last.Updated
+		}
 	}
 
 	if co.State == "closed" {

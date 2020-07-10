@@ -69,7 +69,7 @@ type Engine struct {
 	// Workaround because GitHub doesn't update issues if cross-references occur
 	updatedAt map[string]time.Time
 
-	// indexes used for similarity matching
+	// indexes used for similarity matching & conversation caching
 	seen map[string]*Conversation
 }
 
