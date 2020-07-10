@@ -105,7 +105,7 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 		r.LatestInput = latestInput
 	}
 
-	klog.V(1).Infof("collection %q took %s", s.ID, time.Since(start))
+	klog.V(1).Infof("collection %q took %s, results as of %s", s.ID, time.Since(start), r.LatestInput)
 	return r, nil
 }
 

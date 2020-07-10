@@ -112,7 +112,7 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 			}
 
 			ri := t.GetSource().GetIssue()
-			klog.Infof("Found xref: #%d -> #%d at %s", co.ID, ri.GetNumber(), t.GetCreatedAt())
+			klog.V(1).Infof("#s cross-referenced #%s at %s", co.URL, ri.GetHTMLURL(), t.GetCreatedAt())
 
 			// Push the item timestamps as far forwards as possible for the best possible timeline fetch
 			h.updateCoMtime(co, t.GetCreatedAt())
@@ -129,7 +129,7 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 					continue
 				}
 
-				klog.Infof("Found cross-referenced PR: #%d, updating PR ref", ri.GetNumber())
+				klog.V(1).Infof("Found cross-referenced PR: #%d, updating PR ref", ri.GetNumber())
 				ref := h.prRef(ctx, ri, h.mtimeCo(co), fetch)
 				co.PullRequestRefs = append(co.PullRequestRefs, ref)
 				refTag := reviewStateTag(ref.ReviewState)

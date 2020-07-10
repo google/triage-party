@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -281,5 +282,27 @@ func (h *Handlers) Healthz() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
+	}
+}
+
+// Threadz returns a threadz page
+func (h *Handlers) Threadz() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		klog.Infof("GET %s: %v", r.URL.Path, r.Header)
+		w.WriteHeader(http.StatusOK)
+		w.Write(stack())
+	}
+}
+
+// stack returns a formatted stack trace of all goroutines
+// It calls runtime.Stack with a large enough buffer to capture the entire trace.
+func stack() []byte {
+	buf := make([]byte, 1024)
+	for {
+		n := runtime.Stack(buf, true)
+		if n < len(buf) {
+			return buf[:n]
+		}
+		buf = make([]byte, 2*len(buf))
 	}
 }
