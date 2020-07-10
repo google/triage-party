@@ -137,29 +137,25 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 			return
 		}
 
-		if len(p.CollectionResult.RuleResults) == 0 {
-			http.Error(w, fmt.Sprintf("no results for %q", id), 400)
-			return
-		}
+		if p.CollectionResult.RuleResults != nil {
+			chosen, milestones := milestoneChoices(p.CollectionResult.RuleResults, milestoneID)
+			klog.Infof("milestones chosen: %d, choices: %+v", milestoneID, milestones)
 
-		chosen, milestones := milestoneChoices(p.CollectionResult.RuleResults, milestoneID)
+			p.Description = p.Collection.Description
+			p.Swimlanes = groupByUser(p.CollectionResult.RuleResults, chosen.GetNumber(), p.Collection.Dedup)
+			p.SelectorOptions = milestones
+			p.SelectorVar = "milestone"
+			p.Milestone = chosen
+			p.ClosedPerDay = calcClosedPerDay(p.VelocityStats)
 
-		klog.Infof("milestones chosen: %d, choices: %+v", milestoneID, milestones)
+			etaDate, etaOffset, countOffset := calcETA(chosen, p.ClosedPerDay)
+			klog.Infof("milestone ETA is %s (offset: %s, %d issues)", etaDate, etaOffset, countOffset)
+			p.MilestoneETA = etaDate
+			p.MilestoneCountOffset = countOffset
 
-		p.Description = p.Collection.Description
-		p.Swimlanes = groupByUser(p.CollectionResult.RuleResults, chosen.GetNumber(), p.Collection.Dedup)
-		p.SelectorOptions = milestones
-		p.SelectorVar = "milestone"
-		p.Milestone = chosen
-		p.ClosedPerDay = calcClosedPerDay(p.VelocityStats)
-
-		etaDate, etaOffset, countOffset := calcETA(chosen, p.ClosedPerDay)
-		klog.Infof("milestone ETA is %s (offset: %s, %d issues)", etaDate, etaOffset, countOffset)
-		p.MilestoneETA = etaDate
-		p.MilestoneCountOffset = countOffset
-
-		if etaOffset > 6*24*time.Hour {
-			p.MilestoneVeryLate = true
+			if etaOffset > 6*24*time.Hour {
+				p.MilestoneVeryLate = true
+			}
 		}
 
 		klog.V(2).Infof("page context: %+v", p)
