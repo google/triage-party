@@ -43,10 +43,7 @@ func (h *Engine) cachedPRs(ctx context.Context, org string, project string, stat
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
 		// Normally the similarity tables are only updated when fresh data is encountered.
 		if newerThan.IsZero() {
-			klog.Infof("Building similarity tables from PR cache (%d items)", len(x.PullRequests))
-			for _, pr := range x.PullRequests {
-				h.updateSimilarityTables(pr.GetTitle(), pr.GetHTMLURL())
-			}
+			go h.updateSimilarPullRequests(key, x.PullRequests)
 		}
 		return x.PullRequests, x.Created, nil
 	}
@@ -96,10 +93,10 @@ func (h *Engine) updatePRs(ctx context.Context, org string, project string, stat
 
 			h.updateMtime(pr, pr.GetUpdatedAt())
 
-			// TODO: update tables for cached entries too!
-			h.updateSimilarityTables(pr.GetTitle(), pr.GetHTMLURL())
 			allPRs = append(allPRs, pr)
 		}
+
+		go h.updateSimilarPullRequests(key, prs)
 
 		if resp.NextPage == 0 || foundOldest {
 			break

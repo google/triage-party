@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/google/go-github/v31/github"
 	"github.com/imjasonmiller/godice"
 	"k8s.io/klog/v2"
 )
@@ -65,6 +66,22 @@ func normalizeTitle(t string) string {
 
 	klog.V(4).Infof("normalized: %s", strings.Join(keep, " "))
 	return strings.Join(keep, " ")
+}
+
+// updateSimilarIssues updates similarity tables, meant for background use
+func (h *Engine) updateSimilarIssues(key string, is []*github.Issue) {
+	klog.V(1).Infof("Updating similarity table from issue cache %q (%d items)", key, len(is))
+	for _, i := range is {
+		h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())
+	}
+}
+
+// updateSimilarPullRequests updates similarity tables, meant for background use
+func (h *Engine) updateSimilarPullRequests(key string, prs []*github.PullRequest) {
+	klog.V(1).Infof("Updating similarity table from PR cache %q (%d items)", key, len(prs))
+	for _, i := range prs {
+		h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())
+	}
 }
 
 func (h *Engine) updateSimilarityTables(rawTitle, url string) {

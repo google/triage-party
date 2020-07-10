@@ -35,10 +35,7 @@ func (h *Engine) cachedIssues(ctx context.Context, org string, project string, s
 	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
 		// Normally the similarity tables are only updated when fresh data is encountered.
 		if newerThan.IsZero() {
-			klog.V(1).Infof("Updating similarity table from cache %q (%d items)", key, len(x.Issues))
-			for _, i := range x.Issues {
-				h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())
-			}
+			go h.updateSimilarIssues(key, x.Issues)
 		}
 
 		return x.Issues, x.Created, nil
@@ -89,9 +86,10 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 			}
 
 			h.updateMtime(i, i.GetUpdatedAt())
-			h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())
 			allIssues = append(allIssues, i)
 		}
+
+		go h.updateSimilarIssues(key, is)
 
 		if resp.NextPage == 0 {
 			break
