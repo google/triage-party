@@ -60,136 +60,138 @@
 {{define "content"}}
   {{ $coll := .Collection }}
 
-  {{ if ne .Description "" }}
-    <div class="box description">
-    <pre>{{ .Description }}</pre>
-    </div>
-  {{ end }}
-
-  {{ range .CollectionResult.RuleResults }}
-    {{ if eq (len .Items) 0 }}
-      <div class="no-matches" title="{{ .Rule | toYAML }}"><strong>{{ .Rule.Name }}</strong>: No matching items</div>
-    {{ else }}
-      <script>
-      function {{ .Rule.ID | toJSfunc }}tabs() {
-          {{ range .Items}}window.open("{{ .URL | toJS }}", "_tab{{ .ID }}");
-          {{ end }}
-      }
-      </script>
-      <div class="box outcome">
-      <div class="box-header collapsible">
-        <div class="box-head-left">
-          <h3 title="{{ .Rule | toYAML }}">{{ .Rule.Name }} ({{ len .Items }})<div class="tab-link"><a href="#" title="open in new tabs" onclick="{{ .Rule.ID | toJSfunc }}tabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div></h3>
-          <h4 class="subtitle">Resolution: {{ .Rule.Resolution }}</h4>
-          <h5 class="stats">Average age: {{ .AvgAge | toDays }}, Avg wait: {{ .AvgCurrentHold | toDays }}</h5>
-        </div>
-        <div class="box-head-right">
-        <!--  just save the space -->
-        </div>
-      </div>
-      <table id="{{ .Rule.ID | toJSfunc  }}" class="compact is-size-6">
-      <thead>
-        <tr>
-          <td class="hd col-id">ID</td>
-          <td class="hd col-author" title="Author">Au</td>
-          <td class="hd col-desc" title="Description">Desc</td>
-          <td class="hd col-assignee" title="Assignee">As</td>
-          <td class="hd col-reactions" title="Reactions">Rea</td>
-          <td class="hd col-create" title="When issue was created">Cr</td>
-          <td class="hd col-update" title="When issue was last updated">Up</td>
-          <td class="hd col-response" title="When issue was last responded to">Re</td>
-          <td class="hd col-comments" title="Commenters">Cmntrs</td>
-          <td class="hd col-labels">Labels</td>
-          <td class="hd col-tags">Tags</td>
-        </tr>
-      </thead>
-      <tbody>
-        {{ $dupes := .Duplicates }}
-        {{ $dupeCount := len .Duplicates }}
-        {{ range .Items }}
-        {{ $previouslySeen := index $dupes .URL }}
-        {{ if or (not $coll.Dedup) (lt $dupeCount 3) (not $previouslySeen) }}
-          <tr>
-            <td class="cell-id"><a href="{{ .URL }}">{{ .ID }}</a></td>
-            <td class="cell-author" data-order="{{ .Author.GetLogin }}">{{ .Author | Avatar }}</td>
-            <td class="cell-desc">
-              <a href="{{ .URL }}" title="@{{ .LastCommentAuthor.GetLogin}}: {{ .LastCommentBody }}"><strong>{{ .Title }}</strong></a>
-
-              {{ if .PullRequestRefs }}
-                <ul class="pull-requests">
-                  {{ range .PullRequestRefs }}
-                    {{ if eq .State "open" }}
-                      <li>
-                        <a href="{{ .URL }}">PR#{{ .ID }}: {{ .Title }}
-                          <div class="gh-tag tag-pr-{{.ReviewState | Class }}">{{.ReviewState | Class }}</div>
-                        </a>
-                      </li>
-                    {{ end }}
-                  {{ end }}
-                  </ul>
-                </div>
-              {{ end }}
-
-
-              {{ if .Similar }}
-                <ul class="similar">
-                {{ range .Similar }}
-                  <li>
-                    <a href="{{ .URL }}" title="Title is similar to #{{ .ID }}">Similar: #{{ .ID }}: {{ .Title }} ({{ .State }})</a>
-                  </li>
-                {{ end }}
-                </ul>
-              {{ end }}
-            </td>
-
-            <td class="cell-assignee" data-order="{{ range .Assignees }}{{ .GetLogin }}{{ end }}">{{ range .Assignees }}{{ . |  Avatar}}{{ end }}
-
-            <td class="cell-reactions" data-order="{{ .ReactionsTotal }}">
-            {{- range $value, $count := .Reactions }}          
-               {{- if gt $count 0 }}<div class="reaction reaction-{{ $value }} reaction-total-{{ $count }}">{{ if gt $count 1 }}<span class="reaction-count">{{ $count }}</span></div>{{ end }}{{ end }}
-            {{ end }}
-            </td>
-            <td class="cell-create" data-order="{{ .Created | UnixNano }}">{{ .Created | RoughTime }}</td>
-            <td class="cell-update" data-order="{{ .Updated | UnixNano }}">{{ .Updated | RoughTime }}</td>
-            <td class="cell-response" data-order="{{ .LatestMemberResponse | UnixNano }}">{{ .LatestMemberResponse | RoughTime }}</td>
-            <td class="cell-comments" data-order="{{ .CommentersTotal }}">{{ range .Commenters }}{{ . |  Avatar}}{{ end }}</td>
-            <td class="cell-labels">
-              {{ range .Labels }}
-                <div class="gh-label" style="background-color: #{{ .Color }}"><span class="gh-label-text">{{ .Name }}</span></div>
-              {{ end }}
-            </td>
-            <td class="cell-tags">
-              {{ range .Tags }}<div class="gh-tag tag-{{ .ID }}" title="{{ .Desc }}">{{ .ID }}</div> {{ end }}
-            </td>
-          </tr>
-          {{ end }}
-        {{ end }}
-        {{ if and ($coll.Dedup) (gt $dupeCount 2) }}
-          <tr class="dupes"><td colspan="12">{{ $dupeCount }} previously listed
-          {{ if eq $dupeCount 1 }}item{{ else }}items{{ end }} omitted{{ if lt $dupeCount 20 }}:
-            {{ range .Items }}
-              {{ if index $dupes .URL }}
-                <a href="{{ .URL }}" title="{{ .Title }}">#{{ .ID }}</a>
-              {{ end }}
-            {{ end }}
-          {{ end }}
-          </td></tr>
-        {{ end }}
-      </tbody>
-      </table>
+  {{ if .CollectionResult.RuleResults }}
+    {{ if ne .Description "" }}
+      <div class="box description">
+      <pre>{{ .Description }}</pre>
       </div>
     {{ end }}
+
+    {{ range .CollectionResult.RuleResults }}
+      {{ if eq (len .Items) 0 }}
+        <div class="no-matches" title="{{ .Rule | toYAML }}"><strong>{{ .Rule.Name }}</strong>: No matching items</div>
+      {{ else }}
+        <script>
+        function {{ .Rule.ID | toJSfunc }}tabs() {
+            {{ range .Items}}window.open("{{ .URL | toJS }}", "_tab{{ .ID }}");
+            {{ end }}
+        }
+        </script>
+        <div class="box outcome">
+        <div class="box-header collapsible">
+          <div class="box-head-left">
+            <h3 title="{{ .Rule | toYAML }}">{{ .Rule.Name }} ({{ len .Items }})<div class="tab-link"><a href="#" title="open in new tabs" onclick="{{ .Rule.ID | toJSfunc }}tabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div></h3>
+            <h4 class="subtitle">Resolution: {{ .Rule.Resolution }}</h4>
+            <h5 class="stats">Average age: {{ .AvgAge | toDays }}, Avg wait: {{ .AvgCurrentHold | toDays }}</h5>
+          </div>
+          <div class="box-head-right">
+          <!--  just save the space -->
+          </div>
+        </div>
+        <table id="{{ .Rule.ID | toJSfunc  }}" class="compact is-size-6">
+        <thead>
+          <tr>
+            <td class="hd col-id">ID</td>
+            <td class="hd col-author" title="Author">Au</td>
+            <td class="hd col-desc" title="Description">Desc</td>
+            <td class="hd col-assignee" title="Assignee">As</td>
+            <td class="hd col-reactions" title="Reactions">Rea</td>
+            <td class="hd col-create" title="When issue was created">Cr</td>
+            <td class="hd col-update" title="When issue was last updated">Up</td>
+            <td class="hd col-response" title="When issue was last responded to">Re</td>
+            <td class="hd col-comments" title="Commenters">Cmntrs</td>
+            <td class="hd col-labels">Labels</td>
+            <td class="hd col-tags">Tags</td>
+          </tr>
+        </thead>
+        <tbody>
+          {{ $dupes := .Duplicates }}
+          {{ $dupeCount := len .Duplicates }}
+          {{ range .Items }}
+          {{ $previouslySeen := index $dupes .URL }}
+          {{ if or (not $coll.Dedup) (lt $dupeCount 3) (not $previouslySeen) }}
+            <tr>
+              <td class="cell-id"><a href="{{ .URL }}">{{ .ID }}</a></td>
+              <td class="cell-author" data-order="{{ .Author.GetLogin }}">{{ .Author | Avatar }}</td>
+              <td class="cell-desc">
+                <a href="{{ .URL }}" title="@{{ .LastCommentAuthor.GetLogin}}: {{ .LastCommentBody }}"><strong>{{ .Title }}</strong></a>
+
+                {{ if .PullRequestRefs }}
+                  <ul class="pull-requests">
+                    {{ range .PullRequestRefs }}
+                      {{ if eq .State "open" }}
+                        <li>
+                          <a href="{{ .URL }}">PR#{{ .ID }}: {{ .Title }}
+                            <div class="gh-tag tag-pr-{{.ReviewState | Class }}">{{.ReviewState | Class }}</div>
+                          </a>
+                        </li>
+                      {{ end }}
+                    {{ end }}
+                    </ul>
+                  </div>
+                {{ end }}
+
+
+                {{ if .Similar }}
+                  <ul class="similar">
+                  {{ range .Similar }}
+                    <li>
+                      <a href="{{ .URL }}" title="Title is similar to #{{ .ID }}">Similar: #{{ .ID }}: {{ .Title }} ({{ .State }})</a>
+                    </li>
+                  {{ end }}
+                  </ul>
+                {{ end }}
+              </td>
+
+              <td class="cell-assignee" data-order="{{ range .Assignees }}{{ .GetLogin }}{{ end }}">{{ range .Assignees }}{{ . |  Avatar}}{{ end }}
+
+              <td class="cell-reactions" data-order="{{ .ReactionsTotal }}">
+              {{- range $value, $count := .Reactions }}
+                {{- if gt $count 0 }}<div class="reaction reaction-{{ $value }} reaction-total-{{ $count }}">{{ if gt $count 1 }}<span class="reaction-count">{{ $count }}</span></div>{{ end }}{{ end }}
+              {{ end }}
+              </td>
+              <td class="cell-create" data-order="{{ .Created | UnixNano }}">{{ .Created | RoughTime }}</td>
+              <td class="cell-update" data-order="{{ .Updated | UnixNano }}">{{ .Updated | RoughTime }}</td>
+              <td class="cell-response" data-order="{{ .LatestMemberResponse | UnixNano }}">{{ .LatestMemberResponse | RoughTime }}</td>
+              <td class="cell-comments" data-order="{{ .CommentersTotal }}">{{ range .Commenters }}{{ . |  Avatar}}{{ end }}</td>
+              <td class="cell-labels">
+                {{ range .Labels }}
+                  <div class="gh-label" style="background-color: #{{ .Color }}"><span class="gh-label-text">{{ .Name }}</span></div>
+                {{ end }}
+              </td>
+              <td class="cell-tags">
+                {{ range .Tags }}<div class="gh-tag tag-{{ .ID }}" title="{{ .Desc }}">{{ .ID }}</div> {{ end }}
+              </td>
+            </tr>
+            {{ end }}
+          {{ end }}
+          {{ if and ($coll.Dedup) (gt $dupeCount 2) }}
+            <tr class="dupes"><td colspan="12">{{ $dupeCount }} previously listed
+            {{ if eq $dupeCount 1 }}item{{ else }}items{{ end }} omitted{{ if lt $dupeCount 20 }}:
+              {{ range .Items }}
+                {{ if index $dupes .URL }}
+                  <a href="{{ .URL }}" title="{{ .Title }}">#{{ .ID }}</a>
+                {{ end }}
+              {{ end }}
+            {{ end }}
+            </td></tr>
+          {{ end }}
+        </tbody>
+        </table>
+        </div>
+      {{ end }}
+    {{ end }}
+
+
+    {{ if eq .Total 0 }}
+    <div class="celebrate">
+      <h1>🎉</h1>
+      <h2>Zarro Boogs Found!</h2>
+      <p>You did it! You have fought valiantly for the user, and saved the day.</p>
+    </div>
+
+    {{ end }} 
   {{ end }}
-
-
-  {{ if eq .Total 0 }}
-  <div class="celebrate">
-    <h1>🎉</h1>
-    <h2>Zarro Boogs Found!</h2>
-    <p>You did it! You have fought valiantly for the user, and saved the day.</p>
-  </div>
-
-  {{ end }} 
 
 {{ end }} 
 
@@ -197,31 +199,37 @@
 <script src="/third_party/jquery/jquery-3.3.1.min.js"></script>
 <script src="/third_party/datatables/jquery.dataTables.min.js"></script>
 <script src="/third_party/datatables-bulma/dataTables.bulma.js"></script>
-<script>
-  {{ range .CollectionResult.RuleResults }}
-    {{ if .Items }}
-   $('#{{ .Rule.ID | toJSfunc }}').DataTable( {
-        "order": [[ 3, "desc" ]],
-        "paging": false,
-        "info": false,
-    });
-    {{ end }}
-  {{ end }}
-</script>
-<script>
-  var cols = document.getElementsByClassName("collapsible");
-  var i;
-  for (i = 0; i < cols.length; i++) {
-      cols[i].addEventListener("click", function () {
-          this.classList.toggle("active");
-          var content = this.nextElementSibling;
-          if (content.style.display === "block") {
-              content.style.display = "none";
-          } else {
-              content.style.display = "block";
-          }
+
+{{ if .CollectionResult.RuleResults }}
+  <script>
+    {{ range .CollectionResult.RuleResults }}
+      {{ if .Items }}
+    $('#{{ .Rule.ID | toJSfunc }}').DataTable( {
+          "order": [[ 3, "desc" ]],
+          "paging": false,
+          "info": false,
       });
-  }
-</script>
+      {{ end }}
+    {{ end }}
+  </script>
+
+  <script>
+    var cols = document.getElementsByClassName("collapsible");
+    var i;
+    for (i = 0; i < cols.length; i++) {
+        cols[i].addEventListener("click", function () {
+            this.classList.toggle("active");
+            var content = this.nextElementSibling;
+            if (content.style.display === "block") {
+                content.style.display = "none";
+            } else {
+                content.style.display = "block";
+            }
+        });
+    }
+  </script>
+{{ else }}
+  <script>setTimeout(location.reload.bind(location), 3000);</script>
+{{ end }}
 
 {{ end }}

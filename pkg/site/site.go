@@ -38,7 +38,7 @@ import (
 )
 
 // VERSION is what version of Triage Party we advertise as.
-const VERSION = "v1.2.0-beta.4"
+const VERSION = "v1.2.0"
 
 var (
 	nonWordRe = regexp.MustCompile(`\W`)
@@ -110,17 +110,18 @@ func (h *Handlers) Root() http.HandlerFunc {
 
 // Page are values that are passed into the renderer
 type Page struct {
-	Version     string
-	SiteName    string
-	ID          string
-	Title       string
-	Description string
-	Warning     template.HTML
-	Total       int
-	TotalShown  int
-	Types       string
-	UniqueItems []*hubbub.Conversation
-	ResultAge   time.Duration
+	Version      string
+	SiteName     string
+	ID           string
+	Title        string
+	Description  string
+	Warning      template.HTML
+	Notification template.HTML
+	Total        int
+	TotalShown   int
+	Types        string
+	UniqueItems  []*hubbub.Conversation
+	ResultAge    time.Duration
 
 	Player        int
 	Players       int
@@ -273,4 +274,12 @@ func playerFilter(result *triage.CollectionResult, player int, players int) *tri
 	}
 
 	return triage.SummarizeCollectionResult(result.Collection, os)
+}
+
+// Healthz returns a dummy healthz page - it's always happy here!
+func (h *Handlers) Healthz() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	}
 }

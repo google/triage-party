@@ -55,23 +55,15 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		result = h.updater.ForceRefresh(ctx, id)
 		klog.Infof("refresh %q result: %d items", id, len(result.RuleResults))
 	} else {
-		result = h.updater.Lookup(ctx, id, true)
+		result = h.updater.Lookup(ctx, id, false)
 		if result == nil {
-			return nil, fmt.Errorf("lookup %q returned no data", id)
-		}
-
-		if result.RuleResults == nil {
-			return nil, fmt.Errorf("lookup %q returned no results", id)
+			klog.Errorf("lookup %q returned no data", id)
+			result = &triage.CollectionResult{}
+		} else if result.RuleResults == nil {
+			klog.Errorf("lookup %q returned no results: %+v", id, result)
 		}
 
 		klog.V(2).Infof("lookup %q result: %d items", id, len(result.RuleResults))
-	}
-
-	dataAge = result.LatestInput
-	warning := ""
-
-	if time.Since(result.LatestInput) > h.warnAge {
-		warning = fmt.Sprintf(`Service restarted %s ago, and is still downloading data. Data may be up to %s old and incomplete. You may use <a href="https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh at any time.`, humanDuration(time.Since(h.startTime)), humanDuration(time.Since(result.LatestInput)))
 	}
 
 	total := 0
@@ -97,9 +89,16 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		CollectionResult: result,
 		Total:            len(unique),
 		Types:            "Issues",
-		Warning:          template.HTML(warning),
 		UniqueItems:      unique,
 		ResultAge:        time.Since(age),
+	}
+
+	dataAge = result.LatestInput
+
+	if result.RuleResults == nil {
+		p.Warning = template.HTML(fmt.Sprintf(`Service started %s ago, and is still downloading required data. Page will refresh after 5 seconds ...`, humanDuration(time.Since(h.startTime))))
+	} else if time.Since(result.LatestInput) > h.warnAge {
+		p.Notification = template.HTML(fmt.Sprintf(`Service started %s ago, and is still downloading fresh data. Data may be up to %s old and incomplete. You may use <a href="https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh at any time.`, humanDuration(time.Since(h.startTime)), humanDuration(time.Since(result.LatestInput))))
 	}
 
 	for _, s := range sts {

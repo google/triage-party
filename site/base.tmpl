@@ -44,14 +44,21 @@
 {{template "subnav" . }}
   <section class="section">
     <div class="tp-container">
-    {{- if ne .Warning "" }}
-    <div class="notification is-warning">
-      <button class="delete"></button>
-      {{ .Warning }}
-    </div>
-    {{ end }}
+      {{- if ne .Notification "" }}
+        <div class="notification is-info">
+          <button class="delete"></button>
+          {{ .Notification }}
+        </div>
+      {{ end }}
+
+      {{- if ne .Warning "" }}
+        <div class="notification is-warning">
+          <button class="delete"></button>
+          {{ .Warning }}
+        </div>
+      {{ end }}
       {{template "content" .}}
-    </div>
+  </div>
   </section>
 
   <section>
