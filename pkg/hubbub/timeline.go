@@ -129,7 +129,7 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 					continue
 				}
 
-				klog.Infof("Found cross-referenced PR: #%d, updating PR ref", ri.GetNumber())
+				klog.V(1).Infof("Found cross-referenced PR: #%d, updating PR ref", ri.GetNumber())
 				ref := h.prRef(ctx, ri, h.mtimeCo(co), fetch)
 				co.PullRequestRefs = append(co.PullRequestRefs, ref)
 				refTag := reviewStateTag(ref.ReviewState)

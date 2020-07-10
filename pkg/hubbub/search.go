@@ -191,15 +191,15 @@ func NeedsClosed(fs []Filter) bool {
 	// First-pass filter: do any filters require closed data?
 	for _, f := range fs {
 		if f.ClosedCommenters != "" {
-			klog.Infof("will need closed items due to ClosedCommenters=%s", f.ClosedCommenters)
+			klog.V(1).Infof("will need closed items due to ClosedCommenters=%s", f.ClosedCommenters)
 			return true
 		}
 		if f.ClosedComments != "" {
-			klog.Infof("will need closed items due to ClosedComments=%s", f.ClosedComments)
+			klog.V(1).Infof("will need closed items due to ClosedComments=%s", f.ClosedComments)
 			return true
 		}
 		if f.State != "" && f.State != "open" {
-			klog.Infof("will need closed items due to State=%s", f.State)
+			klog.V(1).Infof("will need closed items due to State=%s", f.State)
 			return true
 		}
 	}
@@ -263,7 +263,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 			latest = pr.GetUpdatedAt()
 		}
 
-		klog.Infof("Found PR %s - updated at %s", pr.GetHTMLURL(), pr.GetUpdatedAt())
+		klog.V(2).Infof("Found PR %s - updated at %s", pr.GetHTMLURL(), pr.GetUpdatedAt())
 		if len(h.debug) > 0 {
 			if h.debug[pr.GetNumber()] {
 				klog.Errorf("*** Found debug PR #%d:\n%s", pr.GetNumber(), formatStruct(*pr))

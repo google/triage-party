@@ -213,13 +213,15 @@ func (u *Updater) secondLastRequested(id string) time.Time {
 }
 
 func (u *Updater) update(ctx context.Context, s triage.Collection, newerThan time.Time) error {
+	start := time.Now()
+
 	klog.Infof(">>> updating %q with data newer than %s >>>", s.ID, logu.STime(newerThan))
 	r, err := u.party.ExecuteCollection(ctx, s, newerThan)
 	if err != nil {
 		return err
 	}
 	u.cache[s.ID] = r
-	klog.Infof("<<< updated %q to %s (latest input: %s) <<<", s.ID, logu.STime(r.NewerThan), logu.STime(r.LatestInput))
+	klog.Infof("<<< updated %q to %s (latest input: %s, duration: %s) <<<", s.ID, logu.STime(r.NewerThan), logu.STime(r.LatestInput), time.Since(start))
 	return nil
 }
 

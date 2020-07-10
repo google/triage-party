@@ -37,7 +37,12 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 	dataAge := time.Time{}
 
 	defer func() {
-		klog.Infof("Served %q request within %s from data %s old", id, time.Since(start), time.Since(dataAge))
+		if dataAge.IsZero() {
+			klog.Infof("Served %q request within %s with no data :(", id, time.Since(start))
+		} else {
+			klog.Infof("Served %q request within %s from data %s old", id, time.Since(start), time.Since(dataAge))
+
+		}
 	}()
 
 	s, err := h.party.LookupCollection(id)

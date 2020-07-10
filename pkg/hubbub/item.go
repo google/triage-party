@@ -280,7 +280,7 @@ func (h *Engine) parseRefs(text string, co *Conversation, t time.Time) {
 		}
 
 		if t.After(h.mtimeRef(rc)) {
-			klog.Infof("%s later referenced #%d at %s: %s", co.URL, i, t, text)
+			klog.V(1).Infof("%s later referenced #%d at %s: %s", co.URL, i, t, text)
 			h.updateMtimeLong(co.Organization, co.Project, i, t)
 		}
 
