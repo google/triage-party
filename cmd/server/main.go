@@ -186,6 +186,7 @@ func main() {
 	http.HandleFunc("/s/", s.Collection())
 	http.HandleFunc("/k/", s.Kanban())
 	http.HandleFunc("/healthz", s.Healthz())
+	http.HandleFunc("/threadz", s.Threadz())
 	http.HandleFunc("/", s.Root())
 
 	listenAddr := fmt.Sprintf(":%s", os.Getenv("PORT"))
