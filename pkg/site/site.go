@@ -281,7 +281,7 @@ func playerFilter(result *triage.CollectionResult, player int, players int) *tri
 func (h *Handlers) Healthz() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		w.Write([]byte(fmt.Sprintf("ok: %s", h.updater.Status())))
 	}
 }
 

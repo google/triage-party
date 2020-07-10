@@ -73,6 +73,8 @@ type Updater struct {
 	persistFunc       PFunc
 	persistStart      time.Time
 	updateCycles      int
+
+	state string
 }
 
 // recordAccess records stats on collection accesses
@@ -82,6 +84,15 @@ func (u *Updater) recordAccess(id string) {
 		u.secondLastRequest.Store(id, last)
 	}
 	u.lastRequest.Store(id, time.Now())
+}
+
+// State returns a basic state
+func (u *Updater) Status() string {
+	if !u.persistStart.IsZero() {
+		return fmt.Sprintf("%s - persisting since %s (%d cycles)", u.state, u.persistStart, u.updateCycles)
+	}
+	return fmt.Sprintf("%s (%d cycles)", u.state, u.updateCycles)
+
 }
 
 // Lookup results for a given metric
@@ -214,6 +225,7 @@ func (u *Updater) secondLastRequested(id string) time.Time {
 
 func (u *Updater) update(ctx context.Context, s triage.Collection, newerThan time.Time) error {
 	start := time.Now()
+	u.state = fmt.Sprintf("updating %s to %s", s.ID, logu.STime(newerThan))
 
 	klog.Infof(">>> updating %q with data newer than %s >>>", s.ID, logu.STime(newerThan))
 	r, err := u.party.ExecuteCollection(ctx, s, newerThan)
@@ -360,6 +372,8 @@ func (u *Updater) RunOnce(ctx context.Context, force bool) (bool, error) {
 
 // Update loop
 func (u *Updater) Loop(ctx context.Context) error {
+	u.state = "starting loop"
+
 	// Loop if everything goes to plan
 	klog.Infof("Looping: data will be updated between %s and %s (loop every %s)", u.minRefresh, u.maxRefresh, u.loopEvery)
 	ticker := time.NewTicker(u.loopEvery)
@@ -370,6 +384,7 @@ func (u *Updater) Loop(ctx context.Context) error {
 			klog.Errorf("err: %v", err)
 		}
 
+		u.state = fmt.Sprintf("idle, waiting %s", u.loopEvery)
 		u.lastRun = time.Now()
 
 		if u.shouldPersist(updated) {
