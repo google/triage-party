@@ -90,8 +90,10 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 			return nil, fmt.Errorf("rule %q: %w", t.Name, err)
 		}
 
+		klog.Infof("latest input for %s is %s", tid, ro.LatestInput)
 		if ro.LatestInput.After(latestInput) {
 			latestInput = ro.LatestInput
+			klog.Infof("latestInput now: %s", latestInput)
 		}
 
 		os = append(os, ro)
@@ -99,13 +101,15 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 
 	r := SummarizeCollectionResult(&s, os)
 	r.NewerThan = newerThan
+	klog.Infof("%s summary latest is %s", s.ID, r.NewerThan)
 
 	// If we are lucky, our results may be newer than we asked for!
 	if latestInput.After(r.LatestInput) {
+		klog.Infof("updated latest input to %s", latestInput)
 		r.LatestInput = latestInput
 	}
 
-	klog.V(1).Infof("collection %q took %s", s.ID, time.Since(start))
+	klog.V(1).Infof("collection %q took %s, results as of %s", s.ID, time.Since(start), r.LatestInput)
 	return r, nil
 }
 

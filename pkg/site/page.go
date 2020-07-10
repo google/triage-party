@@ -98,7 +98,7 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 	if result.RuleResults == nil {
 		p.Warning = template.HTML(fmt.Sprintf(`Service started %s ago, and is still downloading required data. Page will refresh after 5 seconds ...`, humanDuration(time.Since(h.startTime))))
 	} else if time.Since(result.LatestInput) > h.warnAge {
-		p.Notification = template.HTML(fmt.Sprintf(`Service started %s ago, and is still downloading fresh data. Data may be up to %s old and incomplete. You may use <a href="https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh at any time.`, humanDuration(time.Since(h.startTime)), humanDuration(time.Since(result.LatestInput))))
+		p.Notification = template.HTML(fmt.Sprintf(`Service started %s ago, and is still downloading fresh data. Data may be up to %s old. You may use <a href="https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh at any time.`, humanDuration(time.Since(h.startTime)), humanDuration(time.Since(result.LatestInput))))
 	}
 
 	for _, s := range sts {

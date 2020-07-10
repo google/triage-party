@@ -47,7 +47,7 @@ func (h *Engine) mtimeKey(idea time.Time, key string) time.Time {
 
 	if updateSeen.After(updatedAt) {
 		if !updatedAt.IsZero() {
-			klog.Infof("YAY! %s has updates from %s, after last update %s", key, updateSeen, updatedAt)
+			klog.V(1).Infof("%s has updates from %s, after last update %s", key, updateSeen, updatedAt)
 		}
 		return updateSeen
 	} else if !updatedAt.IsZero() {
