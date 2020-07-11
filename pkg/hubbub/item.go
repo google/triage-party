@@ -277,6 +277,36 @@ func (h *Engine) isMember(user string, role string) bool {
 	return false
 }
 
+// UpdateIssueRefs updates referenced issues within a conversation, adding it if necessary
+func (co *Conversation) UpdateIssueRefs(rc *RelatedConversation) {
+	for i, ex := range co.IssueRefs {
+		if ex.URL == rc.URL {
+			if ex.Seen.After(rc.Seen) {
+				return
+			}
+			co.IssueRefs[i] = rc
+			return
+		}
+	}
+
+	co.IssueRefs = append(co.IssueRefs, rc)
+}
+
+// UpdatePullRequestRefs updates referenced PR's within a conversation, adding it if necessary
+func (co *Conversation) UpdatePullRequestRefs(rc *RelatedConversation) {
+	for i, ex := range co.PullRequestRefs {
+		if ex.URL == rc.URL {
+			if ex.Seen.After(rc.Seen) {
+				return
+			}
+			co.PullRequestRefs[i] = rc
+			return
+		}
+	}
+
+	co.PullRequestRefs = append(co.PullRequestRefs, rc)
+}
+
 // parse any references and update mention time
 func (h *Engine) parseRefs(text string, co *Conversation, t time.Time) {
 
@@ -314,7 +344,7 @@ func (h *Engine) parseRefs(text string, co *Conversation, t time.Time) {
 		}
 
 		if !seen[fmt.Sprintf("%s/%d", rc.Project, rc.ID)] {
-			co.IssueRefs = append(co.IssueRefs, rc)
+			co.UpdateIssueRefs(rc)
 		}
 		seen[fmt.Sprintf("%s/%d", rc.Project, rc.ID)] = true
 	}
@@ -345,7 +375,7 @@ func (h *Engine) parseRefs(text string, co *Conversation, t time.Time) {
 		}
 
 		if !seen[fmt.Sprintf("%s/%d", rc.Project, rc.ID)] {
-			co.IssueRefs = append(co.IssueRefs, rc)
+			co.UpdateIssueRefs(rc)
 		}
 		seen[fmt.Sprintf("%s/%d", rc.Project, rc.ID)] = true
 	}

@@ -131,13 +131,13 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 
 				klog.V(1).Infof("Found cross-referenced PR: #%d, updating PR ref", ri.GetNumber())
 				ref := h.prRef(ctx, ri, h.mtimeCo(co), fetch)
-				co.PullRequestRefs = append(co.PullRequestRefs, ref)
+				co.UpdatePullRequestRefs(ref)
 				refTag := reviewStateTag(ref.ReviewState)
 				refTag.ID = fmt.Sprintf("pr-%s", refTag.ID)
 				refTag.Desc = fmt.Sprintf("cross-referenced PR: %s", refTag.Desc)
 				co.Tags = append(co.Tags, refTag)
 			} else {
-				co.IssueRefs = append(co.IssueRefs, h.issueRef(t.GetSource().GetIssue(), co.Seen))
+				co.UpdateIssueRefs(h.issueRef(t.GetSource().GetIssue(), co.Seen))
 			}
 		}
 	}
