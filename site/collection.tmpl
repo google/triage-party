@@ -228,8 +228,11 @@
         });
     }
   </script>
+  {{ if .Stale }}
+   <script>setTimeout(location.reload.bind(location), 30000);</script>
+  {{ end }}
 {{ else }}
-  <script>setTimeout(location.reload.bind(location), 3000);</script>
+  <script>setTimeout(location.reload.bind(location), 1500);</script>
 {{ end }}
 
 {{ end }}
