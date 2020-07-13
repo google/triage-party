@@ -97,7 +97,7 @@ func (m *Postgres) loadItems() error {
 		var item cache.Item
 		gd := gob.NewDecoder(bytes.NewBuffer(mi.Value))
 		if err := gd.Decode(&item); err != nil {
-			klog.Errorf("decode failed for %s (saved %s): %w", mi.Key, mi.Saved, err)
+			klog.Errorf("decode failed for %s (saved %s, bytes: %d): %v", mi.Key, mi.Saved, len(mi.Value), err)
 			continue
 		}
 		decoded[mi.Key] = item
@@ -137,7 +137,9 @@ func (m *Postgres) GetNewerThan(key string, t time.Time) *Thing {
 func (m *Postgres) persist(key string, th *Thing) error {
 	b := new(bytes.Buffer)
 	ge := gob.NewEncoder(b)
-	if err := ge.Encode(th); err != nil {
+
+	item := cache.Item{Object: th}
+	if err := ge.Encode(item); err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
 
