@@ -57,7 +57,7 @@ func (m *Memory) GetNewerThan(key string, t time.Time) *Thing {
 	return newerThanMem(m.cache, key, t)
 }
 
-func (m *Memory) Save() error {
-	klog.Warningf("Save is not implemented by the memory backend")
+func (m *Memory) Cleanup() error {
+	klog.Warningf("Cleanup is not implemented by the memory backend")
 	return nil
 }

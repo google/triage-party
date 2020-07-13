@@ -274,32 +274,23 @@ func (u *Updater) Persist() error {
 }
 
 func (u *Updater) shouldPersist(updated bool) bool {
+	// Already running
 	if !u.persistStart.IsZero() {
-		if updated {
-			klog.Infof("still persisting (%s)...", time.Since(u.persistStart))
-		}
 		return false
 	}
 
-	if u.updateCycles < 2 {
-		klog.Infof("Only on cycle %d, will wait longer before persist", u.updateCycles)
+	// No new data to persist
+	if !updated {
 		return false
 	}
-
-	sinceSave := time.Since(u.lastPersist)
 
 	// Avoid write contention by fuzzing
 	fuzz := time.Duration(rand.Intn(int(u.maxRefresh.Seconds()))) * time.Second
 	cutoff := u.maxRefresh + fuzz
-	if updated && sinceSave > cutoff {
-		klog.Infof("New data, and %s since cache has been saved (cutoff=%s)", cutoff, sinceSave)
-		return true
-	}
 
-	// Fallback for a very quiet repository, or bug that keeps us from realizing an update has occurred
-	cutoff = (u.maxRefresh * 4) + fuzz
+	sinceSave := time.Since(u.lastPersist)
 	if sinceSave > cutoff {
-		klog.Warningf("No new data, but %s since cache has been saved (cutoff=%s)", cutoff, sinceSave)
+		klog.Infof("Should persist: we have new data, and it's been %s since the last run", sinceSave)
 		return true
 	}
 

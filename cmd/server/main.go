@@ -143,7 +143,7 @@ func main() {
 		Party:       tp,
 		MinRefresh:  *minRefresh,
 		MaxRefresh:  *maxRefresh,
-		PersistFunc: c.Save,
+		PersistFunc: c.Cleanup,
 	})
 
 	if *dryRun {
@@ -160,9 +160,6 @@ func main() {
 	go func() {
 		for sig := range sigc {
 			klog.Infof("signal caught: %v", sig)
-			if err := c.Save(); err != nil {
-				klog.Errorf("unable to save: %v", err)
-			}
 			os.Exit(0)
 		}
 	}()
