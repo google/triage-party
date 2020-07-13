@@ -69,6 +69,7 @@ var (
 
 	maxRefresh = flag.Duration("max-refresh", 60*time.Minute, "Maximum time between collection runs")
 	minRefresh = flag.Duration("min-refresh", 60*time.Second, "Minimum time between collection runs")
+	warnAge    = flag.Duration("warn-age", 90*time.Minute, "Warn when the results are older than this")
 )
 
 func main() {
@@ -174,7 +175,7 @@ func main() {
 		BaseDirectory: findPath(*siteDir),
 		Updater:       u,
 		Party:         tp,
-		WarnAge:       *maxRefresh * 4,
+		WarnAge:       *warnAge,
 		Name:          sn,
 	})
 
