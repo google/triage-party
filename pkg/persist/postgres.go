@@ -97,7 +97,8 @@ func (m *Postgres) loadItems() error {
 		var item cache.Item
 		gd := gob.NewDecoder(bytes.NewBuffer(mi.Value))
 		if err := gd.Decode(&item); err != nil {
-			return fmt.Errorf("decode: %w", err)
+			klog.Errorf("decode failed for %s (saved %s): %w", mi.Key, mi.Saved, err)
+			continue
 		}
 		decoded[mi.Key] = item
 	}
