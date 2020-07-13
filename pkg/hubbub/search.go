@@ -180,7 +180,6 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		filtered = append(filtered, co)
 	}
 
-	klog.V(1).Infof("%d of %d issues within %s/%s matched filters %s", len(filtered), len(is), org, project, fs)
 	return filtered, age, nil
 }
 
@@ -226,6 +225,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 			return
 		}
 		if ots.Before(age) {
+			klog.Infof("setting age to %s (open PR count)", ots)
 			age = ots
 		}
 		open = op
@@ -245,8 +245,10 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		}
 
 		if cts.Before(age) {
+			klog.Infof("setting age to %s (open PR count)", cts)
 			age = cts
 		}
+
 		closed = cp
 
 		klog.V(1).Infof("closed PR count: %d", len(closed))
@@ -254,13 +256,8 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 
 	wg.Wait()
 
-	var latest time.Time
 	prs := []*github.PullRequest{}
 	for _, pr := range append(open, closed...) {
-		if pr.GetUpdatedAt().After(latest) {
-			latest = pr.GetUpdatedAt()
-		}
-
 		if len(h.debug) > 0 {
 			if h.debug[pr.GetNumber()] {
 				klog.Errorf("*** Found debug PR #%d:\n%s", pr.GetNumber(), formatStruct(*pr))
@@ -328,8 +325,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		filtered = append(filtered, co)
 	}
 
-	klog.V(1).Infof("%d of %d PR's within %s/%s matched filters:\n%s", len(filtered), len(prs), org, project, fs)
-	return filtered, latest, nil
+	return filtered, age, nil
 }
 
 func needComments(i GitHubItem, fs []Filter) bool {

@@ -34,15 +34,9 @@ const (
 
 func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) (*Page, error) {
 	start := time.Now()
-	dataAge := time.Time{}
 
 	defer func() {
-		if dataAge.IsZero() {
-			klog.Infof("Served %q request within %s with no data :(", id, time.Since(start))
-		} else {
-			klog.Infof("Served %q request within %s from data %s old", id, time.Since(start), time.Since(dataAge))
-
-		}
+		klog.Infof("Served %q request within %s", id, time.Since(start))
 	}()
 
 	s, err := h.party.LookupCollection(id)
@@ -74,11 +68,6 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		total += len(o.Items)
 	}
 
-	dataAge = result.LatestInput
-	if result.NewerThan.After(dataAge) {
-		dataAge = result.NewerThan
-	}
-
 	unique := uniqueItems(result.RuleResults)
 
 	p := &Page{
@@ -93,13 +82,14 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		Total:            len(unique),
 		Types:            "Issues",
 		UniqueItems:      unique,
-		ResultAge:        time.Since(dataAge),
+		ResultAge:        time.Since(result.OldestInput),
+		Status:           h.updater.Status(),
 	}
 
 	if result.RuleResults == nil {
 		p.Notification = template.HTML(`Downloading data from GitHub ...`)
-	} else if time.Since(dataAge) > h.warnAge {
-		p.Notification = template.HTML(fmt.Sprintf(`Refreshing data in the background. Displayed data may be up to %s old. Use <a href="https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh at any time.`, humanDuration(time.Since(dataAge))))
+	} else if p.ResultAge > h.warnAge {
+		p.Notification = template.HTML(fmt.Sprintf(`Refreshing data in the background. Displayed data may be up to %s old. Use <a href="https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh at any time.`, humanDuration(time.Since(result.OldestInput))))
 		p.Stale = true
 	}
 

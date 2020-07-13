@@ -89,10 +89,9 @@ func (u *Updater) recordAccess(id string) {
 // State returns a basic state
 func (u *Updater) Status() string {
 	if !u.persistStart.IsZero() {
-		return fmt.Sprintf("%s - persisting since %s (%d cycles)", u.state, u.persistStart, u.updateCycles)
+		return fmt.Sprintf("%s - persisting since %s (%d cycles, %s uptime)", u.state, u.persistStart, u.updateCycles, time.Since(u.startTime))
 	}
-	return fmt.Sprintf("%s (%d cycles)", u.state, u.updateCycles)
-
+	return fmt.Sprintf("%s (%d cycles, %s uptime)", u.state, u.updateCycles, time.Since(u.startTime))
 }
 
 // Lookup results for a given metric
@@ -147,14 +146,7 @@ func (u *Updater) shouldUpdate(id string, usedForStats bool, force bool) error {
 		return fmt.Errorf("results are not cached")
 	}
 
-	rtime := result.NewerThan
-
-	// There can be a lengthy run time on larger repos
-	if result.LatestInput.After(rtime) {
-		rtime = result.LatestInput
-	}
-
-	resultAge := time.Since(rtime)
+	resultAge := time.Since(result.Created)
 	maxRefresh := u.maxRefresh
 
 	// stats-based metrics can wait longer to refresh
@@ -163,7 +155,7 @@ func (u *Updater) shouldUpdate(id string, usedForStats bool, force bool) error {
 	}
 
 	if resultAge > maxRefresh {
-		return fmt.Errorf("%s at %s is older than max refresh age (%s), should update", id, logu.STime(result.NewerThan), resultAge)
+		return fmt.Errorf("%s at %s is older than max refresh age (%s), should update", id, logu.STime(result.Created), resultAge)
 	}
 
 	if force {
@@ -233,7 +225,7 @@ func (u *Updater) update(ctx context.Context, s triage.Collection, newerThan tim
 		return err
 	}
 	u.cache[s.ID] = r
-	klog.Infof("<<< updated %q to %s (latest input: %s, duration: %s) <<<", s.ID, logu.STime(r.NewerThan), logu.STime(r.LatestInput), time.Since(start))
+	klog.Infof("<<< updated %q to %s (oldest input: %s, duration: %s) <<<", s.ID, logu.STime(r.Created), logu.STime(r.OldestInput), time.Since(start))
 	return nil
 }
 

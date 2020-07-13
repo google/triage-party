@@ -54,6 +54,10 @@ func newerThanMem(c *cache.Cache, key string, t time.Time) *Thing {
 		klog.V(1).Infof("%s is not of type Thing", key)
 	}
 
+	if th.Created.After(time.Now()) {
+		klog.Errorf("%s claims to be created in the future: %s ???", key, th.Created)
+	}
+
 	if th.Created.Before(t) {
 		return nil
 	}
