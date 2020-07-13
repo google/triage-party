@@ -92,7 +92,6 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 		}
 
 		if ro.OldestInput.Before(oldest) {
-			klog.Infof("%s is from %s", tid, ro.OldestInput)
 			oldest = ro.OldestInput
 		}
 
