@@ -26,9 +26,9 @@ import (
 
 var (
 	// MaxSaveAge is the oldest allowable entry to persist
-	MaxSaveAge = 30 * 24 * time.Hour
+	MaxSaveAge = 1 * 24 * time.Hour
 	// MaxLoadAge is the oldest allowable entry to load
-	MaxLoadAge = 45 * 24 * time.Hour
+	MaxLoadAge = 10 * 24 * time.Hour
 )
 
 // Config is cache configuration
@@ -58,7 +58,7 @@ type Cacher interface {
 	GetNewerThan(string, time.Time) *Thing
 
 	Initialize() error
-	Save() error
+	Cleanup() error
 }
 
 func New(cfg Config) (Cacher, error) {

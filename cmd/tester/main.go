@@ -108,10 +108,6 @@ func main() {
 	} else {
 		executeRule(ctx, tp)
 	}
-
-	if err := c.Save(); err != nil {
-		klog.Exitf("persist save to %s: %v", c, err)
-	}
 }
 
 func executeCollection(ctx context.Context, tp *triage.Party) {
