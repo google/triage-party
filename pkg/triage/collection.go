@@ -102,6 +102,7 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 	r := SummarizeCollectionResult(&s, os)
 	r.NewerThan = newerThan
 	r.OldestInput = oldest
+	r.Created = time.Now()
 
 	klog.V(1).Infof("collection %q took %s, results as of %s", s.ID, time.Since(start), r.OldestInput)
 	return r, nil
@@ -138,7 +139,6 @@ func SummarizeCollectionResult(s *Collection, os []*RuleResult) *CollectionResul
 	r.AvgAge = avgDayDuration(r.TotalAgeDays, r.Total)
 	r.AvgCurrentHold = avgDayDuration(r.TotalCurrentHoldDays, r.Total)
 	r.AvgAccumulatedHold = avgDayDuration(r.TotalAccumulatedHoldDays, r.Total)
-	r.Created = time.Now()
 	return r
 }
 

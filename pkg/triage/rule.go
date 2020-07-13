@@ -110,7 +110,8 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, newerThan time.Time, hidden bool) (*RuleResult, error) {
 	klog.V(1).Infof("executing rule %q for results newer than %s", t.ID, logu.STime(newerThan))
 	rcs := []*hubbub.Conversation{}
-	var oldest time.Time
+	oldest := time.Now()
+	klog.Infof("set %s oldest to %s", t.ID, oldest)
 
 	for _, repo := range t.Repos {
 		org, project, err := parseRepo(repo)
@@ -137,6 +138,7 @@ func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, 
 
 		rcs = append(rcs, cs...)
 		if ts.Before(oldest) {
+			klog.Infof("set %s (%s) oldest to %s", t.ID, t.Type, ts)
 			oldest = ts
 		}
 	}
