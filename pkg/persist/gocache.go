@@ -17,7 +17,6 @@ package persist
 import (
 	"time"
 
-	"github.com/google/triage-party/pkg/logu"
 	"github.com/patrickmn/go-cache"
 	"k8s.io/klog/v2"
 )
@@ -56,7 +55,6 @@ func newerThanMem(c *cache.Cache, key string, t time.Time) *Thing {
 	}
 
 	if th.Created.Before(t) {
-		klog.V(2).Infof("%s in cache, but %s is older than %s", key, logu.STime(th.Created), logu.STime(t))
 		return nil
 	}
 

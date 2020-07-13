@@ -55,7 +55,6 @@ type RuleResult struct {
 
 // SummarizeRuleResult adds together statistics about a pool of conversations
 func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rule) *RuleResult {
-	klog.V(2).Infof("Summarizing %q with %d conversations, seen has %d members", t.ID, len(cs), len(seen))
 
 	r := &RuleResult{
 		Rule:       t,

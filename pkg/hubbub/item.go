@@ -62,30 +62,6 @@ type GitHubItem interface {
 	String() string
 }
 
-// conversation returns a cached conversation from an issue-like
-func (h *Engine) conversation(i GitHubItem, cs []*Comment, age time.Time) *Conversation {
-	key := i.GetHTMLURL()
-	cached, ok := h.seen[key]
-	if ok {
-		if cached.Updated != i.GetUpdatedAt() && cached.Updated.Before(i.GetUpdatedAt()) {
-			klog.V(1).Infof("cache for %s too old: %s, need %s", key, cached.Updated, i.GetUpdatedAt())
-			h.seen[key] = h.createConversation(i, cs, age)
-			return h.seen[key]
-		}
-
-		if cached.CommentsTotal < len(cs) {
-			klog.V(1).Infof("cache for %s has too few comments: %d, need %d", key, cached.CommentsTotal, len(cs))
-			h.seen[key] = h.createConversation(i, cs, age)
-			return h.seen[key]
-		}
-
-		return h.seen[key]
-	}
-
-	h.seen[key] = h.createConversation(i, cs, age)
-	return h.seen[key]
-}
-
 // createConversation creates a conversation from an issue-like
 func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) *Conversation {
 
@@ -112,6 +88,10 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 		Reactions:            map[string]int{},
 		LastCommentAuthor:    i.GetUser(),
 		LastCommentBody:      i.GetBody(),
+	}
+
+	if co.CommentsTotal == 0 {
+		co.CommentsTotal = len(cs)
 	}
 
 	// "https://github.com/kubernetes/minikube/issues/7179",
@@ -192,7 +172,6 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 					continue
 				}
 				if strings.Contains(line, "?") {
-					klog.V(2).Infof("question at %s: %s", c.Created, line)
 					lastQuestion = c.Created
 				}
 			}
@@ -205,18 +184,15 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 	}
 
 	if co.LatestMemberResponse.After(co.LatestAuthorResponse) {
-		klog.V(2).Infof("marking as send: latest member response (%s) is after latest author response (%s)", co.LatestMemberResponse, co.LatestAuthorResponse)
 		co.Tags = append(co.Tags, tag.Send)
 		co.CurrentHoldTime = 0
 	} else if !authorIsMember {
-		klog.V(2).Infof("marking as recv: author is not member, latest member response (%s) is before latest author response (%s)", co.LatestMemberResponse, co.LatestAuthorResponse)
 		co.Tags = append(co.Tags, tag.Recv)
 		co.CurrentHoldTime += time.Since(co.LatestAuthorResponse)
 		co.AccumulatedHoldTime += time.Since(co.LatestAuthorResponse)
 	}
 
 	if lastQuestion.After(co.LatestMemberResponse) {
-		klog.V(2).Infof("marking as recv-q: last question (%s) comes after last member response (%s)", lastQuestion, co.LatestMemberResponse)
 		co.Tags = append(co.Tags, tag.RecvQ)
 	}
 
@@ -265,12 +241,10 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 // Return if a user or role should be considered a member
 func (h *Engine) isMember(user string, role string) bool {
 	if h.members[user] {
-		klog.V(3).Infof("%q (%s) is in membership list", user, role)
 		return true
 	}
 
 	if h.memberRoles[strings.ToLower(role)] {
-		klog.V(3).Infof("%q (%s) is in membership role list", user, role)
 		return true
 	}
 
@@ -323,7 +297,7 @@ func (h *Engine) parseRefs(text string, co *Conversation, t time.Time) {
 	for _, m := range ms {
 		i, err := strconv.Atoi(m[1])
 		if err != nil {
-			klog.Errorf("unable to parse int from %s: %v", err)
+			klog.Errorf("unable to parse int from %s: %v", m[1], err)
 			continue
 		}
 

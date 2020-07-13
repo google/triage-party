@@ -185,16 +185,13 @@ func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 
 		oco := h.seen[url]
 		if oco == nil {
-			klog.V(3).Infof("find similar: no conversation found for %s -- must have been filtered out", url)
 			continue
 		}
 
 		if oco.Type != co.Type {
-			klog.V(4).Infof("Found similar item, but it's a %s and I am a %s", oco.Type, co.Type)
 			continue
 		}
 
-		klog.V(3).Infof("found similar %s %s: %q", oco.Type, oco.Title, url)
 		simco = append(simco, makeRelated(h.seen[url]))
 		added[url] = true
 	}

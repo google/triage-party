@@ -54,8 +54,6 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 		State:       state,
 	}
 
-	klog.V(2).Infof("%s issue list opts for %s: %+v", state, key, opt)
-
 	if updateAge != 0 {
 		opt.Since = time.Now().Add(-1 * updateAge)
 	}
@@ -132,8 +130,6 @@ func (h *Engine) updateIssueComments(ctx context.Context, org string, project st
 	for {
 		klog.Infof("Downloading comments for %s/%s #%d (page %d)...", org, project, num, opt.Page)
 		cs, resp, err := h.client.Issues.ListComments(ctx, org, project, num, opt)
-		klog.V(2).Infof("Received %d comments", len(cs))
-		klog.V(2).Infof("response: %+v", resp)
 
 		if err != nil {
 			return cs, start, err
@@ -175,13 +171,13 @@ func openByDefault(fs []Filter) []Filter {
 	return fs
 }
 
-func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment, age time.Time) *Conversation {
+func (h *Engine) createIssueSummary(i *github.Issue, cs []*github.IssueComment, age time.Time) *Conversation {
 	cl := []*Comment{}
 	for _, c := range cs {
 		cl = append(cl, NewComment(c))
 	}
 
-	co := h.conversation(i, cl, age)
+	co := h.createConversation(i, cl, age)
 	r := i.GetReactions()
 	co.ReactionsTotal += r.GetTotalCount()
 	for k, v := range reactions(r) {
@@ -191,6 +187,21 @@ func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment, age ti
 
 	sort.Slice(co.Tags, func(i, j int) bool { return co.Tags[i].ID < co.Tags[j].ID })
 	return co
+}
+
+// IssueSummary returns a cached conversation for an issue
+func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment, age time.Time) *Conversation {
+	key := i.GetHTMLURL()
+	cached, ok := h.seen[key]
+	if ok {
+		if !cached.Updated.Before(i.GetUpdatedAt()) && cached.CommentsTotal >= len(cs) {
+			return h.seen[key]
+		}
+		klog.Infof("%s in issue cache, but was invalid. Live @ %s (%d comments), cached @ %s (%d comments)  ", i.GetHTMLURL(), i.GetUpdatedAt(), len(cs), cached.Updated, cached.CommentsTotal)
+	}
+
+	h.seen[key] = h.createIssueSummary(i, cs, age)
+	return h.seen[key]
 }
 
 func isBot(u *github.User) bool {

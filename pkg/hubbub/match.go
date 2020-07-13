@@ -15,18 +15,15 @@ import (
 // Check if an item matches the filters, pre-comment fetch
 func preFetchMatch(i GitHubItem, labels []*github.Label, fs []Filter) bool {
 	for _, f := range fs {
-		klog.V(2).Infof("pre-matching item #%d against filter: %+v", i.GetNumber(), toYAML(f))
 
 		if f.State != "" && f.State != "all" {
 			if i.GetState() != f.State {
-				klog.V(3).Infof("#%d state is %q, want: %q", i.GetNumber(), i.GetState(), f.State)
 				return false
 			}
 		}
 
 		if f.ClosedCommenters != "" || f.ClosedComments != "" {
 			if i.GetState() != "closed" {
-				klog.V(3).Infof("#%d state is %q, want closed comments", i.GetNumber(), i.GetState())
 				return false
 			}
 		}
@@ -94,7 +91,7 @@ func preFetchMatch(i GitHubItem, labels []*github.Label, fs []Filter) bool {
 
 		if f.Reactions != "" || f.ReactionsPerMonth != "" || f.Commenters != "" || f.Comments != "" {
 			if !i.GetUpdatedAt().After(i.GetCreatedAt()) {
-				klog.V(1).Infof("#%d has no updates, but need one for: %s", i.GetNumber(), toYAML(f))
+				klog.V(1).Infof("#%d has no updates, but need one for: %s", i.GetNumber(), f)
 				return false
 			}
 		}
@@ -106,7 +103,7 @@ func preFetchMatch(i GitHubItem, labels []*github.Label, fs []Filter) bool {
 // Check if an issue matches the summarized version
 func postFetchMatch(co *Conversation, fs []Filter) bool {
 	for _, f := range fs {
-		klog.V(2).Infof("post-fetch matching item #%d against filter: %+v", co.ID, toYAML(f))
+		klog.V(2).Infof("post-fetch matching item #%d against filter: %+v", co.ID, f)
 
 		if f.Responded != "" {
 			if ok := matchDuration(co.LatestMemberResponse, f.Responded); !ok {
@@ -186,33 +183,25 @@ func postEventsMatch(co *Conversation, fs []Filter) bool {
 }
 
 func matchLabel(labels []*github.Label, re *regexp.Regexp, negate bool) bool {
-	klog.V(2).Infof("Checking label: %s (negate=%v)", re, negate)
 	for _, l := range labels {
 		if re.MatchString(*l.Name) {
-			klog.V(2).Infof("we have a match, returning %v", !negate)
 			return !negate
 		}
 	}
 	// Returns 'false' normally, 'true' when negate is true
-	klog.V(2).Infof("no match, returning %v", negate)
 	return negate
 }
 
 // matchNegateRegex matches a value against a negatable regex
 func matchNegateRegex(value string, re *regexp.Regexp, negate bool) bool {
-	klog.V(2).Infof("Checking value %q against %s (negate=%v)", value, re, negate)
-
 	if value == "" && re.String() != "" && re.String() != "^$" {
-		klog.V(1).Infof("%q is empty, regexp %q is not, returning %v", value, re, negate)
 		return negate
 	}
 
 	if re.MatchString(value) {
-		klog.V(2).Infof("%q matches %s, returning %v", value, re, !negate)
 		return !negate
 	}
 	// Returns 'false' normally, 'true' when negate is true
-	klog.V(2).Infof("%q does not match %s, returning %v", value, re, negate)
 	return negate
 }
 
@@ -260,7 +249,6 @@ func ParseDuration(ds string) (time.Duration, bool, bool) {
 		over = true
 	}
 
-	klog.V(2).Infof("parsing duration: %s", ds)
 	d, err := time.ParseDuration(ds)
 	if err != nil {
 		klog.Errorf("unable to parse duration %s: %v", ds, err)
@@ -270,7 +258,6 @@ func ParseDuration(ds string) (time.Duration, bool, bool) {
 }
 
 func matchDuration(t time.Time, ds string) bool {
-	klog.V(2).Infof("match duration: %s vs %s", t, ds)
 	d, within, over := ParseDuration(ds)
 
 	if within && time.Since(t) < d {

@@ -235,9 +235,11 @@ func (h *Engine) updateReviewComments(ctx context.Context, org string, project s
 	return allComments, start, nil
 }
 
-func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Comment, timeline []*github.Timeline, reviews []*github.PullRequestReview, age time.Time, fetch bool) *Conversation {
-	co := h.conversation(pr, cs, age)
+func (h *Engine) createPRSummary(ctx context.Context, pr *github.PullRequest, cs []*Comment, timeline []*github.Timeline, reviews []*github.PullRequestReview, age time.Time, fetch bool) *Conversation {
+	co := h.createConversation(pr, cs, age)
 	co.Type = PullRequest
+	co.ReviewsTotal = len(reviews)
+	co.TimelineTotal = len(timeline)
 	h.addEvents(ctx, co, timeline, fetch)
 
 	co.ReviewState = reviewState(pr, timeline, reviews)
@@ -256,4 +258,18 @@ func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Co
 
 	sort.Slice(co.Tags, func(i, j int) bool { return co.Tags[i].ID < co.Tags[j].ID })
 	return co
+}
+
+func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Comment, timeline []*github.Timeline, reviews []*github.PullRequestReview, age time.Time, fetch bool) *Conversation {
+	key := pr.GetHTMLURL()
+	cached, ok := h.seen[key]
+	if ok {
+		if !cached.Updated.Before(pr.GetUpdatedAt()) && cached.CommentsTotal >= len(cs) && cached.TimelineTotal >= len(timeline) && cached.ReviewsTotal >= len(reviews) {
+			return h.seen[key]
+		}
+		klog.Infof("%s in PR cache, but was invalid. Live @ %s (%d comments), cached @ %s (%d comments)  ", pr.GetHTMLURL(), pr.GetUpdatedAt(), len(cs), cached.Updated, cached.CommentsTotal)
+	}
+
+	h.seen[key] = h.createPRSummary(ctx, pr, cs, timeline, reviews, age, fetch)
+	return h.seen[key]
 }

@@ -49,7 +49,6 @@ func (h *Engine) updateTimeline(ctx context.Context, org string, project string,
 	}
 	var allEvents []*github.Timeline
 	for {
-		klog.V(2).Infof("Downloading timeline for %s/%s #%d (page %d)...", org, project, num, opt.Page)
 		evs, resp, err := h.client.Issues.ListIssueTimeline(ctx, org, project, num, opt)
 		if err != nil {
 			return nil, err
@@ -60,7 +59,6 @@ func (h *Engine) updateTimeline(ctx context.Context, org string, project string,
 			h.updateMtimeLong(org, project, num, ev.GetCreatedAt())
 		}
 
-		klog.V(2).Infof("Received %d timeline events", len(evs))
 		allEvents = append(allEvents, evs...)
 		if resp.NextPage == 0 {
 			break
@@ -98,13 +96,11 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 		}
 
 		if t.GetEvent() == "labeled" && t.GetLabel().GetName() == priority {
-			klog.V(2).Infof("prioritized at %s", t.GetCreatedAt())
 			co.Prioritized = t.GetCreatedAt()
 		}
 
 		if t.GetEvent() == "cross-referenced" {
 			if assignedTo[t.GetActor().GetLogin()] {
-				klog.V(1).Infof("cross-referenced by the assignee, updating assigned response")
 				if t.GetCreatedAt().After(co.LatestAssigneeResponse) {
 					co.LatestAssigneeResponse = t.GetCreatedAt()
 					co.Tags = append(co.Tags, tag.AssigneeUpdated)
@@ -112,7 +108,6 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 			}
 
 			ri := t.GetSource().GetIssue()
-			klog.V(1).Infof("#s cross-referenced #%s at %s", co.URL, ri.GetHTMLURL(), t.GetCreatedAt())
 
 			// Push the item timestamps as far forwards as possible for the best possible timeline fetch
 			h.updateCoMtime(co, t.GetCreatedAt())
@@ -162,7 +157,7 @@ func (h *Engine) prRef(ctx context.Context, pr GitHubItem, age time.Time, fetch 
 
 	klog.V(1).Infof("Creating PR reference for #%d, updated at %s(state=%s)", pr.GetNumber(), pr.GetUpdatedAt(), pr.GetState())
 
-	co := h.conversation(pr, nil, age)
+	co := h.createConversation(pr, nil, age)
 	rel := makeRelated(co)
 
 	timeline, err := h.cachedTimeline(ctx, co.Organization, co.Project, pr.GetNumber(), newerThan, fetch)
@@ -226,6 +221,6 @@ func (h *Engine) updateLinkedPRs(ctx context.Context, parent *Conversation, newe
 }
 
 func (h *Engine) issueRef(i *github.Issue, age time.Time) *RelatedConversation {
-	co := h.conversation(i, nil, age)
+	co := h.createConversation(i, nil, age)
 	return makeRelated(co)
 }
