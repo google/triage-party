@@ -62,30 +62,6 @@ type GitHubItem interface {
 	String() string
 }
 
-// conversation returns a cached conversation from an issue-like
-func (h *Engine) conversation(i GitHubItem, cs []*Comment, age time.Time) *Conversation {
-	key := i.GetHTMLURL()
-	cached, ok := h.seen[key]
-	if ok {
-		if cached.Updated != i.GetUpdatedAt() && cached.Updated.Before(i.GetUpdatedAt()) {
-			klog.V(1).Infof("cache for %s too old: %s, need %s", key, cached.Updated, i.GetUpdatedAt())
-			h.seen[key] = h.createConversation(i, cs, age)
-			return h.seen[key]
-		}
-
-		if cached.CommentsTotal < len(cs) {
-			klog.V(1).Infof("cache for %s has too few comments: %d, need %d", key, cached.CommentsTotal, len(cs))
-			h.seen[key] = h.createConversation(i, cs, age)
-			return h.seen[key]
-		}
-
-		return h.seen[key]
-	}
-
-	h.seen[key] = h.createConversation(i, cs, age)
-	return h.seen[key]
-}
-
 // createConversation creates a conversation from an issue-like
 func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) *Conversation {
 
@@ -112,6 +88,10 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 		Reactions:            map[string]int{},
 		LastCommentAuthor:    i.GetUser(),
 		LastCommentBody:      i.GetBody(),
+	}
+
+	if co.CommentsTotal == 0 {
+		co.CommentsTotal = len(cs)
 	}
 
 	// "https://github.com/kubernetes/minikube/issues/7179",
@@ -317,7 +297,7 @@ func (h *Engine) parseRefs(text string, co *Conversation, t time.Time) {
 	for _, m := range ms {
 		i, err := strconv.Atoi(m[1])
 		if err != nil {
-			klog.Errorf("unable to parse int from %s: %v", err)
+			klog.Errorf("unable to parse int from %s: %v", m[1], err)
 			continue
 		}
 

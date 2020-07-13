@@ -354,14 +354,7 @@ func needComments(i GitHubItem, fs []Filter) bool {
 		}
 	}
 
-	if i.GetState() != "open" {
-		return false
-	}
-
-	// Implementation note: hidden pages need comments too for generating Avg Wait time
-
-	// Do we need it? Not really. But it's useful for users to see the tags
-	return true
+	return i.GetState() == "open"
 }
 
 func needTimeline(i GitHubItem, fs []Filter, pr bool, hidden bool) bool {
@@ -394,11 +387,7 @@ func needTimeline(i GitHubItem, fs []Filter, pr bool, hidden bool) bool {
 		}
 	}
 
-	if hidden {
-		return false
-	}
-
-	return true
+	return !hidden
 }
 
 func needReviews(i GitHubItem, fs []Filter, hidden bool) bool {

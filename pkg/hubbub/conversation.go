@@ -80,6 +80,9 @@ type Conversation struct {
 	ClosedAt              time.Time    `json:"closed_at"`
 	ClosedBy              *github.User `json:"closed_by"`
 
+	TimelineTotal int `json:"timeline_total"`
+	ReviewsTotal  int `json:"reviews_total"`
+
 	IssueRefs       []*RelatedConversation `json:"issue_refs"`
 	PullRequestRefs []*RelatedConversation `json:"pull_request_refs"`
 

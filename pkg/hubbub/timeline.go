@@ -157,7 +157,7 @@ func (h *Engine) prRef(ctx context.Context, pr GitHubItem, age time.Time, fetch 
 
 	klog.V(1).Infof("Creating PR reference for #%d, updated at %s(state=%s)", pr.GetNumber(), pr.GetUpdatedAt(), pr.GetState())
 
-	co := h.conversation(pr, nil, age)
+	co := h.createConversation(pr, nil, age)
 	rel := makeRelated(co)
 
 	timeline, err := h.cachedTimeline(ctx, co.Organization, co.Project, pr.GetNumber(), newerThan, fetch)
@@ -221,6 +221,6 @@ func (h *Engine) updateLinkedPRs(ctx context.Context, parent *Conversation, newe
 }
 
 func (h *Engine) issueRef(i *github.Issue, age time.Time) *RelatedConversation {
-	co := h.conversation(i, nil, age)
+	co := h.createConversation(i, nil, age)
 	return makeRelated(co)
 }
