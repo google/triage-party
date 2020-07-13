@@ -152,6 +152,7 @@ type Page struct {
 	OpenStats     *triage.CollectionResult
 	VelocityStats *triage.CollectionResult
 	GetVars       string
+	Status        string
 }
 
 // Choice is a selector choice
