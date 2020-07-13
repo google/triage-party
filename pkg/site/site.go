@@ -267,7 +267,6 @@ func playerFilter(result *triage.CollectionResult, player int, players int) *tri
 
 		for _, i := range o.Items {
 			if (i.ID % players) == (player - 1) {
-				klog.V(3).Infof("%d belongs to player %d", i.ID, player)
 				cs = append(cs, i)
 			}
 		}

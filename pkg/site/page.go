@@ -67,8 +67,6 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		} else if result.RuleResults == nil {
 			klog.Errorf("lookup %q returned no results: %+v", id, result)
 		}
-
-		klog.V(2).Infof("lookup %q result: %d items", id, len(result.RuleResults))
 	}
 
 	total := 0

@@ -192,7 +192,6 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 					continue
 				}
 				if strings.Contains(line, "?") {
-					klog.V(2).Infof("question at %s: %s", c.Created, line)
 					lastQuestion = c.Created
 				}
 			}
@@ -205,18 +204,15 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 	}
 
 	if co.LatestMemberResponse.After(co.LatestAuthorResponse) {
-		klog.V(2).Infof("marking as send: latest member response (%s) is after latest author response (%s)", co.LatestMemberResponse, co.LatestAuthorResponse)
 		co.Tags = append(co.Tags, tag.Send)
 		co.CurrentHoldTime = 0
 	} else if !authorIsMember {
-		klog.V(2).Infof("marking as recv: author is not member, latest member response (%s) is before latest author response (%s)", co.LatestMemberResponse, co.LatestAuthorResponse)
 		co.Tags = append(co.Tags, tag.Recv)
 		co.CurrentHoldTime += time.Since(co.LatestAuthorResponse)
 		co.AccumulatedHoldTime += time.Since(co.LatestAuthorResponse)
 	}
 
 	if lastQuestion.After(co.LatestMemberResponse) {
-		klog.V(2).Infof("marking as recv-q: last question (%s) comes after last member response (%s)", lastQuestion, co.LatestMemberResponse)
 		co.Tags = append(co.Tags, tag.RecvQ)
 	}
 
@@ -265,12 +261,10 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 // Return if a user or role should be considered a member
 func (h *Engine) isMember(user string, role string) bool {
 	if h.members[user] {
-		klog.V(3).Infof("%q (%s) is in membership list", user, role)
 		return true
 	}
 
 	if h.memberRoles[strings.ToLower(role)] {
-		klog.V(3).Infof("%q (%s) is in membership role list", user, role)
 		return true
 	}
 

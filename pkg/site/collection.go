@@ -89,7 +89,6 @@ func (h *Handlers) Collection() http.HandlerFunc {
 		p.Index = index
 		p.GetVars = getVars
 
-		klog.V(2).Infof("page context: %+v", p)
 		err = t.ExecuteTemplate(w, "base", p)
 
 		if err != nil {

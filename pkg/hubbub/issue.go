@@ -54,8 +54,6 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 		State:       state,
 	}
 
-	klog.V(2).Infof("%s issue list opts for %s: %+v", state, key, opt)
-
 	if updateAge != 0 {
 		opt.Since = time.Now().Add(-1 * updateAge)
 	}
@@ -132,8 +130,6 @@ func (h *Engine) updateIssueComments(ctx context.Context, org string, project st
 	for {
 		klog.Infof("Downloading comments for %s/%s #%d (page %d)...", org, project, num, opt.Page)
 		cs, resp, err := h.client.Issues.ListComments(ctx, org, project, num, opt)
-		klog.V(2).Infof("Received %d comments", len(cs))
-		klog.V(2).Infof("response: %+v", resp)
 
 		if err != nil {
 			return cs, start, err

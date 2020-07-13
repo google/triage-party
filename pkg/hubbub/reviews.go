@@ -57,7 +57,6 @@ func (h *Engine) updateReviews(ctx context.Context, org string, project string, 
 
 		h.logRate(resp.Rate)
 
-		klog.V(2).Infof("Received %d reviews", len(cs))
 		allReviews = append(allReviews, cs...)
 		if resp.NextPage == 0 {
 			break
@@ -86,7 +85,6 @@ func reviewState(pr GitHubItem, timeline []*github.Timeline, reviews []*github.P
 	open := true
 
 	for _, t := range timeline {
-		klog.V(2).Infof("PR #%d review event: %q at %s", pr.GetNumber(), t.GetEvent(), t.GetCreatedAt())
 		if t.GetEvent() == "merged" {
 			return Merged
 		}

@@ -158,8 +158,6 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 			}
 		}
 
-		klog.V(2).Infof("page context: %+v", p)
-
 		err = t.ExecuteTemplate(w, "base", p)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("collection page for %q: %v", id, err), 500)
