@@ -147,13 +147,7 @@ func (u *Updater) shouldUpdate(id string, usedForStats bool, force bool) error {
 		return fmt.Errorf("results are not cached")
 	}
 
-	rtime := result.NewerThan
-
-	// There can be a lengthy run time on larger repos
-	if result.LatestInput.After(rtime) {
-		rtime = result.LatestInput
-	}
-
+	rtime := result.Created
 	resultAge := time.Since(rtime)
 	maxRefresh := u.maxRefresh
 
@@ -163,7 +157,7 @@ func (u *Updater) shouldUpdate(id string, usedForStats bool, force bool) error {
 	}
 
 	if resultAge > maxRefresh {
-		return fmt.Errorf("%s at %s is older than max refresh age (%s), should update", id, logu.STime(result.NewerThan), resultAge)
+		return fmt.Errorf("%s at %s is older than max refresh age (%s), should update", id, logu.STime(result.Created), resultAge)
 	}
 
 	if force {
@@ -233,7 +227,7 @@ func (u *Updater) update(ctx context.Context, s triage.Collection, newerThan tim
 		return err
 	}
 	u.cache[s.ID] = r
-	klog.Infof("<<< updated %q to %s (latest input: %s, duration: %s) <<<", s.ID, logu.STime(r.NewerThan), logu.STime(r.LatestInput), time.Since(start))
+	klog.Infof("<<< updated %q to %s (oldest input: %s, duration: %s) <<<", s.ID, logu.STime(r.NewerThan), logu.STime(r.OldestInput), time.Since(start))
 	return nil
 }
 

@@ -49,8 +49,11 @@ type RuleResult struct {
 
 	Duplicates map[string]bool
 
-	// LatestInput is the timestamp of the most recent input data
-	LatestInput time.Time
+	// OldestInput is the timestamp of the oldest input data
+	OldestInput time.Time
+
+	// When was this rule result created?
+	Created time.Time
 }
 
 // SummarizeRuleResult adds together statistics about a pool of conversations
@@ -99,6 +102,7 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 	r.AvgAge = avgDayDuration(r.TotalAgeDays, count)
 	r.AvgCurrentHold = avgDayDuration(r.TotalCurrentHoldDays, count)
 	r.AvgAccumulatedHold = avgDayDuration(r.TotalAccumulatedHoldDays, count)
+	r.Created = time.Now()
 	return r
 }
 
@@ -106,7 +110,7 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, newerThan time.Time, hidden bool) (*RuleResult, error) {
 	klog.V(1).Infof("executing rule %q for results newer than %s", t.ID, logu.STime(newerThan))
 	rcs := []*hubbub.Conversation{}
-	var latest time.Time
+	var oldest time.Time
 
 	for _, repo := range t.Repos {
 		org, project, err := parseRepo(repo)
@@ -132,14 +136,14 @@ func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, 
 		}
 
 		rcs = append(rcs, cs...)
-		if ts.After(latest) {
-			latest = ts
+		if ts.Before(oldest) {
+			oldest = ts
 		}
 	}
 
 	klog.V(1).Infof("rule %q matched %d items", t.ID, len(rcs))
 	rr := SummarizeRuleResult(t, rcs, seen)
-	rr.LatestInput = latest
+	rr.OldestInput = oldest
 	return rr, nil
 }
 

@@ -43,8 +43,9 @@ type Collection struct {
 type CollectionResult struct {
 	Collection *Collection
 
+	Created     time.Time
 	NewerThan   time.Time
-	LatestInput time.Time
+	OldestInput time.Time
 
 	RuleResults []*RuleResult
 
@@ -69,7 +70,7 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 	os := []*RuleResult{}
 	seen := map[string]*Rule{}
 	seenRule := map[string]bool{}
-	var latestInput time.Time
+	oldest := time.Now()
 
 	for _, tid := range s.RuleIDs {
 		if seenRule[tid] {
@@ -90,8 +91,9 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 			return nil, fmt.Errorf("rule %q: %w", t.Name, err)
 		}
 
-		if ro.LatestInput.After(latestInput) {
-			latestInput = ro.LatestInput
+		if ro.OldestInput.Before(oldest) {
+			klog.Infof("%s is from %s", tid, ro.OldestInput)
+			oldest = ro.OldestInput
 		}
 
 		os = append(os, ro)
@@ -99,13 +101,9 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 
 	r := SummarizeCollectionResult(&s, os)
 	r.NewerThan = newerThan
+	r.OldestInput = oldest
 
-	// If we are lucky, our results may be newer than we asked for!
-	if latestInput.After(r.LatestInput) {
-		r.LatestInput = latestInput
-	}
-
-	klog.V(1).Infof("collection %q took %s, results as of %s", s.ID, time.Since(start), r.LatestInput)
+	klog.V(1).Infof("collection %q took %s, results as of %s", s.ID, time.Since(start), r.OldestInput)
 	return r, nil
 }
 
@@ -140,6 +138,7 @@ func SummarizeCollectionResult(s *Collection, os []*RuleResult) *CollectionResul
 	r.AvgAge = avgDayDuration(r.TotalAgeDays, r.Total)
 	r.AvgCurrentHold = avgDayDuration(r.TotalCurrentHoldDays, r.Total)
 	r.AvgAccumulatedHold = avgDayDuration(r.TotalAccumulatedHoldDays, r.Total)
+	r.Created = time.Now()
 	return r
 }
 

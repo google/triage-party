@@ -74,11 +74,6 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		total += len(o.Items)
 	}
 
-	dataAge = result.LatestInput
-	if result.NewerThan.After(dataAge) {
-		dataAge = result.NewerThan
-	}
-
 	unique := uniqueItems(result.RuleResults)
 
 	p := &Page{
@@ -93,12 +88,12 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		Total:            len(unique),
 		Types:            "Issues",
 		UniqueItems:      unique,
-		ResultAge:        time.Since(dataAge),
+		ResultAge:        time.Since(result.OldestInput),
 	}
 
 	if result.RuleResults == nil {
 		p.Notification = template.HTML(`Downloading data from GitHub ...`)
-	} else if time.Since(dataAge) > h.warnAge {
+	} else if p.ResultAge > h.warnAge {
 		p.Notification = template.HTML(fmt.Sprintf(`Refreshing data in the background. Displayed data may be up to %s old. Use <a href="https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh at any time.`, humanDuration(time.Since(dataAge))))
 		p.Stale = true
 	}
