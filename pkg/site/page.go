@@ -101,7 +101,8 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 	if result.RuleResults == nil {
 		p.Notification = template.HTML(`Downloading data from GitHub ...`)
 	} else if time.Since(dataAge) > h.warnAge {
-		p.Notification = template.HTML(fmt.Sprintf(`Refreshing GitHub data ... Information displayed may be up to %s old. Use <a href="https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh at any time.`, humanDuration(time.Since(dataAge))))
+		p.Notification = template.HTML(fmt.Sprintf(`Refreshing data in the background. Displayed data may be up to %s old. Use <a href="https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh at any time.`, humanDuration(time.Since(dataAge))))
+		p.Stale = true
 	}
 
 	for _, s := range sts {

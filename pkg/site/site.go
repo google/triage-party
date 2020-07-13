@@ -123,6 +123,7 @@ type Page struct {
 	Types        string
 	UniqueItems  []*hubbub.Conversation
 	ResultAge    time.Duration
+	Stale        bool
 
 	Player        int
 	Players       int
