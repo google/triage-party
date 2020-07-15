@@ -1,5 +1,19 @@
 # Release Notes
 
+## Version 1.2.0 - 2020-07-14
+
+* Don't block page-loads if missing content, add healthz [#175](https://github.com/google/triage-party/pull/175)
+* Add --warn-age flag instead of determining automatically [#184](https://github.com/google/triage-party/pull/184)
+* Persist items on the fly rather than periodically in bulk [#183](https://github.com/google/triage-party/pull/183)
+* Base data age on oldest query time rather than data age [#181](https://github.com/google/triage-party/pull/181)
+* optimization: use cached conversations instead of re-parsing [#178](https://github.com/google/triage-party/pull/178)
+* Add status to /healthz, build similarity tables in the background [#177](https://github.com/google/triage-party/pull/177)
+* Add /threadz handler, fix data age calculation bug [#176](https://github.com/google/triage-party/pull/176)
+* Add comment cross-reference parsing, support multiple debug numbers [#169](https://github.com/google/triage-party/pull/169)
+* Fetch timelines for all issues within a milestone [#166](https://github.com/google/triage-party/pull/166)
+* Fetch timelines for issues that have zero comments [#165](https://github.com/google/triage-party/pull/165)
+* make comment fetching optional for the initial data cycle [#162](https://github.com/google/triage-party/pull/162)
+
 ## Version 1.2.0-beta.3 - 2020-06-19
 
 * Allow stale comment/timeline/review data on initial cycle [#155](https://github.com/google/triage-party/pull/155)

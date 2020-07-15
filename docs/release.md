@@ -2,7 +2,7 @@
    
 
 1. Update `VERSION` in `pkg/site/site.go`
-2. In upstream repository, run `git fetch && git pull && hacks/release_note.sh`
+2. In upstream repository, run `git fetch && git pull && hacks/release_notes.sh`
 3. Update `CHANGELOG.md`
 4. Get PR's merged
 5. In upstream repository, run Docker example from `README.md`
