@@ -37,6 +37,7 @@ type Collection struct {
 	Display  string `yaml:"display"`
 	Overflow int    `yaml:"overflow"`
 	Selector string `yaml:"selector"`
+	Velocity string `yaml:"velocity"`
 }
 
 // The result of Execute

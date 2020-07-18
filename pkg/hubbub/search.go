@@ -97,7 +97,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 		}
 
 		if seen[i.GetURL()] {
-			klog.Errorf("unusual: I already saw #%d", i.GetNumber())
+			klog.Errorf("unusual: I already saw #%d", i.GetURL())
 			continue
 		}
 		seen[i.GetURL()] = true
