@@ -18,6 +18,7 @@ package site
 import (
 	"fmt"
 	"html/template"
+	"image/color"
 	"math"
 	"net/http"
 	"net/url"
@@ -209,6 +210,58 @@ func className(s string) template.HTMLAttr {
 	s = strings.ToLower(nonWordRe.ReplaceAllString(s, "-"))
 	s = strings.Replace(s, "_", "-", -1)
 	return template.HTMLAttr(s)
+}
+
+func parseHexColor(s string) (c color.RGBA, err error) {
+	c.A = 0xff
+
+	if s[0] != '#' {
+		return c, fmt.Errorf("%q is not a valid hex color", s)
+	}
+
+	hexToByte := func(b byte) byte {
+		switch {
+		case b >= '0' && b <= '9':
+			return b - '0'
+		case b >= 'a' && b <= 'f':
+			return b - 'a' + 10
+		case b >= 'A' && b <= 'F':
+			return b - 'A' + 10
+		}
+		err = fmt.Errorf("%q is not a parseable hex color", s)
+		return 0
+	}
+
+	switch len(s) {
+	case 7:
+		c.R = hexToByte(s[1])<<4 + hexToByte(s[2])
+		c.G = hexToByte(s[3])<<4 + hexToByte(s[4])
+		c.B = hexToByte(s[5])<<4 + hexToByte(s[6])
+	case 4:
+		c.R = hexToByte(s[1]) * 17
+		c.G = hexToByte(s[2]) * 17
+		c.B = hexToByte(s[3]) * 17
+	default:
+		err = fmt.Errorf("%q is not a proper hex color", s)
+	}
+	return
+}
+
+// pick an appropriate text color given a background color
+func textColor(s string) template.CSS {
+
+	color, err := parseHexColor(fmt.Sprintf("#%s", strings.TrimPrefix(s, "#")))
+	if err != nil {
+		klog.Errorf("parse hex color failed: %v", err)
+		return "f00"
+	}
+
+	// human eye is most sensitive to green
+	lum := (0.299*float64(color.R) + 0.587*float64(color.G) + 0.114*float64(color.B)) / 255
+	if lum > 0.5 {
+		return "111"
+	}
+	return "fff"
 }
 
 func unixNano(t time.Time) int64 {

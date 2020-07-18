@@ -8,6 +8,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/google/go-github/v31 v31.0.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20190818114111-108c894c2c0e
 	github.com/imjasonmiller/godice v0.1.2

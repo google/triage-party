@@ -37,6 +37,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 		"UnixNano":      unixNano,
 		"Avatar":        avatar,
 		"Class":         className,
+		"TextColor":     textColor,
 	}
 	t := template.Must(template.New("collection").Funcs(fmap).ParseFiles(
 		filepath.Join(h.baseDir, "collection.tmpl"),
