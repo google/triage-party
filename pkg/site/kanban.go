@@ -147,8 +147,9 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 			p.SelectorVar = "milestone"
 			p.Milestone = chosen
 			p.ClosedPerDay = calcClosedPerDay(p.VelocityStats)
+			p.CompletionETA = calcETA(p.Swimlanes, p.ClosedPerDay)
 
-			etaDate, etaOffset, countOffset := calcETA(chosen, p.ClosedPerDay)
+			etaDate, etaOffset, countOffset := calcMilestoneETA(chosen, p.ClosedPerDay)
 			klog.Infof("milestone ETA is %s (offset: %s, %d issues)", etaDate, etaOffset, countOffset)
 			p.MilestoneETA = etaDate
 			p.MilestoneCountOffset = countOffset
@@ -165,6 +166,25 @@ func (h *Handlers) Kanban() http.HandlerFunc {
 			return
 		}
 	}
+}
+
+func calcETA(lanes []*Swimlane, perDay float64) time.Time {
+	open := map[string]bool{}
+
+	for _, lane := range lanes {
+		for _, c := range lane.Columns {
+			if c != nil {
+				for _, co := range c.Items {
+					if co.State == "open" {
+						open[co.URL] = true
+					}
+				}
+			}
+		}
+	}
+
+	days := float64(len(open)) / perDay
+	return time.Now().AddDate(0, 0, int(days))
 }
 
 func calcClosedPerDay(r *triage.CollectionResult) float64 {
@@ -192,12 +212,13 @@ func calcClosedPerDay(r *triage.CollectionResult) float64 {
 	}
 
 	days := time.Since(oldestClosure).Hours() / 24
-	closeRate := days / float64(len(seen))
+	closeRate := float64(len(seen)) / days
 	klog.Infof("close rate is %.2f (%.1f days of data, %d issues)", closeRate, days, r.TotalIssues)
 	return closeRate
 }
 
-func calcETA(m *github.Milestone, closeRate float64) (time.Time, time.Duration, int) {
+// TODO: Merge into calcETA
+func calcMilestoneETA(m *github.Milestone, closeRate float64) (time.Time, time.Duration, int) {
 	if m == nil {
 		klog.Errorf("unable to calc ETA: no milestone")
 		return time.Time{}, time.Duration(0), 0
