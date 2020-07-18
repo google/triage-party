@@ -42,7 +42,15 @@ func (h *Engine) cachedIssues(ctx context.Context, org string, project string, s
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", key, logu.STime(newerThan))
-	return h.updateIssues(ctx, org, project, state, updateAge, key)
+	issues, created, err := h.updateIssues(ctx, org, project, state, updateAge, key)
+	if err != nil {
+		klog.Warningf("Retrieving stale results for %s due to error: %v", key, err)
+		x := h.cache.GetNewerThan(key, time.Time{})
+		if x != nil {
+			return x.Issues, x.Created, nil
+		}
+	}
+	return issues, created, err
 }
 
 // updateIssues updates the issues in cache
@@ -76,6 +84,7 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 		if err != nil {
 			return is, start, err
 		}
+
 		h.logRate(resp.Rate)
 
 		for _, i := range is {
@@ -115,7 +124,17 @@ func (h *Engine) cachedIssueComments(ctx context.Context, org string, project st
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", key, logu.STime(newerThan))
-	return h.updateIssueComments(ctx, org, project, num, key)
+
+	comments, created, err := h.updateIssueComments(ctx, org, project, num, key)
+	if err != nil {
+		klog.Warningf("Retrieving stale results for %s due to error: %v", key, err)
+		x := h.cache.GetNewerThan(key, time.Time{})
+		if x != nil {
+			return x.IssueComments, x.Created, nil
+		}
+	}
+
+	return comments, created, err
 }
 
 func (h *Engine) updateIssueComments(ctx context.Context, org string, project string, num int, key string) ([]*github.IssueComment, time.Time, error) {

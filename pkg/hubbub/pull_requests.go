@@ -49,7 +49,15 @@ func (h *Engine) cachedPRs(ctx context.Context, org string, project string, stat
 	}
 
 	klog.V(1).Infof("cache miss: %s newer than %s", key, newerThan)
-	return h.updatePRs(ctx, org, project, state, updateAge, key)
+	prs, created, err := h.updatePRs(ctx, org, project, state, updateAge, key)
+	if err != nil {
+		klog.Warningf("Retrieving stale results for %s due to error: %v", key, err)
+		x := h.cache.GetNewerThan(key, time.Time{})
+		if x != nil {
+			return x.PullRequests, x.Created, nil
+		}
+	}
+	return prs, created, err
 }
 
 // updatePRs returns and caches live PR's
@@ -125,7 +133,16 @@ func (h *Engine) cachedPR(ctx context.Context, org string, project string, num i
 		return nil, time.Time{}, nil
 	}
 
-	return h.updatePR(ctx, org, project, num, key)
+	pr, created, err := h.updatePR(ctx, org, project, num, key)
+
+	if err != nil {
+		klog.Warningf("Retrieving stale results for %s due to error: %v", key, err)
+		x := h.cache.GetNewerThan(key, time.Time{})
+		if x != nil {
+			return x.PullRequests[0], x.Created, nil
+		}
+	}
+	return pr, created, err
 }
 
 // pr gets a single PR (not used very often)
@@ -161,7 +178,15 @@ func (h *Engine) cachedReviewComments(ctx context.Context, org string, project s
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", key, newerThan)
-	return h.updateReviewComments(ctx, org, project, num, key)
+	comments, created, err := h.updateReviewComments(ctx, org, project, num, key)
+	if err != nil {
+		klog.Warningf("Retrieving stale results for %s due to error: %v", key, err)
+		x := h.cache.GetNewerThan(key, time.Time{})
+		if x != nil {
+			return x.PullRequestComments, x.Created, nil
+		}
+	}
+	return comments, created, err
 }
 
 // prComments mixes together code review comments and pull-request comments
