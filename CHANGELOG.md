@@ -1,5 +1,11 @@
 # Release Notes
 
+## Version 1.2.1 - 2020-07-17
+
+* Return stale results if GitHub cannot be queried [#189](https://github.com/google/triage-party/pull/189)
+* Fix Kanban ETA estimation, add ETA for non-milestone pages [#188](https://github.com/google/triage-party/pull/188)
+* Automatically pick a contrasting label text color [#187](https://github.com/google/triage-party/pull/187)
+
 ## Version 1.2.0 - 2020-07-14
 
 * Don't block page-loads if missing content, add healthz [#175](https://github.com/google/triage-party/pull/175)
