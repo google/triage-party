@@ -93,16 +93,20 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		p.Stale = true
 	}
 
-	for _, s := range sts {
-		if s.UsedForStats {
-			if s.ID == VelocityStatsName {
-				p.VelocityStats = h.updater.Lookup(ctx, s.ID, false)
-				continue
-			}
-			// Older configs may not use OpenStatsName
-			if s.ID == OpenStatsName || p.OpenStats == nil {
-				p.OpenStats = h.updater.Lookup(ctx, s.ID, false)
-				continue
+	if result.Collection.Velocity != "" {
+		p.VelocityStats = h.updater.Lookup(ctx, result.Collection.Velocity, false)
+	} else {
+		for _, s := range sts {
+			if s.UsedForStats {
+				if s.ID == VelocityStatsName {
+					p.VelocityStats = h.updater.Lookup(ctx, s.ID, false)
+					continue
+				}
+				// Older configs may not use OpenStatsName
+				if s.ID == OpenStatsName || p.OpenStats == nil {
+					p.OpenStats = h.updater.Lookup(ctx, s.ID, false)
+					continue
+				}
 			}
 		}
 	}
