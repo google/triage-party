@@ -83,6 +83,13 @@
             {{ else }}
               <h3>{{ .Title }}</h3>
               <h5 class="stats">{{ .Total }} unique items</h5>
+              {{ if not .CompletionETA.IsZero }}
+                <h4 class="subtitle">Completion ETA:
+                    <span class="eta">
+                        {{ .CompletionETA.Format "~2006-01-02" }}
+                    </span>
+                </h4>
+              {{ end }}
             {{ end }}
           </div>
           <div class="box-head-right">
@@ -108,6 +115,7 @@
         {{ range .Columns }}
         <td class="kanban-column">
           {{ if . }}
+            {{ $repoCount := len .Rule.Repos }}
             {{ range $x, $i := .Items }}
               {{ $overflow := 0 }}
               {{ if and (.Assignees) (ge $x $col.Overflow) }}
@@ -117,7 +125,7 @@
 
               <div class="sticky sticky-{{ $x }} {{ if $overflow }}sticky-overflow{{ end }} {{ range $i.Labels }} {{ .Name | Class }}{{ end }}">
                 <a href="{{ $i.URL }}" title="@{{ $i.LastCommentAuthor.GetLogin }}: {{ $i.LastCommentBody }}">
-                  <span class="sticky-id">#{{ $i.ID }}: </span>
+                  <span class="sticky-id">{{ if gt $repoCount 1 }}{{ $i.Project }}{{ end }}#{{ $i.ID }}</span>
                   <span class="sticky-title">{{ $i.Title }}</span>
                 </a>
 

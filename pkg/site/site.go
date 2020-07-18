@@ -146,6 +146,7 @@ type Page struct {
 	SelectorVar          string
 	SelectorOptions      []Choice
 	Milestone            *github.Milestone
+	CompletionETA        time.Time
 	MilestoneETA         time.Time
 	MilestoneCountOffset int
 	MilestoneVeryLate    bool
