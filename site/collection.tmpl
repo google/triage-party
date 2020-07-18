@@ -156,7 +156,7 @@
               <td class="cell-comments" data-order="{{ .CommentersTotal }}">{{ range .Commenters }}{{ . |  Avatar}}{{ end }}</td>
               <td class="cell-labels">
                 {{ range .Labels }}
-                  <div class="gh-label" style="background-color: #{{ .Color }}"><span class="gh-label-text">{{ .Name }}</span></div>
+                  <div class="gh-label" style="background-color: #{{ .Color }}; color: #{{ .Color | TextColor }};">{{ .Name }}</div>
                 {{ end }}
               </td>
               <td class="cell-tags">
