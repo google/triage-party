@@ -2,6 +2,8 @@ package hubbub
 
 import (
 	"context"
+	"github.com/google/triage-party/pkg/constants"
+	"github.com/google/triage-party/pkg/models"
 	"strings"
 	"sync"
 	"time"
@@ -16,13 +18,13 @@ import (
 )
 
 // Search for GitHub issues or PR's
-func (h *Engine) SearchAny(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time, hidden bool) ([]*Conversation, time.Time, error) {
-	cs, ts, err := h.SearchIssues(ctx, org, project, fs, newerThan, hidden)
+func (h *Engine) SearchAny(sp models.SearchParams) ([]*Conversation, time.Time, error) {
+	cs, ts, err := h.SearchIssues(sp)
 	if err != nil {
 		return cs, ts, err
 	}
 
-	pcs, pts, err := h.SearchPullRequests(ctx, org, project, fs, newerThan, hidden)
+	pcs, pts, err := h.SearchPullRequests(sp)
 	if err != nil {
 		return cs, ts, err
 	}
@@ -35,9 +37,15 @@ func (h *Engine) SearchAny(ctx context.Context, org string, project string, fs [
 }
 
 // Search for GitHub issues or PR's
-func (h *Engine) SearchIssues(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time, hidden bool) ([]*Conversation, time.Time, error) {
-	fs = openByDefault(fs)
-	klog.V(1).Infof("Gathering raw data for %s/%s search %s - newer than %s", org, project, fs, logu.STime(newerThan))
+func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Time, error) {
+	sp.Filters = openByDefault(sp.Filters)
+	klog.V(1).Infof(
+		"Gathering raw data for %s/%s search %s - newer than %s",
+		sp.Repo.Organization,
+		sp.Repo.Project,
+		sp.Filters,
+		logu.STime(sp.NewerThan),
+	)
 	var wg sync.WaitGroup
 
 	var open []*github.Issue
@@ -49,7 +57,10 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		oi, ots, err := h.cachedIssues(ctx, org, project, "open", 0, newerThan)
+
+		sp.State = constants.OpenState
+
+		oi, ots, err := h.cachedIssues(sp)
 		if err != nil {
 			klog.Errorf("open issues: %v", err)
 			return
@@ -203,7 +214,7 @@ func NeedsClosed(fs []Filter) bool {
 	return false
 }
 
-func (h *Engine) SearchPullRequests(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time, hidden bool) ([]*Conversation, time.Time, error) {
+func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, time.Time, error) {
 	fs = openByDefault(fs)
 
 	klog.V(1).Infof("Searching %s/%s for PR's matching: %s - newer than %s", org, project, fs, logu.STime(newerThan))

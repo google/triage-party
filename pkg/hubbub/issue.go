@@ -17,6 +17,8 @@ package hubbub
 import (
 	"context"
 	"fmt"
+	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 	"sort"
 	"strings"
 	"time"
@@ -29,23 +31,23 @@ import (
 )
 
 // cachedIssues returns issues, cached if possible
-func (h *Engine) cachedIssues(ctx context.Context, org string, project string, state string, updateAge time.Duration, newerThan time.Time) ([]*github.Issue, time.Time, error) {
-	key := issueSearchKey(org, project, state, updateAge)
+func (h *Engine) cachedIssues(sp models.SearchParams) ([]*github.Issue, time.Time, error) {
+	sp.SearchKey = issueSearchKey(sp)
 
-	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
 		// Normally the similarity tables are only updated when fresh data is encountered.
-		if newerThan.IsZero() {
-			go h.updateSimilarIssues(key, x.Issues)
+		if sp.NewerThan.IsZero() {
+			go h.updateSimilarIssues(sp.SearchKey, x.Issues)
 		}
 
 		return x.Issues, x.Created, nil
 	}
 
-	klog.V(1).Infof("cache miss for %s newer than %s", key, logu.STime(newerThan))
-	issues, created, err := h.updateIssues(ctx, org, project, state, updateAge, key)
+	klog.V(1).Infof("cache miss for %s newer than %s", sp.SearchKey, logu.STime(sp.NewerThan))
+	issues, created, err := h.updateIssues(sp)
 	if err != nil {
-		klog.Warningf("Retrieving stale results for %s due to error: %v", key, err)
-		x := h.cache.GetNewerThan(key, time.Time{})
+		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
+		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
 		if x != nil {
 			return x.Issues, x.Created, nil
 		}
@@ -54,27 +56,35 @@ func (h *Engine) cachedIssues(ctx context.Context, org string, project string, s
 }
 
 // updateIssues updates the issues in cache
-func (h *Engine) updateIssues(ctx context.Context, org string, project string, state string, updateAge time.Duration, key string) ([]*github.Issue, time.Time, error) {
+func (h *Engine) updateIssues(sp models.SearchParams) ([]*github.Issue, time.Time, error) {
 	start := time.Now()
 
 	opt := &github.IssueListByRepoOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
-		State:       state,
+		State:       sp.State,
 	}
 
-	if updateAge != 0 {
-		opt.Since = time.Now().Add(-1 * updateAge)
+	if sp.UpdateAge != 0 {
+		opt.Since = time.Now().Add(-1 * sp.UpdateAge)
 	}
 
 	var allIssues []*github.Issue
 
 	for {
-		if updateAge == 0 {
-			klog.Infof("Downloading %s issues for %s/%s (page %d)...", state, org, project, opt.Page)
+		if sp.UpdateAge == 0 {
+			klog.Infof("Downloading %s issues for %s/%s (page %d)...", sp.State, sp.Repo.Organization, sp.Repo.Project, opt.Page)
 		} else {
-			klog.Infof("Downloading %s issues for %s/%s updated within %s (page %d)...", state, org, project, updateAge, opt.Page)
+			klog.Infof(
+				"Downloading %s issues for %s/%s updated within %s (page %d)...",
+				sp.State,
+				sp.Repo.Organization,
+				sp.Repo.Project,
+				sp.UpdateAge,
+				opt.Page,
+			)
 		}
-
+		pr := provider.ResolveProviderByHost(sp.Repo.Host)
+		is, resp, err := pr.IssuesListByRepo(ctx, org, project, opt)
 		is, resp, err := h.client.Issues.ListByRepo(ctx, org, project, opt)
 
 		if _, ok := err.(*github.RateLimitError); ok {

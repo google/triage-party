@@ -17,6 +17,8 @@ package triage
 import (
 	"context"
 	"fmt"
+	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/utils"
 	"time"
 
 	"github.com/google/triage-party/pkg/hubbub"
@@ -112,23 +114,32 @@ func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, 
 	rcs := []*hubbub.Conversation{}
 	oldest := time.Now()
 
-	for _, repo := range t.Repos {
-		org, project, err := parseRepo(repo)
+	for _, repoUrl := range t.Repos {
+		r, err := utils.ParseRepo(repoUrl)
 		if err != nil {
 			return nil, err
 		}
 
-		klog.V(2).Infof("%s -> org=%s project=%s", repo, org, project)
+		klog.V(2).Infof("%s -> org=%s project=%s", repoUrl, r.Organization, r.Project)
 
 		var ts time.Time
 		var cs []*hubbub.Conversation
+
+		searchParams := models.SearchParams{
+			Repo:      r,
+			Filters:   t.Filters,
+			NewerThan: newerThan,
+			Hidden:    hidden,
+			Ctx:       ctx,
+		}
+
 		switch t.Type {
 		case hubbub.Issue:
-			cs, ts, err = p.engine.SearchIssues(ctx, org, project, t.Filters, newerThan, hidden)
+			cs, ts, err = p.engine.SearchIssues(searchParams)
 		case hubbub.PullRequest:
-			cs, ts, err = p.engine.SearchPullRequests(ctx, org, project, t.Filters, newerThan, hidden)
+			cs, ts, err = p.engine.SearchPullRequests(searchParams)
 		default:
-			cs, ts, err = p.engine.SearchAny(ctx, org, project, t.Filters, newerThan, hidden)
+			cs, ts, err = p.engine.SearchAny(searchParams)
 		}
 
 		if err != nil {

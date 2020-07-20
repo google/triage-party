@@ -1,10 +1,8 @@
 package triage
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 
@@ -12,25 +10,6 @@ import (
 
 	"k8s.io/klog/v2"
 )
-
-// parseRepo returns the organization and project for a URL
-func parseRepo(rawURL string) (string, string, error) {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return "", "", err
-	}
-	parts := strings.Split(u.Path, "/")
-
-	// not a URL
-	if len(parts) == 2 {
-		return parts[0], parts[1], nil
-	}
-	// URL
-	if len(parts) == 3 {
-		return parts[1], parts[2], nil
-	}
-	return "", "", fmt.Errorf("expected 2 repository parts, got %d: %v", len(parts), parts)
-}
 
 func MustReadToken(path string, env string) string {
 	token := os.Getenv(env)
