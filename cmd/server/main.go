@@ -38,10 +38,10 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/oauth2"
 	"k8s.io/klog/v2"
 
 	"github.com/google/triage-party/pkg/persist"
+	"github.com/google/triage-party/pkg/provider"
 	"github.com/google/triage-party/pkg/site"
 	"github.com/google/triage-party/pkg/triage"
 	"github.com/google/triage-party/pkg/updater"
@@ -87,10 +87,6 @@ func main() {
 
 	ctx := context.Background()
 
-	client := triage.MustCreateGithubClient(*githubAPIRawURL, oauth2.NewClient(ctx, oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: triage.MustReadToken(*githubTokenFile, "GITHUB_TOKEN")},
-	)))
-
 	f, err := os.Open(findPath(cp))
 	if err != nil {
 		klog.Exitf("open %s: %v", cp, err)
@@ -113,8 +109,9 @@ func main() {
 		}
 	}
 
+	initProviderClients(ctx)
+
 	cfg := triage.Config{
-		Client:       client,
 		Cache:        c,
 		DebugNumbers: debugNums,
 	}
@@ -202,6 +199,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// Init providers (Github/Gitlab) HTTP clients
+func initProviderClients(ctx context.Context) {
+	cfg := provider.Config{
+		GithubAPIRawURL: githubAPIRawURL,
+		GithubTokenFile: githubTokenFile,
+	}
+	provider.InitClients(ctx, cfg)
 }
 
 // calculates a user-friendly site name based on repositories

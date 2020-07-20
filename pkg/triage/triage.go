@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/persist"
 	"gopkg.in/yaml.v2"
@@ -28,9 +27,8 @@ import (
 )
 
 type Config struct {
-	Client *github.Client
-	Cache  persist.Cacher
-	Repos  []string
+	Cache persist.Cacher
+	Repos []string
 	// DebugNumber is useful when you want to debug why a single issue is or is-not appearing
 	DebugNumbers []int
 }
@@ -40,7 +38,6 @@ type Party struct {
 	settings      Settings
 	collections   []Collection
 	cache         persist.Cacher
-	client        *github.Client
 	rules         map[string]Rule
 	reposOverride []string
 	debug         map[int]bool
@@ -51,7 +48,6 @@ func New(cfg Config) *Party {
 	p := &Party{
 		cache:         cfg.Cache,
 		reposOverride: cfg.Repos,
-		client:        cfg.Client,
 		debug:         map[int]bool{},
 	}
 
@@ -101,7 +97,6 @@ func (p *Party) newEngine() *hubbub.Engine {
 	}
 
 	hc := hubbub.Config{
-		Client:             p.client,
 		Cache:              p.cache,
 		Repos:              p.reposOverride,
 		DebugNumbers:       p.debug,
