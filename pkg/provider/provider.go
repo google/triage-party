@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/models"
 	"github.com/google/triage-party/pkg/triage"
 	"golang.org/x/oauth2"
@@ -13,7 +14,7 @@ const (
 )
 
 type Provider interface {
-	IssuesListByRepo(sp models.SearchParams) ([]*models.Issue, *models.Response, error)
+	IssuesListByRepo(sp models.SearchParams) ([]hubbub.Item, *models.Response, error)
 }
 
 var (

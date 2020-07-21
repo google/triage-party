@@ -42,8 +42,9 @@ var (
 	detailsRe = regexp.MustCompile(`(?s)<details>.*</details>`)
 )
 
-// GitHubItem is an interface that matches both GitHub Issues and PullRequests
-type GitHubItem interface {
+// Item is an interface that matches both Issues and PullRequests
+type Item interface {
+	// github specific
 	GetAssignee() *github.User
 	GetAuthorAssociation() string
 	GetBody() string
@@ -60,10 +61,11 @@ type GitHubItem interface {
 	GetUpdatedAt() time.Time
 	GetUser() *github.User
 	String() string
+	IsPullRequest() bool
 }
 
 // createConversation creates a conversation from an issue-like
-func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) *Conversation {
+func (h *Engine) createConversation(i Item, cs []*Comment, age time.Time) *Conversation {
 
 	authorIsMember := false
 	if h.isMember(i.GetUser().GetLogin(), i.GetAuthorAssociation()) {

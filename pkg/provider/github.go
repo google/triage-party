@@ -2,6 +2,7 @@ package provider
 
 import (
 	"github.com/google/go-github/v31/github"
+	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/models"
 )
 
@@ -16,7 +17,7 @@ func getListOptions(m models.ListOptions) github.ListOptions {
 	}
 }
 
-func getIssues(i []*github.Issue) (r []*models.Issue) {
+func getIssues(i []*github.Issue) (r []hubbub.Item) {
 	// TODO
 	mi := models.Issue{}
 	r = append(r, &mi)
@@ -35,7 +36,7 @@ func getIssueListByRepoOptions(sp models.SearchParams) *github.IssueListByRepoOp
 	}
 }
 
-func (p *GithubProvider) IssuesListByRepo(sp models.SearchParams) (i []*models.Issue, r *models.Response, err error) {
+func (p *GithubProvider) IssuesListByRepo(sp models.SearchParams) (i []hubbub.Item, r *models.Response, err error) {
 	opt := getIssueListByRepoOptions(sp)
 	gi, gr, err := p.client.Issues.ListByRepo(sp.Ctx, sp.Repo.Organization, sp.Repo.Project, opt)
 	i = getIssues(gi)

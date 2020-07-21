@@ -1,7 +1,6 @@
 package hubbub
 
 import (
-	"github.com/google/triage-party/pkg/models"
 	"regexp"
 	"strings"
 
@@ -70,7 +69,7 @@ func normalizeTitle(t string) string {
 }
 
 // updateSimilarIssues updates similarity tables, meant for background use
-func (h *Engine) updateSimilarIssues(key string, is []*models.Issue) {
+func (h *Engine) updateSimilarIssues(key string, is []Item) {
 	klog.V(1).Infof("Updating similarity table from issue cache %q (%d items)", key, len(is))
 	for _, i := range is {
 		h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())

@@ -18,7 +18,7 @@ package persist
 import (
 	"encoding/gob"
 	"fmt"
-	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/hubbub"
 	"os"
 	"time"
 
@@ -42,7 +42,7 @@ type Thing struct {
 	Created time.Time
 
 	PullRequests        []*github.PullRequest
-	Issues              []*models.Issue
+	Issues              []hubbub.Item
 	PullRequestComments []*github.PullRequestComment
 	IssueComments       []*github.IssueComment
 	Timeline            []*github.Timeline

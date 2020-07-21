@@ -55,7 +55,7 @@ func (h *Engine) cachedIssues(sp models.SearchParams) ([]*models.Issue, time.Tim
 }
 
 // updateIssues updates the issues in cache
-func (h *Engine) updateIssues(sp models.SearchParams) ([]*models.Issue, time.Time, error) {
+func (h *Engine) updateIssues(sp models.SearchParams) ([]Item, time.Time, error) {
 	start := time.Now()
 
 	sp.IssueListByRepoOptions = models.IssueListByRepoOptions{
@@ -67,7 +67,7 @@ func (h *Engine) updateIssues(sp models.SearchParams) ([]*models.Issue, time.Tim
 		sp.IssueListByRepoOptions.Since = time.Now().Add(-1 * sp.UpdateAge)
 	}
 
-	var allIssues []*models.Issue
+	var allIssues []Item
 
 	for {
 		if sp.UpdateAge == 0 {
