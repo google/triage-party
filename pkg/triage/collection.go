@@ -17,6 +17,7 @@ package triage
 import (
 	"context"
 	"fmt"
+	"github.com/google/triage-party/pkg/models"
 	"time"
 
 	"github.com/google/triage-party/pkg/hubbub"
@@ -87,7 +88,13 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 		}
 
 		hidden := s.Hidden && s.UsedForStats
-		ro, err := p.ExecuteRule(ctx, t, seen, newerThan, hidden)
+
+		sp := models.SearchParams{
+			Ctx:       ctx,
+			NewerThan: newerThan,
+			Hidden:    hidden,
+		}
+		ro, err := p.ExecuteRule(sp, t, seen)
 		if err != nil {
 			return nil, fmt.Errorf("rule %q: %w", t.Name, err)
 		}

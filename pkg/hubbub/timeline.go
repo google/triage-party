@@ -17,6 +17,7 @@ package hubbub
 import (
 	"context"
 	"fmt"
+	"github.com/google/triage-party/pkg/models"
 	"strings"
 	"time"
 
@@ -220,7 +221,7 @@ func (h *Engine) updateLinkedPRs(ctx context.Context, parent *Conversation, newe
 	return newRefs
 }
 
-func (h *Engine) issueRef(i *github.Issue, age time.Time) *RelatedConversation {
+func (h *Engine) issueRef(i *models.Issue, age time.Time) *RelatedConversation {
 	co := h.createConversation(i, nil, age)
 	return makeRelated(co)
 }

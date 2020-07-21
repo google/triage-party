@@ -1,5 +1,6 @@
 package constants
 
 const (
-	OpenState = "open"
+	OpenState   = "open"
+	ClosedState = "closed"
 )

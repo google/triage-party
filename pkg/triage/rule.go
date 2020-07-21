@@ -15,7 +15,6 @@
 package triage
 
 import (
-	"context"
 	"fmt"
 	"github.com/google/triage-party/pkg/models"
 	"github.com/google/triage-party/pkg/utils"
@@ -109,8 +108,8 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 }
 
 // ExecuteRule executes a rule. seen is optional.
-func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, newerThan time.Time, hidden bool) (*RuleResult, error) {
-	klog.V(1).Infof("executing rule %q for results newer than %s", t.ID, logu.STime(newerThan))
+func (p *Party) ExecuteRule(sp models.SearchParams, t Rule, seen map[string]*Rule) (*RuleResult, error) {
+	klog.V(1).Infof("executing rule %q for results newer than %s", t.ID, logu.STime(sp.NewerThan))
 	rcs := []*hubbub.Conversation{}
 	oldest := time.Now()
 
@@ -125,21 +124,16 @@ func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, 
 		var ts time.Time
 		var cs []*hubbub.Conversation
 
-		searchParams := models.SearchParams{
-			Repo:      r,
-			Filters:   t.Filters,
-			NewerThan: newerThan,
-			Hidden:    hidden,
-			Ctx:       ctx,
-		}
+		sp.Repo = r
+		sp.Filters = t.Filters
 
 		switch t.Type {
 		case hubbub.Issue:
-			cs, ts, err = p.engine.SearchIssues(searchParams)
+			cs, ts, err = p.engine.SearchIssues(sp)
 		case hubbub.PullRequest:
-			cs, ts, err = p.engine.SearchPullRequests(searchParams)
+			cs, ts, err = p.engine.SearchPullRequests(sp)
 		default:
-			cs, ts, err = p.engine.SearchAny(searchParams)
+			cs, ts, err = p.engine.SearchAny(sp)
 		}
 
 		if err != nil {

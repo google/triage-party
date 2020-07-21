@@ -207,7 +207,7 @@ func initProviderClients(ctx context.Context) {
 		GithubAPIRawURL: githubAPIRawURL,
 		GithubTokenFile: githubTokenFile,
 	}
-	provider.InitClients(ctx, cfg)
+	provider.InitProviders(ctx, cfg)
 }
 
 // calculates a user-friendly site name based on repositories

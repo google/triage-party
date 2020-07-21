@@ -1,7 +1,6 @@
 package hubbub
 
 import (
-	"context"
 	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/models"
 	"strings"
@@ -48,8 +47,8 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 	)
 	var wg sync.WaitGroup
 
-	var open []*github.Issue
-	var closed []*github.Issue
+	var open []*models.Issue
+	var closed []*models.Issue
 	var err error
 
 	age := time.Now()
@@ -69,17 +68,20 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 			age = ots
 		}
 		open = oi
-		klog.V(1).Infof("%s/%s open issue count: %d", org, project, len(open))
+		klog.V(1).Infof("%s/%s open issue count: %d", sp.Repo.Organization, sp.Repo.Project, len(open))
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if !NeedsClosed(fs) {
+		if !NeedsClosed(sp.Filters) {
 			return
 		}
 
-		ci, cts, err := h.cachedIssues(ctx, org, project, "closed", h.MaxClosedUpdateAge, newerThan)
+		sp.State = constants.ClosedState
+		sp.UpdateAge = h.MaxClosedUpdateAge
+
+		ci, cts, err := h.cachedIssues(sp)
 		if err != nil {
 			klog.Errorf("closed issues: %v", err)
 		}
@@ -89,12 +91,12 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 		}
 		closed = ci
 
-		klog.V(1).Infof("%s/%s closed issue count: %d", org, project, len(closed))
+		klog.V(1).Infof("%s/%s closed issue count: %d", sp.Repo.Organization, sp.Repo.Project, len(closed))
 	}()
 
 	wg.Wait()
 
-	var is []*github.Issue
+	var is []*models.Issue
 	seen := map[string]bool{}
 
 	for _, i := range append(open, closed...) {
@@ -116,7 +118,7 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 	}
 
 	var filtered []*Conversation
-	klog.V(1).Infof("%s/%s aggregate issue count: %d, filtering for:\n%s", org, project, len(is), fs)
+	klog.V(1).Infof("%s/%s aggregate issue count: %d, filtering for:\n%s", sp.Repo.Organization, sp.Repo.Project, len(is), sp.Filters)
 
 	// Avoids updating PR references on a quiet repository
 	mostRecentUpdate := time.Time{}
@@ -134,18 +136,23 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 			labels = append(labels, l)
 		}
 
-		if !preFetchMatch(i, labels, fs) {
-			klog.V(1).Infof("#%d - %q did not match item filter: %s", i.GetNumber(), i.GetTitle(), fs)
+		if !preFetchMatch(i, labels, sp.Filters) {
+			klog.V(1).Infof("#%d - %q did not match item filter: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
 			continue
 		}
 
-		klog.V(1).Infof("#%d - %q made it past pre-fetch: %s", i.GetNumber(), i.GetTitle(), fs)
+		klog.V(1).Infof("#%d - %q made it past pre-fetch: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
 
 		comments := []*github.IssueComment{}
 
-		if needComments(i, fs) && i.GetComments() > 0 {
+		if needComments(i, sp.Filters) && i.GetComments() > 0 {
 			klog.V(1).Infof("#%d - %q: need comments for final filtering", i.GetNumber(), i.GetTitle())
-			comments, _, err = h.cachedIssueComments(ctx, org, project, i.GetNumber(), h.mtime(i), !newerThan.IsZero())
+
+			sp.IssueNumber = i.GetNumber()
+			sp.NewerThan = h.mtime(i)
+			sp.Fetch = !sp.NewerThan.IsZero()
+
+			comments, _, err = h.cachedIssueComments(sp)
 			if err != nil {
 				klog.Errorf("comments: %v", err)
 			}
