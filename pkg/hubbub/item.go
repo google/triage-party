@@ -42,6 +42,7 @@ var (
 	detailsRe = regexp.MustCompile(`(?s)<details>.*</details>`)
 )
 
+// TODO should replace this to interfaces package?
 // Item is an interface that matches both Issues and PullRequests
 type Item interface {
 	// github specific

@@ -15,6 +15,7 @@ const (
 
 type Provider interface {
 	IssuesListByRepo(sp models.SearchParams) ([]hubbub.Item, *models.Response, error)
+	IssuesListComments(sp models.SearchParams)
 }
 
 var (

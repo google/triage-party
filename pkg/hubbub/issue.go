@@ -30,7 +30,7 @@ import (
 )
 
 // cachedIssues returns issues, cached if possible
-func (h *Engine) cachedIssues(sp models.SearchParams) ([]*models.Issue, time.Time, error) {
+func (h *Engine) cachedIssues(sp models.SearchParams) ([]Item, time.Time, error) {
 	sp.SearchKey = issueSearchKey(sp)
 
 	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
@@ -136,8 +136,8 @@ func (h *Engine) cachedIssueComments(sp models.SearchParams) ([]*github.IssueCom
 
 	comments, created, err := h.updateIssueComments(sp)
 	if err != nil {
-		klog.Warningf("Retrieving stale results for %s due to error: %v", key, err)
-		x := h.cache.GetNewerThan(key, time.Time{})
+		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
+		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
 		if x != nil {
 			return x.IssueComments, x.Created, nil
 		}
