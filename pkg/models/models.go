@@ -56,7 +56,8 @@ type SearchParams struct {
 	IssueNumber int
 	Fetch       bool
 
-	IssueListByRepoOptions IssueListByRepoOptions
+	IssueListByRepoOptions   IssueListByRepoOptions
+	IssueListCommentsOptions IssueListCommentsOptions
 }
 
 // abstraction model for github.IssueListByRepoOptions struct
@@ -211,4 +212,20 @@ type User struct {
 	// Permissions identifies the permissions that a user has on a given
 	// repository. This is only populated when calling Repositories.ListCollaborators.
 	Permissions *map[string]bool `json:"permissions,omitempty"`
+}
+
+// abstraction model for github.IssueListCommentsOptions struct
+// IssueListCommentsOptions specifies the optional parameters to the
+// IssuesService.ListComments method.
+type IssueListCommentsOptions struct {
+	// Sort specifies how to sort comments. Possible values are: created, updated.
+	Sort *string `url:"sort,omitempty"`
+
+	// Direction in which to sort comments. Possible values are: asc, desc.
+	Direction *string `url:"direction,omitempty"`
+
+	// Since filters comments by time.
+	Since *time.Time `url:"since,omitempty"`
+
+	ListOptions
 }

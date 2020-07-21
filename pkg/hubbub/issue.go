@@ -16,6 +16,7 @@ package hubbub
 
 import (
 	"fmt"
+	"github.com/google/triage-party/pkg/interfaces"
 	"github.com/google/triage-party/pkg/models"
 	"github.com/google/triage-party/pkg/provider"
 	"sort"
@@ -30,7 +31,7 @@ import (
 )
 
 // cachedIssues returns issues, cached if possible
-func (h *Engine) cachedIssues(sp models.SearchParams) ([]Item, time.Time, error) {
+func (h *Engine) cachedIssues(sp models.SearchParams) ([]interfaces.IItem, time.Time, error) {
 	sp.SearchKey = issueSearchKey(sp)
 
 	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
@@ -55,7 +56,7 @@ func (h *Engine) cachedIssues(sp models.SearchParams) ([]Item, time.Time, error)
 }
 
 // updateIssues updates the issues in cache
-func (h *Engine) updateIssues(sp models.SearchParams) ([]Item, time.Time, error) {
+func (h *Engine) updateIssues(sp models.SearchParams) ([]interfaces.IItem, time.Time, error) {
 	start := time.Now()
 
 	sp.IssueListByRepoOptions = models.IssueListByRepoOptions{
@@ -67,7 +68,7 @@ func (h *Engine) updateIssues(sp models.SearchParams) ([]Item, time.Time, error)
 		sp.IssueListByRepoOptions.Since = time.Now().Add(-1 * sp.UpdateAge)
 	}
 
-	var allIssues []Item
+	var allIssues []interfaces.IItem
 
 	for {
 		if sp.UpdateAge == 0 {
@@ -121,7 +122,7 @@ func (h *Engine) updateIssues(sp models.SearchParams) ([]Item, time.Time, error)
 	return allIssues, start, nil
 }
 
-func (h *Engine) cachedIssueComments(sp models.SearchParams) ([]*github.IssueComment, time.Time, error) {
+func (h *Engine) cachedIssueComments(sp models.SearchParams) ([]interfaces.IIssueComment, time.Time, error) {
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-issue-comments", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 
 	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
@@ -146,19 +147,21 @@ func (h *Engine) cachedIssueComments(sp models.SearchParams) ([]*github.IssueCom
 	return comments, created, err
 }
 
-func (h *Engine) updateIssueComments(sp models.SearchParams) ([]*github.IssueComment, time.Time, error) {
+func (h *Engine) updateIssueComments(sp models.SearchParams) ([]interfaces.IIssueComment, time.Time, error) {
 	klog.V(1).Infof("Downloading issue comments for %s/%s #%d", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	start := time.Now()
 
-	opt := &github.IssueListCommentsOptions{
-		ListOptions: github.ListOptions{PerPage: 100},
+	sp.IssueListCommentsOptions = models.IssueListCommentsOptions{
+		ListOptions: models.ListOptions{PerPage: 100},
 	}
 
-	var allComments []*github.IssueComment
+	var allComments []interfaces.IIssueComment
 	for {
-		klog.Infof("Downloading comments for %s/%s #%d (page %d)...", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, opt.Page)
+		klog.Infof("Downloading comments for %s/%s #%d (page %d)...",
+			sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, sp.IssueListCommentsOptions.Page)
 
-		cs, resp, err := h.client.Issues.ListComments(ctx, org, project, num, opt)
+		pr := provider.ResolveProviderByHost(sp.Repo.Host)
+		cs, resp, err := pr.IssuesListComments(sp)
 
 		if err != nil {
 			return cs, start, err
@@ -169,11 +172,11 @@ func (h *Engine) updateIssueComments(sp models.SearchParams) ([]*github.IssueCom
 		if resp.NextPage == 0 {
 			break
 		}
-		opt.Page = resp.NextPage
+		sp.IssueListCommentsOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(key, &persist.Thing{IssueComments: allComments}); err != nil {
-		klog.Errorf("set %q failed: %v", key, err)
+	if err := h.cache.Set(sp.SearchKey, &persist.Thing{IssueComments: allComments}); err != nil {
+		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
 	return allComments, start, nil
@@ -200,10 +203,10 @@ func openByDefault(fs []Filter) []Filter {
 	return fs
 }
 
-func (h *Engine) createIssueSummary(i *models.Issue, cs []*github.IssueComment, age time.Time) *Conversation {
-	cl := []*Comment{}
+func (h *Engine) createIssueSummary(i interfaces.IItem, cs []interfaces.IIssueComment, age time.Time) *Conversation {
+	cl := []*models.Comment{}
 	for _, c := range cs {
-		cl = append(cl, NewComment(c))
+		cl = append(cl, models.NewComment(c))
 	}
 
 	co := h.createConversation(i, cl, age)
@@ -219,7 +222,7 @@ func (h *Engine) createIssueSummary(i *models.Issue, cs []*github.IssueComment, 
 }
 
 // IssueSummary returns a cached conversation for an issue
-func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment, age time.Time) *Conversation {
+func (h *Engine) IssueSummary(i Item, cs []interfaces.IIssueComment, age time.Time) *Conversation {
 	key := i.GetHTMLURL()
 	cached, ok := h.seen[key]
 	if ok {

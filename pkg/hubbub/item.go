@@ -42,29 +42,6 @@ var (
 	detailsRe = regexp.MustCompile(`(?s)<details>.*</details>`)
 )
 
-// TODO should replace this to interfaces package?
-// Item is an interface that matches both Issues and PullRequests
-type Item interface {
-	// github specific
-	GetAssignee() *github.User
-	GetAuthorAssociation() string
-	GetBody() string
-	GetComments() int
-	GetHTMLURL() string
-	GetCreatedAt() time.Time
-	GetID() int64
-	GetMilestone() *github.Milestone
-	GetNumber() int
-	GetClosedAt() time.Time
-	GetState() string
-	GetTitle() string
-	GetURL() string
-	GetUpdatedAt() time.Time
-	GetUser() *github.User
-	String() string
-	IsPullRequest() bool
-}
-
 // createConversation creates a conversation from an issue-like
 func (h *Engine) createConversation(i Item, cs []*Comment, age time.Time) *Conversation {
 

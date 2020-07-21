@@ -19,6 +19,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"github.com/google/triage-party/pkg/hubbub"
+	"github.com/google/triage-party/pkg/interfaces"
 	"os"
 	"time"
 
@@ -44,7 +45,7 @@ type Thing struct {
 	PullRequests        []*github.PullRequest
 	Issues              []hubbub.Item
 	PullRequestComments []*github.PullRequestComment
-	IssueComments       []*github.IssueComment
+	IssueComments       []interfaces.IIssueComment
 	Timeline            []*github.Timeline
 	Reviews             []*github.PullRequestReview
 	StringBool          map[string]bool

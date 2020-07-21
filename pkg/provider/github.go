@@ -3,6 +3,7 @@ package provider
 import (
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/hubbub"
+	"github.com/google/triage-party/pkg/interfaces"
 	"github.com/google/triage-party/pkg/models"
 )
 
@@ -42,4 +43,16 @@ func (p *GithubProvider) IssuesListByRepo(sp models.SearchParams) (i []hubbub.It
 	i = getIssues(gi)
 	r = getResponse(gr)
 	return
+}
+
+func getIssuesListCommentsOptions(sp models.SearchParams) *github.IssueListCommentsOptions {
+	return &github.IssueListCommentsOptions{
+		ListOptions: getListOptions(sp.IssueListCommentsOptions.ListOptions),
+		State:       sp.State,
+	}
+}
+
+func (p *GithubProvider) IssuesListComments(sp models.SearchParams) (i []interfaces.IIssueComment, r *models.Response, err error) {
+	opt := getIssuesListCommentsOptions(sp)
+	gI, gr, err := p.client.Issues.ListComments(sp.Ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, opt)
 }
