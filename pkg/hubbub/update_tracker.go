@@ -16,6 +16,7 @@ package hubbub
 
 import (
 	"fmt"
+	"github.com/google/triage-party/pkg/interfaces"
 	"strings"
 	"time"
 
@@ -23,7 +24,7 @@ import (
 )
 
 // mtime is a workaround the GitHub misfeature that UpdatedAt is not incremented for cross-reference events
-func (h *Engine) mtime(i GitHubItem) time.Time {
+func (h *Engine) mtime(i interfaces.IItem) time.Time {
 	return h.mtimeKey(i.GetUpdatedAt(), updateKey(i))
 }
 
@@ -52,7 +53,7 @@ func (h *Engine) mtimeKey(idea time.Time, key string) time.Time {
 	return updatedAt
 }
 
-func updateKey(i GitHubItem) string {
+func updateKey(i interfaces.IItem) string {
 	// https://github.com/kubernetes/minikube/pull/8431
 	parts := strings.Split(i.GetHTMLURL(), "/")
 	if len(parts) < 7 {
@@ -66,7 +67,7 @@ func updateKey(i GitHubItem) string {
 	return fmt.Sprintf("%s/%s#%s", org, project, num)
 }
 
-func (h *Engine) updateMtime(i GitHubItem, t time.Time) {
+func (h *Engine) updateMtime(i interfaces.IItem, t time.Time) {
 	key := updateKey(i)
 	h.updateMtimeByKey(key, t)
 }

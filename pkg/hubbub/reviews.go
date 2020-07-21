@@ -15,41 +15,45 @@
 package hubbub
 
 import (
-	"context"
 	"fmt"
+	"github.com/google/triage-party/pkg/interfaces"
+	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
 )
 
-func (h *Engine) cachedReviews(ctx context.Context, org string, project string, num int, newerThan time.Time, fetch bool) ([]*github.PullRequestReview, time.Time, error) {
-	key := fmt.Sprintf("%s-%s-%d-pr-reviews", org, project, num)
+func (h *Engine) cachedReviews(sp models.SearchParams) ([]*models.PullRequestReview, time.Time, error) {
+	sp.SearchKey = fmt.Sprintf("%s-%s-%d-pr-reviews", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 
-	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
 		return x.Reviews, x.Created, nil
 	}
 
-	klog.V(1).Infof("cache miss for %s newer than %s", key, newerThan)
-	if !fetch {
+	klog.V(1).Infof("cache miss for %s newer than %s", sp.SearchKey, sp.NewerThan)
+	if !sp.Fetch {
 		return nil, time.Time{}, nil
 	}
-	return h.updateReviews(ctx, org, project, num, key)
+	return h.updateReviews(sp)
 }
 
-func (h *Engine) updateReviews(ctx context.Context, org string, project string, num int, key string) ([]*github.PullRequestReview, time.Time, error) {
-	klog.V(1).Infof("Downloading reviews for %s/%s #%d", org, project, num)
+func (h *Engine) updateReviews(sp models.SearchParams) ([]*models.PullRequestReview, time.Time, error) {
+	klog.V(1).Infof("Downloading reviews for %s/%s #%d", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	start := time.Now()
 
-	opt := &github.ListOptions{PerPage: 100}
+	sp.ListOptions = models.ListOptions{PerPage: 100}
 
-	var allReviews []*github.PullRequestReview
+	var allReviews []*models.PullRequestReview
 	for {
-		klog.V(2).Infof("Downloading reviews for %s/%s #%d (page %d)...", org, project, num, opt.Page)
-		cs, resp, err := h.client.PullRequests.ListReviews(ctx, org, project, num, opt)
+		klog.V(2).Infof("Downloading reviews for %s/%s #%d (page %d)...",
+			sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, sp.ListOptions.Page)
+
+		p := provider.ResolveProviderByHost(sp.Repo.Host)
+		cs, resp, err := p.PullRequestsListReviews(sp)
 
 		if err != nil {
 			return cs, start, err
@@ -61,18 +65,18 @@ func (h *Engine) updateReviews(ctx context.Context, org string, project string, 
 		if resp.NextPage == 0 {
 			break
 		}
-		opt.Page = resp.NextPage
+		sp.ListOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(key, &persist.Thing{Reviews: allReviews}); err != nil {
-		klog.Errorf("set %q failed: %v", key, err)
+	if err := h.cache.Set(sp.SearchKey, &persist.Thing{Reviews: allReviews}); err != nil {
+		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
 	return allReviews, start, nil
 }
 
 // reviewState parses review events to see where an issue was left off
-func reviewState(pr GitHubItem, timeline []*github.Timeline, reviews []*github.PullRequestReview) string {
+func reviewState(pr interfaces.IItem, timeline []*models.Timeline, reviews []*models.PullRequestReview) string {
 	state := Unreviewed
 
 	if len(timeline) == 0 && len(reviews) == 0 {

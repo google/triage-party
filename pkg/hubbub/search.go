@@ -2,6 +2,7 @@ package hubbub
 
 import (
 	"github.com/google/triage-party/pkg/constants"
+	"github.com/google/triage-party/pkg/interfaces"
 	"github.com/google/triage-party/pkg/models"
 	"strings"
 	"sync"
@@ -10,7 +11,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hokaccha/go-prettyjson"
 
-	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/logu"
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
@@ -103,7 +103,7 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 		if len(h.debug) > 0 {
 			klog.Infof("DEBUG FILTER: %s", h.debug)
 			if h.debug[i.GetNumber()] {
-				klog.Errorf("*** Found debug issue #%d:\n%s", i.GetNumber(), formatStruct(*i))
+				klog.Errorf("*** Found debug issue #%d:\n%s", i.GetNumber(), formatStruct(i))
 			} else {
 				continue
 			}
@@ -130,7 +130,7 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 
 	for _, i := range is {
 		// Inconsistency warning: issues use a list of labels, prs a list of label pointers
-		labels := []*github.Label{}
+		labels := []*models.Label{}
 		for _, l := range i.Labels {
 			l := l
 			labels = append(labels, l)
@@ -143,7 +143,7 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 
 		klog.V(1).Infof("#%d - %q made it past pre-fetch: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
 
-		comments := []*github.IssueComment{}
+		comments := []*models.IssueComment{}
 
 		if needComments(i, sp.Filters) && i.GetComments() > 0 {
 			klog.V(1).Infof("#%d - %q: need comments for final filtering", i.GetNumber(), i.GetTitle())
@@ -166,34 +166,44 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 			co.Tags = append(co.Tags, tag.Similar)
 		}
 
-		if !postFetchMatch(co, fs) {
-			klog.V(1).Infof("#%d - %q did not match post-fetch filter: %s", i.GetNumber(), i.GetTitle(), fs)
+		if !postFetchMatch(co, sp.Filters) {
+			klog.V(1).Infof("#%d - %q did not match post-fetch filter: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
 			continue
 		}
-		klog.V(1).Infof("#%d - %q made it past post-fetch: %s", i.GetNumber(), i.GetTitle(), fs)
+		klog.V(1).Infof("#%d - %q made it past post-fetch: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
 
-		updatedAt := h.mtime(i)
-		var timeline []*github.Timeline
-		if needTimeline(i, fs, false, hidden) {
-			timeline, err = h.cachedTimeline(ctx, org, project, i.GetNumber(), updatedAt, !newerThan.IsZero())
+		sp.UpdateAt = h.mtime(i)
+		var timeline []*models.Timeline
+		if needTimeline(i, sp.Filters, false, sp.Hidden) {
+
+			sp.IssueNumber = i.GetNumber()
+			sp.Fetch = !sp.NewerThan.IsZero()
+
+			timeline, err = h.cachedTimeline(sp)
 			if err != nil {
 				klog.Errorf("timeline: %v", err)
 				continue
 			}
 		}
 
-		h.addEvents(ctx, co, timeline, !newerThan.IsZero())
+		sp.Fetch = !sp.NewerThan.IsZero()
+
+		h.addEvents(sp, co, timeline)
 
 		// Some labels are judged by linked PR state. Ensure that they are updated to the same timestamp.
-		if needReviews(i, fs, hidden) && len(co.PullRequestRefs) > 0 {
-			co.PullRequestRefs = h.updateLinkedPRs(ctx, co, mostRecentUpdate, !newerThan.IsZero())
+		if needReviews(i, sp.Filters, sp.Hidden) && len(co.PullRequestRefs) > 0 {
+
+			sp.NewerThan = mostRecentUpdate
+			sp.Fetch = !sp.NewerThan.IsZero()
+
+			co.PullRequestRefs = h.updateLinkedPRs(sp, co)
 		}
 
-		if !postEventsMatch(co, fs) {
-			klog.V(1).Infof("#%d - %q did not match post-events filter: %s", i.GetNumber(), i.GetTitle(), fs)
+		if !postEventsMatch(co, sp.Filters) {
+			klog.V(1).Infof("#%d - %q did not match post-events filter: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
 			continue
 		}
-		klog.V(1).Infof("#%d - %q made it past post-events: %s", i.GetNumber(), i.GetTitle(), fs)
+		klog.V(1).Infof("#%d - %q made it past post-events: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
 
 		filtered = append(filtered, co)
 	}
@@ -222,22 +232,27 @@ func NeedsClosed(fs []Filter) bool {
 }
 
 func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, time.Time, error) {
-	fs = openByDefault(fs)
+	sp.Filters = openByDefault(sp.Filters)
 
-	klog.V(1).Infof("Searching %s/%s for PR's matching: %s - newer than %s", org, project, fs, logu.STime(newerThan))
+	klog.V(1).Infof("Searching %s/%s for PR's matching: %s - newer than %s",
+		sp.Repo.Organization, sp.Repo.Project, sp.Filters, logu.STime(sp.NewerThan))
 	filtered := []*Conversation{}
 
 	var wg sync.WaitGroup
 
-	var open []*github.PullRequest
-	var closed []*github.PullRequest
+	var open []*models.PullRequest
+	var closed []*models.PullRequest
 	var err error
 	age := time.Now()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		op, ots, err := h.cachedPRs(ctx, org, project, "open", 0, newerThan)
+
+		sp.State = constants.OpenState
+		sp.UpdateAge = 0
+
+		op, ots, err := h.cachedPRs(sp)
 		if err != nil {
 			klog.Errorf("open prs: %v", err)
 			return
@@ -253,10 +268,14 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if !NeedsClosed(fs) {
+		if !NeedsClosed(sp.Filters) {
 			return
 		}
-		cp, cts, err := h.cachedPRs(ctx, org, project, "closed", h.MaxClosedUpdateAge, newerThan)
+
+		sp.UpdateAge = h.MaxClosedUpdateAge
+		sp.State = constants.ClosedState
+
+		cp, cts, err := h.cachedPRs(sp)
 		if err != nil {
 			klog.Errorf("closed prs: %v", err)
 			return
@@ -274,7 +293,7 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 
 	wg.Wait()
 
-	prs := []*github.PullRequest{}
+	prs := []*models.PullRequest{}
 	for _, pr := range append(open, closed...) {
 		if len(h.debug) > 0 {
 			if h.debug[pr.GetNumber()] {
@@ -288,31 +307,46 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 	}
 
 	for _, pr := range prs {
-		if !preFetchMatch(pr, pr.Labels, fs) {
+		if !preFetchMatch(pr, pr.Labels, sp.Filters) {
 			continue
 		}
 
-		var timeline []*github.Timeline
-		var reviews []*github.PullRequestReview
-		var comments []*Comment
+		var timeline []*models.Timeline
+		var reviews []*models.PullRequestReview
+		var comments []*models.Comment
 
-		if needComments(pr, fs) {
-			comments, _, err = h.prComments(ctx, org, project, pr.GetNumber(), h.mtime(pr), !newerThan.IsZero())
+		if needComments(pr, sp.Filters) {
+
+			sp.IssueNumber = pr.GetNumber()
+			sp.NewerThan = h.mtime(pr)
+			sp.Fetch = !sp.NewerThan.IsZero()
+
+			comments, _, err = h.prComments(sp)
 			if err != nil {
 				klog.Errorf("comments: %v", err)
 			}
 		}
 
-		if needTimeline(pr, fs, true, hidden) {
-			timeline, err = h.cachedTimeline(ctx, org, project, pr.GetNumber(), h.mtime(pr), !newerThan.IsZero())
+		if needTimeline(pr, sp.Filters, true, sp.Hidden) {
+
+			sp.IssueNumber = pr.GetNumber()
+			sp.NewerThan = h.mtime(pr)
+			sp.Fetch = !sp.NewerThan.IsZero()
+
+			timeline, err = h.cachedTimeline(sp)
 			if err != nil {
 				klog.Errorf("timeline: %v", err)
 				continue
 			}
 		}
 
-		if needReviews(pr, fs, hidden) {
-			reviews, _, err = h.cachedReviews(ctx, org, project, pr.GetNumber(), h.mtime(pr), !newerThan.IsZero())
+		if needReviews(pr, sp.Filters, sp.Hidden) {
+
+			sp.IssueNumber = pr.GetNumber()
+			sp.NewerThan = h.mtime(pr)
+			sp.Fetch = !sp.NewerThan.IsZero()
+
+			reviews, _, err = h.cachedReviews(sp)
 			if err != nil {
 				klog.Errorf("reviews: %v", err)
 				continue
@@ -323,20 +357,23 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 			klog.Errorf("*** Debug PR timeline #%d:\n%s", pr.GetNumber(), formatStruct(timeline))
 		}
 
-		co := h.PRSummary(ctx, pr, comments, timeline, reviews, age, !newerThan.IsZero())
+		sp.Fetch = !sp.NewerThan.IsZero()
+		sp.Age = age
+
+		co := h.PRSummary(sp, pr, comments, timeline, reviews)
 		co.Labels = pr.Labels
 		co.Similar = h.FindSimilar(co)
 		if len(co.Similar) > 0 {
 			co.Tags = append(co.Tags, tag.Similar)
 		}
 
-		if !postFetchMatch(co, fs) {
-			klog.V(4).Infof("PR #%d did not pass postFetchMatch with filter: %v", pr.GetNumber(), fs)
+		if !postFetchMatch(co, sp.Filters) {
+			klog.V(4).Infof("PR #%d did not pass postFetchMatch with filter: %v", pr.GetNumber(), sp.Filters)
 			continue
 		}
 
-		if !postEventsMatch(co, fs) {
-			klog.V(1).Infof("#%d - %q did not match post-events filter: %s", pr.GetNumber(), pr.GetTitle(), fs)
+		if !postEventsMatch(co, sp.Filters) {
+			klog.V(1).Infof("#%d - %q did not match post-events filter: %s", pr.GetNumber(), pr.GetTitle(), sp.Filters)
 			continue
 		}
 
@@ -346,7 +383,7 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 	return filtered, age, nil
 }
 
-func needComments(i GitHubItem, fs []Filter) bool {
+func needComments(i interfaces.IItem, fs []Filter) bool {
 	for _, f := range fs {
 		if f.TagRegex() != nil {
 			if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
@@ -371,7 +408,7 @@ func needComments(i GitHubItem, fs []Filter) bool {
 	return i.GetState() == "open"
 }
 
-func needTimeline(i GitHubItem, fs []Filter, pr bool, hidden bool) bool {
+func needTimeline(i interfaces.IItem, fs []Filter, pr bool, hidden bool) bool {
 	if i.GetMilestone() != nil {
 		return true
 	}
@@ -404,7 +441,7 @@ func needTimeline(i GitHubItem, fs []Filter, pr bool, hidden bool) bool {
 	return !hidden
 }
 
-func needReviews(i GitHubItem, fs []Filter, hidden bool) bool {
+func needReviews(i interfaces.IItem, fs []Filter, hidden bool) bool {
 	if i.GetState() != "open" {
 		return false
 	}

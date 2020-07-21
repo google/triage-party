@@ -19,6 +19,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 	"os"
 	"strconv"
 	"strings"
@@ -27,7 +29,6 @@ import (
 	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/triage"
 
-	"golang.org/x/oauth2"
 	"k8s.io/klog/v2"
 )
 
@@ -61,9 +62,6 @@ func main() {
 	}
 
 	ctx := context.Background()
-	client := triage.MustCreateGithubClient(*githubAPIRawURL, oauth2.NewClient(ctx, oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: triage.MustReadToken(*githubTokenFile, "GITHUB_TOKEN")},
-	)))
 
 	f, err := os.Open(*configPath)
 	if err != nil {
@@ -87,8 +85,9 @@ func main() {
 		}
 	}
 
+	initProviderClients(ctx)
+
 	cfg := triage.Config{
-		Client:       client,
 		Cache:        c,
 		DebugNumbers: debugNums,
 	}
@@ -108,6 +107,15 @@ func main() {
 	} else {
 		executeRule(ctx, tp)
 	}
+}
+
+// Init providers (Github/Gitlab) HTTP clients
+func initProviderClients(ctx context.Context) {
+	cfg := provider.Config{
+		GithubAPIRawURL: githubAPIRawURL,
+		GithubTokenFile: githubTokenFile,
+	}
+	provider.InitProviders(ctx, cfg)
 }
 
 func executeCollection(ctx context.Context, tp *triage.Party) {
@@ -146,7 +154,13 @@ func executeRule(ctx context.Context, tp *triage.Party) {
 		klog.Exitf("rule: %v", err)
 	}
 
-	rr, err := tp.ExecuteRule(ctx, r, nil, time.Now(), false)
+	sp := models.SearchParams{
+		Ctx:       ctx,
+		NewerThan: time.Now(),
+		Hidden:    false,
+	}
+
+	rr, err := tp.ExecuteRule(sp, r, nil)
 	if err != nil {
 		klog.Exitf("execute: %v", err)
 	}

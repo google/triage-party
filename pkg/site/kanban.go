@@ -16,6 +16,7 @@ package site
 
 import (
 	"fmt"
+	"github.com/google/triage-party/pkg/models"
 	"html/template"
 	"math"
 	"net/http"
@@ -25,7 +26,6 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/triage"
 	"k8s.io/klog/v2"
@@ -35,12 +35,12 @@ var unassigned = "zz_unassigned"
 
 // Swimlane is a row in a Kanban display.
 type Swimlane struct {
-	User    *github.User
+	User    *models.User
 	Columns []*triage.RuleResult
 	Issues  int
 }
 
-func avatarWide(u *github.User) template.HTML {
+func avatarWide(u *models.User) template.HTML {
 	if u.GetLogin() == unassigned {
 		return template.HTML(`<div class="unassigned"><div class="unassigned-icon" title="Unassigned work - free for the taking!"></div><span>nobody</span></div>`)
 	}
@@ -60,7 +60,7 @@ func groupByUser(results []*triage.RuleResult, milestoneID int, dedup bool) []*S
 
 			assignees := co.Assignees
 			if len(assignees) == 0 {
-				assignees = append(assignees, &github.User{
+				assignees = append(assignees, &models.User{
 					Login: &unassigned,
 				})
 			}
@@ -218,7 +218,7 @@ func calcClosedPerDay(r *triage.CollectionResult) float64 {
 }
 
 // TODO: Merge into calcETA
-func calcMilestoneETA(m *github.Milestone, closeRate float64) (time.Time, time.Duration, int) {
+func calcMilestoneETA(m *models.Milestone, closeRate float64) (time.Time, time.Duration, int) {
 	if m == nil {
 		klog.Errorf("unable to calc ETA: no milestone")
 		return time.Time{}, time.Duration(0), 0
@@ -249,8 +249,8 @@ func calcMilestoneETA(m *github.Milestone, closeRate float64) (time.Time, time.D
 	return eta, overByDuration, overByCount
 }
 
-func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Milestone, []Choice) {
-	mmap := map[int]*github.Milestone{}
+func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*models.Milestone, []Choice) {
+	mmap := map[int]*models.Milestone{}
 
 	notInMilestone := 0
 
@@ -267,7 +267,7 @@ func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Mi
 		}
 	}
 
-	milestones := []*github.Milestone{}
+	milestones := []*models.Milestone{}
 	for _, v := range mmap {
 		milestones = append(milestones, v)
 	}
@@ -290,7 +290,7 @@ func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*github.Mi
 
 	choices := []Choice{}
 
-	var chosen *github.Milestone
+	var chosen *models.Milestone
 
 	for _, m := range milestones {
 		c := Choice{

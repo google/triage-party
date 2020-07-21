@@ -18,12 +18,9 @@ package persist
 import (
 	"encoding/gob"
 	"fmt"
-	"github.com/google/triage-party/pkg/hubbub"
-	"github.com/google/triage-party/pkg/interfaces"
+	"github.com/google/triage-party/pkg/models"
 	"os"
 	"time"
-
-	"github.com/google/go-github/v31/github"
 )
 
 var (
@@ -42,12 +39,12 @@ type Config struct {
 type Thing struct {
 	Created time.Time
 
-	PullRequests        []*github.PullRequest
-	Issues              []hubbub.Item
-	PullRequestComments []*github.PullRequestComment
-	IssueComments       []interfaces.IIssueComment
-	Timeline            []*github.Timeline
-	Reviews             []*github.PullRequestReview
+	PullRequests        []*models.PullRequest
+	Issues              []*models.Issue
+	PullRequestComments []*models.PullRequestComment
+	IssueComments       []*models.IssueComment
+	Timeline            []*models.Timeline
+	Reviews             []*models.PullRequestReview
 	StringBool          map[string]bool
 }
 

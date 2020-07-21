@@ -15,9 +15,9 @@
 package hubbub
 
 import (
+	"github.com/google/triage-party/pkg/models"
 	"time"
 
-	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/tag"
 )
 
@@ -36,7 +36,7 @@ type Conversation struct {
 
 	URL     string       `json:"url"`
 	Title   string       `json:"title"`
-	Author  *github.User `json:"author"`
+	Author  *models.User `json:"author"`
 	Type    string       `json:"type"`
 	State   string       `json:"state"`
 	Created time.Time    `json:"created"`
@@ -61,16 +61,16 @@ type Conversation struct {
 	AccumulatedHoldTime time.Duration `json:"accumulated_hold_time"`
 	CurrentHoldTime     time.Duration `json:"current_hold_time"`
 
-	Assignees []*github.User  `json:"assignees"`
-	Labels    []*github.Label `json:"labels"`
+	Assignees []*models.User  `json:"assignees"`
+	Labels    []*models.Label `json:"labels"`
 
 	ReactionsTotal    int            `json:"reactions_total"`
 	Reactions         map[string]int `json:"reactions"`
 	ReactionsPerMonth float64        `json:"reactions_per_month"`
 
-	Commenters         []*github.User `json:"commenters"`
+	Commenters         []*models.User `json:"commenters"`
 	LastCommentBody    string         `json:"last_comment_body"`
-	LastCommentAuthor  *github.User   `json:"last_comment_author"`
+	LastCommentAuthor  *models.User   `json:"last_comment_author"`
 	CommentsTotal      int            `json:"comments_total"`
 	CommentersTotal    int            `json:"commenters_total"`
 	CommentersPerMonth float64        `json:"commenters_per_month"`
@@ -78,7 +78,7 @@ type Conversation struct {
 	ClosedCommentsTotal   int          `json:"closed_comments_total"`
 	ClosedCommentersTotal int          `json:"closed_commenters_total"`
 	ClosedAt              time.Time    `json:"closed_at"`
-	ClosedBy              *github.User `json:"closed_by"`
+	ClosedBy              *models.User `json:"closed_by"`
 
 	TimelineTotal int `json:"timeline_total"`
 	ReviewsTotal  int `json:"reviews_total"`
@@ -91,7 +91,7 @@ type Conversation struct {
 	// Similar issues to this one
 	Similar []*RelatedConversation `json:"similar"`
 
-	Milestone *github.Milestone `json:"milestone"`
+	Milestone *models.Milestone `json:"milestone"`
 }
 
 // A subset of Conversation for related items (requires less memory than a Conversation)
@@ -103,7 +103,7 @@ type RelatedConversation struct {
 
 	URL         string       `json:"url"`
 	Title       string       `json:"title"`
-	Author      *github.User `json:"author"`
+	Author      *models.User `json:"author"`
 	Type        string       `json:"type"`
 	State       string       `json:"state"`
 	Created     time.Time    `json:"created"`

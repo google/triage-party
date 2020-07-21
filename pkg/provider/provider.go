@@ -2,8 +2,6 @@ package provider
 
 import (
 	"context"
-	"github.com/google/triage-party/pkg/hubbub"
-	"github.com/google/triage-party/pkg/interfaces"
 	"github.com/google/triage-party/pkg/models"
 	"github.com/google/triage-party/pkg/triage"
 	"golang.org/x/oauth2"
@@ -15,8 +13,13 @@ const (
 )
 
 type Provider interface {
-	IssuesListByRepo(sp models.SearchParams) ([]interfaces.IItem, *models.Response, error)
-	IssuesListComments(sp models.SearchParams) ([]interfaces.IIssueComment, *models.Response, error)
+	IssuesListByRepo(sp models.SearchParams) ([]*models.Issue, *models.Response, error)
+	IssuesListComments(sp models.SearchParams) ([]*models.IssueComment, *models.Response, error)
+	IssuesListIssueTimeline(sp models.SearchParams) ([]*models.Timeline, *models.Response, error)
+	PullRequestsList(sp models.SearchParams) ([]*models.PullRequest, *models.Response, error)
+	PullRequestsGet(sp models.SearchParams) (*models.PullRequest, *models.Response, error)
+	PullRequestsListComments(sp models.SearchParams) ([]*models.PullRequestComment, *models.Response, error)
+	PullRequestsListReviews(sp models.SearchParams) ([]*models.PullRequestReview, *models.Response, error)
 }
 
 var (
@@ -47,10 +50,12 @@ func InitProviders(ctx context.Context, c Config) {
 }
 
 func ResolveProviderByHost(providerHost string) Provider {
-	switch providerHost {
-	case GithubProviderHost:
-		return githubProvider
-	case GitlabProviderHost:
-		return nil //TODO
-	}
+	// TODO implement gitlab
+	return githubProvider
+	//switch providerHost {
+	//case GithubProviderHost:
+	//	return githubProvider
+	//case GitlabProviderHost:
+	//	return nil //TODO
+	//}
 }

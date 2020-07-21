@@ -16,12 +16,13 @@ package hubbub
 
 import (
 	"fmt"
+	"github.com/google/triage-party/pkg/interfaces"
+	"github.com/google/triage-party/pkg/models"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v31/github"
 	"k8s.io/klog/v2"
 
 	"github.com/google/triage-party/pkg/tag"
@@ -43,7 +44,7 @@ var (
 )
 
 // createConversation creates a conversation from an issue-like
-func (h *Engine) createConversation(i Item, cs []*Comment, age time.Time) *Conversation {
+func (h *Engine) createConversation(i interfaces.IItem, cs []*models.Comment, age time.Time) *Conversation {
 
 	authorIsMember := false
 	if h.isMember(i.GetUser().GetLogin(), i.GetAuthorAssociation()) {

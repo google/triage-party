@@ -2,18 +2,19 @@ package hubbub
 
 import (
 	"fmt"
+	"github.com/google/triage-party/pkg/interfaces"
+	"github.com/google/triage-party/pkg/models"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
 )
 
 // Check if an item matches the filters, pre-comment fetch
-func preFetchMatch(i GitHubItem, labels []*github.Label, fs []Filter) bool {
+func preFetchMatch(i interfaces.IItem, labels []*models.Label, fs []Filter) bool {
 	for _, f := range fs {
 
 		if f.State != "" && f.State != "all" {
@@ -182,7 +183,7 @@ func postEventsMatch(co *Conversation, fs []Filter) bool {
 	return true
 }
 
-func matchLabel(labels []*github.Label, re *regexp.Regexp, negate bool) bool {
+func matchLabel(labels []*models.Label, re *regexp.Regexp, negate bool) bool {
 	for _, l := range labels {
 		if re.MatchString(*l.Name) {
 			return !negate
