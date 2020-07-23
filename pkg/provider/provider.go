@@ -3,8 +3,6 @@ package provider
 import (
 	"context"
 	"github.com/google/triage-party/pkg/models"
-	"github.com/google/triage-party/pkg/triage"
-	"golang.org/x/oauth2"
 )
 
 const (
@@ -25,15 +23,6 @@ type Provider interface {
 var (
 	githubProvider *GithubProvider
 )
-
-func initGithub(ctx context.Context, c Config) {
-	cl := triage.MustCreateGithubClient(*c.GithubAPIRawURL, oauth2.NewClient(ctx, oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: triage.MustReadToken(*c.GithubTokenFile, "GITHUB_TOKEN")},
-	)))
-	githubProvider = &GithubProvider{
-		client: cl,
-	}
-}
 
 func initGitlab(ctx context.Context, c Config) {
 	// TODO

@@ -1,8 +1,15 @@
 package provider
 
 import (
+	"context"
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/models"
+	"golang.org/x/oauth2"
+	"io/ioutil"
+	"k8s.io/klog/v2"
+	"net/http"
+	"os"
+	"strings"
 )
 
 type GithubProvider struct {
@@ -155,4 +162,44 @@ func (p *GithubProvider) PullRequestsListReviews(sp models.SearchParams) (i []*m
 	i = getPullRequestsListReviews(pr)
 	r = getResponse(gr)
 	return
+}
+
+func MustReadToken(path string, env string) string {
+	token := os.Getenv(env)
+	if path != "" {
+		t, err := ioutil.ReadFile(path)
+		if err != nil {
+			klog.Exitf("unable to read token file: %v", err)
+		}
+		token = string(t)
+		klog.Infof("loaded %d byte github token from %s", len(token), path)
+	} else {
+		klog.Infof("loaded %d byte github token from %s", len(token), env)
+	}
+
+	token = strings.TrimSpace(token)
+	if len(token) < 8 {
+		klog.Exitf("github token impossibly small: %q", token)
+	}
+	return token
+}
+
+func MustCreateGithubClient(githubAPIRawURL string, httpClient *http.Client) *github.Client {
+	if githubAPIRawURL != "" {
+		client, err := github.NewEnterpriseClient(githubAPIRawURL, githubAPIRawURL, httpClient)
+		if err != nil {
+			klog.Exitf("unable to create GitHub client: %v", err)
+		}
+		return client
+	}
+	return github.NewClient(httpClient)
+}
+
+func initGithub(ctx context.Context, c Config) {
+	cl := MustCreateGithubClient(*c.GithubAPIRawURL, oauth2.NewClient(ctx, oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: MustReadToken(*c.GithubTokenFile, "GITHUB_TOKEN")},
+	)))
+	githubProvider = &GithubProvider{
+		client: cl,
+	}
 }
