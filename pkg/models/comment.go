@@ -1,9 +1,22 @@
 package models
 
 import (
-	"github.com/google/triage-party/pkg/interfaces"
 	"time"
 )
+
+// IComment is an interface that matches both GitHub issues and pull review comments
+type IComment interface {
+	GetAuthorAssociation() string
+	GetBody() string
+	GetCreatedAt() time.Time
+	GetReactions() *Reactions
+	GetHTMLURL() string
+	GetID() int64
+	GetURL() string
+	GetUpdatedAt() time.Time
+	GetUser() *User
+	String() string
+}
 
 // Comment is a loose internal comment structure matching issue, PR, code review comments
 type Comment struct {
@@ -16,7 +29,7 @@ type Comment struct {
 	ReviewID    int64
 }
 
-func NewComment(g interfaces.IComment) *Comment {
+func NewComment(g IComment) *Comment {
 	return &Comment{
 		User:        g.GetUser(),
 		Body:        g.GetBody(),

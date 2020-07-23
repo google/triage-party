@@ -16,7 +16,6 @@ package hubbub
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/interfaces"
 	"github.com/google/triage-party/pkg/models"
 	"github.com/google/triage-party/pkg/provider"
 	"strings"
@@ -75,7 +74,7 @@ func (h *Engine) updateReviews(sp models.SearchParams) ([]*models.PullRequestRev
 }
 
 // reviewState parses review events to see where an issue was left off
-func reviewState(pr interfaces.IItem, timeline []*models.Timeline, reviews []*models.PullRequestReview) string {
+func reviewState(pr models.IItem, timeline []*models.Timeline, reviews []*models.PullRequestReview) string {
 	state := Unreviewed
 
 	if len(timeline) == 0 && len(reviews) == 0 {

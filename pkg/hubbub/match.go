@@ -2,7 +2,6 @@ package hubbub
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/interfaces"
 	"github.com/google/triage-party/pkg/models"
 	"regexp"
 	"strconv"
@@ -14,7 +13,7 @@ import (
 )
 
 // Check if an item matches the filters, pre-comment fetch
-func preFetchMatch(i interfaces.IItem, labels []*models.Label, fs []models.Filter) bool {
+func preFetchMatch(i models.IItem, labels []*models.Label, fs []models.Filter) bool {
 	for _, f := range fs {
 
 		if f.State != "" && f.State != "all" {

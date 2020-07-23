@@ -2,7 +2,6 @@ package hubbub
 
 import (
 	"github.com/google/triage-party/pkg/constants"
-	"github.com/google/triage-party/pkg/interfaces"
 	"github.com/google/triage-party/pkg/models"
 	"strings"
 	"sync"
@@ -383,7 +382,7 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 	return filtered, age, nil
 }
 
-func needComments(i interfaces.IItem, fs []models.Filter) bool {
+func needComments(i models.IItem, fs []models.Filter) bool {
 	for _, f := range fs {
 		if f.TagRegex() != nil {
 			if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
@@ -408,7 +407,7 @@ func needComments(i interfaces.IItem, fs []models.Filter) bool {
 	return i.GetState() == "open"
 }
 
-func needTimeline(i interfaces.IItem, fs []models.Filter, pr bool, hidden bool) bool {
+func needTimeline(i models.IItem, fs []models.Filter, pr bool, hidden bool) bool {
 	if i.GetMilestone() != nil {
 		return true
 	}
@@ -441,7 +440,7 @@ func needTimeline(i interfaces.IItem, fs []models.Filter, pr bool, hidden bool) 
 	return !hidden
 }
 
-func needReviews(i interfaces.IItem, fs []models.Filter, hidden bool) bool {
+func needReviews(i models.IItem, fs []models.Filter, hidden bool) bool {
 	if i.GetState() != "open" {
 		return false
 	}

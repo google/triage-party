@@ -16,7 +16,6 @@ package hubbub
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/interfaces"
 	"github.com/google/triage-party/pkg/models"
 	"github.com/google/triage-party/pkg/provider"
 	"strings"
@@ -145,7 +144,7 @@ func (h *Engine) addEvents(sp models.SearchParams, co *Conversation, timeline []
 	co.Tags = tag.Dedup(co.Tags)
 }
 
-func (h *Engine) prRef(sp models.SearchParams, pr interfaces.IItem) *RelatedConversation {
+func (h *Engine) prRef(sp models.SearchParams, pr models.IItem) *RelatedConversation {
 	if pr == nil {
 		klog.Errorf("PR is nil")
 		return nil
