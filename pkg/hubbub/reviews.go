@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
 )
@@ -68,7 +67,7 @@ func (h *Engine) updateReviews(sp models.SearchParams) ([]*models.PullRequestRev
 		sp.ListOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &persist.Thing{Reviews: allReviews}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &models.Thing{Reviews: allReviews}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 

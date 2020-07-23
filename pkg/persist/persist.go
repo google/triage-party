@@ -36,32 +36,20 @@ type Config struct {
 	Path string
 }
 
-type Thing struct {
-	Created time.Time
-
-	PullRequests        []*models.PullRequest
-	Issues              []*models.Issue
-	PullRequestComments []*models.PullRequestComment
-	IssueComments       []*models.IssueComment
-	Timeline            []*models.Timeline
-	Reviews             []*models.PullRequestReview
-	StringBool          map[string]bool
-}
-
 // Cacher is the cache interface we support
 type Cacher interface {
 	String() string
 
-	Set(string, *Thing) error
+	Set(string, *models.Thing) error
 	DeleteOlderThan(string, time.Time) error
-	GetNewerThan(string, time.Time) *Thing
+	GetNewerThan(string, time.Time) *models.Thing
 
 	Initialize() error
 	Cleanup() error
 }
 
 func New(cfg Config) (Cacher, error) {
-	gob.Register(&Thing{})
+	gob.Register(&models.Thing{})
 	switch cfg.Type {
 	case "mysql":
 		return NewMySQL(cfg)

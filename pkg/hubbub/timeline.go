@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
 )
@@ -69,7 +68,7 @@ func (h *Engine) updateTimeline(sp models.SearchParams) ([]*models.Timeline, err
 		sp.ListOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &persist.Thing{Timeline: allEvents}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &models.Thing{Timeline: allEvents}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 

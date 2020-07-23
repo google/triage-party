@@ -117,7 +117,7 @@ func (h *Engine) updatePRs(sp models.SearchParams) ([]*models.PullRequest, time.
 		sp.PullRequestListOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &persist.Thing{PullRequests: allPRs}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &models.Thing{PullRequests: allPRs}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
@@ -165,7 +165,7 @@ func (h *Engine) updatePR(sp models.SearchParams) (*models.PullRequest, time.Tim
 	h.logRate(resp.Rate)
 	h.updateMtime(pr, pr.GetUpdatedAt())
 
-	if err := h.cache.Set(sp.SearchKey, &persist.Thing{PullRequests: []*models.PullRequest{pr}}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &models.Thing{PullRequests: []*models.PullRequest{pr}}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
@@ -260,7 +260,7 @@ func (h *Engine) updateReviewComments(sp models.SearchParams) ([]*models.PullReq
 		sp.ListOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &persist.Thing{PullRequestComments: allComments}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &models.Thing{PullRequestComments: allComments}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 

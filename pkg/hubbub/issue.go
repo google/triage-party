@@ -24,7 +24,6 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/logu"
-	"github.com/google/triage-party/pkg/persist"
 	"gopkg.in/yaml.v2"
 	"k8s.io/klog/v2"
 )
@@ -113,7 +112,7 @@ func (h *Engine) updateIssues(sp models.SearchParams) ([]*models.Issue, time.Tim
 		sp.IssueListByRepoOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &persist.Thing{Issues: allIssues}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &models.Thing{Issues: allIssues}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
@@ -174,7 +173,7 @@ func (h *Engine) updateIssueComments(sp models.SearchParams) ([]*models.IssueCom
 		sp.IssueListCommentsOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &persist.Thing{IssueComments: allComments}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &models.Thing{IssueComments: allComments}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 

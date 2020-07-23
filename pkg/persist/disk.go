@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"github.com/google/triage-party/pkg/models"
 	"io"
 	"io/ioutil"
 	"os"
@@ -82,7 +83,7 @@ func (d *Disk) load() error {
 }
 
 // Set stores a thing into memory
-func (d *Disk) Set(key string, t *Thing) error {
+func (d *Disk) Set(key string, t *models.Thing) error {
 	setMem(d.cache, key, t)
 	// Implementation quirk: the disk driver does not persist until Cleanup() is called
 	return nil
@@ -95,7 +96,7 @@ func (d *Disk) DeleteOlderThan(key string, t time.Time) error {
 }
 
 // GetNewerThan returns a thing older than a timestamp
-func (d *Disk) GetNewerThan(key string, t time.Time) *Thing {
+func (d *Disk) GetNewerThan(key string, t time.Time) *models.Thing {
 	return newerThanMem(d.cache, key, t)
 }
 
