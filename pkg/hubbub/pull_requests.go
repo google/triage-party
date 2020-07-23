@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
 )

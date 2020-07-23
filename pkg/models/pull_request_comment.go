@@ -1,7 +1,6 @@
 package models
 
 import (
-	"github.com/google/triage-party/pkg/utils"
 	"time"
 )
 
