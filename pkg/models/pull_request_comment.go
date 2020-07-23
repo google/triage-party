@@ -237,5 +237,5 @@ func (p *PullRequestComment) GetUser() *User {
 }
 
 func (i PullRequestComment) String() string {
-	return utils.Stringify(i)
+	return Stringify(i)
 }

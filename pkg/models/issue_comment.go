@@ -114,5 +114,5 @@ func (i *IssueComment) GetUser() *User {
 }
 
 func (i IssueComment) String() string {
-	return utils.Stringify(i)
+	return Stringify(i)
 }

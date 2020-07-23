@@ -1,7 +1,6 @@
 package models
 
 import (
-	"github.com/google/triage-party/pkg/utils"
 	"time"
 )
 
@@ -408,5 +407,5 @@ func (p *PullRequest) GetUser() *User {
 }
 
 func (p PullRequest) String() string {
-	return utils.Stringify(p)
+	return Stringify(p)
 }

@@ -259,7 +259,7 @@ func (i *Issue) GetUser() *User {
 }
 
 func (i Issue) String() string {
-	return utils.Stringify(i)
+	return Stringify(i)
 }
 
 // IsPullRequest reports whether the issue is also a pull request. It uses the
