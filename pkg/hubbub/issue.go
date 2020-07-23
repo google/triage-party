@@ -188,7 +188,7 @@ func toYAML(v interface{}) string {
 	return strings.Replace(strings.TrimSpace(string(s)), "\n", "; ", -1)
 }
 
-func openByDefault(fs []Filter) []Filter {
+func openByDefault(fs []models.Filter) []models.Filter {
 	found := false
 	for _, f := range fs {
 		if f.State != "" {
@@ -196,7 +196,7 @@ func openByDefault(fs []Filter) []Filter {
 		}
 	}
 	if !found {
-		fs = append(fs, Filter{State: "open"})
+		fs = append(fs, models.Filter{State: "open"})
 	}
 	return fs
 }

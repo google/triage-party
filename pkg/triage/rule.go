@@ -32,7 +32,7 @@ type Rule struct {
 	Name       string          `yaml:"name,omitempty"`
 	Repos      []string        `yaml:"repos,omitempty"`
 	Type       string          `yaml:"type,omitempty"`
-	Filters    []hubbub.Filter `yaml:"filters"`
+	Filters    []models.Filter `yaml:"filters"`
 }
 
 type RuleResult struct {

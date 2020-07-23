@@ -14,7 +14,7 @@ import (
 )
 
 // Check if an item matches the filters, pre-comment fetch
-func preFetchMatch(i interfaces.IItem, labels []*models.Label, fs []Filter) bool {
+func preFetchMatch(i interfaces.IItem, labels []*models.Label, fs []models.Filter) bool {
 	for _, f := range fs {
 
 		if f.State != "" && f.State != "all" {
@@ -102,7 +102,7 @@ func preFetchMatch(i interfaces.IItem, labels []*models.Label, fs []Filter) bool
 }
 
 // Check if an issue matches the summarized version
-func postFetchMatch(co *Conversation, fs []Filter) bool {
+func postFetchMatch(co *Conversation, fs []models.Filter) bool {
 	for _, f := range fs {
 		klog.V(2).Infof("post-fetch matching item #%d against filter: %+v", co.ID, f)
 
@@ -164,7 +164,7 @@ func postFetchMatch(co *Conversation, fs []Filter) bool {
 }
 
 // Check if an issue matches the summarized version, after events have been loaded
-func postEventsMatch(co *Conversation, fs []Filter) bool {
+func postEventsMatch(co *Conversation, fs []models.Filter) bool {
 	for _, f := range fs {
 		if f.TagRegex() != nil {
 			if ok, _ := matchTag(co.Tags, f.TagRegex(), f.TagNegate()); !ok {

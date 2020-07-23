@@ -212,7 +212,7 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 }
 
 // NeedsClosed returns whether or not the filters require closed items
-func NeedsClosed(fs []Filter) bool {
+func NeedsClosed(fs []models.Filter) bool {
 	// First-pass filter: do any filters require closed data?
 	for _, f := range fs {
 		if f.ClosedCommenters != "" {
@@ -383,7 +383,7 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 	return filtered, age, nil
 }
 
-func needComments(i interfaces.IItem, fs []Filter) bool {
+func needComments(i interfaces.IItem, fs []models.Filter) bool {
 	for _, f := range fs {
 		if f.TagRegex() != nil {
 			if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
@@ -408,7 +408,7 @@ func needComments(i interfaces.IItem, fs []Filter) bool {
 	return i.GetState() == "open"
 }
 
-func needTimeline(i interfaces.IItem, fs []Filter, pr bool, hidden bool) bool {
+func needTimeline(i interfaces.IItem, fs []models.Filter, pr bool, hidden bool) bool {
 	if i.GetMilestone() != nil {
 		return true
 	}
@@ -441,7 +441,7 @@ func needTimeline(i interfaces.IItem, fs []Filter, pr bool, hidden bool) bool {
 	return !hidden
 }
 
-func needReviews(i interfaces.IItem, fs []Filter, hidden bool) bool {
+func needReviews(i interfaces.IItem, fs []models.Filter, hidden bool) bool {
 	if i.GetState() != "open" {
 		return false
 	}

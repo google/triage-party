@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"github.com/google/triage-party/pkg/hubbub"
 	"time"
 )
 
@@ -46,7 +45,7 @@ type Repo struct {
 
 type SearchParams struct {
 	Repo        Repo
-	Filters     []hubbub.Filter
+	Filters     []Filter
 	Ctx         context.Context
 	NewerThan   time.Time
 	Hidden      bool
