@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/models"
 	"golang.org/x/oauth2"
@@ -23,16 +25,46 @@ func getListOptions(m models.ListOptions) github.ListOptions {
 	}
 }
 
-func getIssues(i []*github.Issue) (r []*models.Issue) {
-	// TODO
-	mi := models.Issue{}
-	r = append(r, &mi)
-	return
+func getIssues(i []*github.Issue) []*models.Issue {
+	r := make([]*models.Issue, len(i))
+	for k, v := range i {
+		m := models.Issue{}
+		b, err := json.Marshal(v)
+		if err != nil {
+			fmt.Println(err)
+		}
+		err = json.Unmarshal(b, &m)
+		if err != nil {
+			fmt.Println(err)
+		}
+		r[k] = &m
+	}
+	return r
 }
 
-func getResponse(i *github.Response) (r *models.Response) {
-	// TODO
-	return &models.Response{}
+func getRate(i *github.Rate) models.Rate {
+	r := models.Rate{}
+	b, err := json.Marshal(i)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = json.Unmarshal(b, &r)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return r
+}
+
+func getResponse(i *github.Response) *models.Response {
+	r := models.Response{
+		NextPage:      i.NextPage,
+		PrevPage:      i.PrevPage,
+		FirstPage:     i.FirstPage,
+		LastPage:      i.LastPage,
+		NextPageToken: i.NextPageToken,
+		Rate:          getRate(&(*i).Rate),
+	}
+	return &r
 }
 
 func getIssueListByRepoOptions(sp models.SearchParams) *github.IssueListByRepoOptions {
@@ -56,11 +88,21 @@ func getIssuesListCommentsOptions(sp models.SearchParams) *github.IssueListComme
 	}
 }
 
-func getIssueComments(i []*github.IssueComment) (r []*models.IssueComment) {
-	// TODO
-	ic := models.IssueComment{}
-	r = append(r, &ic)
-	return
+func getIssueComments(i []*github.IssueComment) []*models.IssueComment {
+	r := make([]*models.IssueComment, len(i))
+	for k, v := range i {
+		m := models.IssueComment{}
+		b, err := json.Marshal(v)
+		if err != nil {
+			fmt.Println(err)
+		}
+		err = json.Unmarshal(b, &m)
+		if err != nil {
+			fmt.Println(err)
+		}
+		r[k] = &m
+	}
+	return r
 }
 
 func (p *GithubProvider) IssuesListComments(sp models.SearchParams) (i []*models.IssueComment, r *models.Response, err error) {
@@ -77,11 +119,21 @@ func getIssuesListIssueTimelineOptions(sp models.SearchParams) *github.ListOptio
 	}
 }
 
-func getIssueTimeline(i []*github.Timeline) (r []*models.Timeline) {
-	// TODO
-	it := models.Timeline{}
-	r = append(r, &it)
-	return
+func getIssueTimeline(i []*github.Timeline) []*models.Timeline {
+	r := make([]*models.Timeline, len(i))
+	for k, v := range i {
+		m := models.Timeline{}
+		b, err := json.Marshal(v)
+		if err != nil {
+			fmt.Println(err)
+		}
+		err = json.Unmarshal(b, &m)
+		if err != nil {
+			fmt.Println(err)
+		}
+		r[k] = &m
+	}
+	return r
 }
 
 func (p *GithubProvider) IssuesListIssueTimeline(sp models.SearchParams) (i []*models.Timeline, r *models.Response, err error) {
@@ -101,11 +153,21 @@ func getPullRequestsListOptions(sp models.SearchParams) *github.PullRequestListO
 	}
 }
 
-func getPullRequestsList(i []*github.PullRequest) (r []*models.PullRequest) {
-	// TODO
-	it := models.PullRequest{}
-	r = append(r, &it)
-	return
+func getPullRequestsList(i []*github.PullRequest) []*models.PullRequest {
+	r := make([]*models.PullRequest, len(i))
+	for k, v := range i {
+		m := models.PullRequest{}
+		b, err := json.Marshal(v)
+		if err != nil {
+			fmt.Println(err)
+		}
+		err = json.Unmarshal(b, &m)
+		if err != nil {
+			fmt.Println(err)
+		}
+		r[k] = &m
+	}
+	return r
 }
 
 func (p *GithubProvider) PullRequestsList(sp models.SearchParams) (i []*models.PullRequest, r *models.Response, err error) {
@@ -116,9 +178,17 @@ func (p *GithubProvider) PullRequestsList(sp models.SearchParams) (i []*models.P
 	return
 }
 
-func getPullRequest(i *github.PullRequest) (r *models.PullRequest) {
-	// TODO
-	return &models.PullRequest{}
+func getPullRequest(i *github.PullRequest) *models.PullRequest {
+	r := models.PullRequest{}
+	b, err := json.Marshal(i)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = json.Unmarshal(b, &r)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return &r
 }
 
 func (p *GithubProvider) PullRequestsGet(sp models.SearchParams) (i *models.PullRequest, r *models.Response, err error) {
@@ -128,11 +198,21 @@ func (p *GithubProvider) PullRequestsGet(sp models.SearchParams) (i *models.Pull
 	return
 }
 
-func getPullRequestListComments(i []*github.PullRequestComment) (r []*models.PullRequestComment) {
-	// TODO
-	it := models.PullRequestComment{}
-	r = append(r, &it)
-	return
+func getPullRequestListComments(i []*github.PullRequestComment) []*models.PullRequestComment {
+	r := make([]*models.PullRequestComment, len(i))
+	for k, v := range i {
+		m := models.PullRequestComment{}
+		b, err := json.Marshal(v)
+		if err != nil {
+			fmt.Println(err)
+		}
+		err = json.Unmarshal(b, &m)
+		if err != nil {
+			fmt.Println(err)
+		}
+		r[k] = &m
+	}
+	return r
 }
 
 func getPullRequestsListCommentsOptions(sp models.SearchParams) *github.PullRequestListCommentsOptions {
@@ -149,11 +229,21 @@ func (p *GithubProvider) PullRequestsListComments(sp models.SearchParams) (i []*
 	return
 }
 
-func getPullRequestsListReviews(i []*github.PullRequestReview) (r []*models.PullRequestReview) {
-	// TODO
-	it := models.PullRequestReview{}
-	r = append(r, &it)
-	return
+func getPullRequestsListReviews(i []*github.PullRequestReview) []*models.PullRequestReview {
+	r := make([]*models.PullRequestReview, len(i))
+	for k, v := range i {
+		m := models.PullRequestReview{}
+		b, err := json.Marshal(v)
+		if err != nil {
+			fmt.Println(err)
+		}
+		err = json.Unmarshal(b, &m)
+		if err != nil {
+			fmt.Println(err)
+		}
+		r[k] = &m
+	}
+	return r
 }
 
 func (p *GithubProvider) PullRequestsListReviews(sp models.SearchParams) (i []*models.PullRequestReview, r *models.Response, err error) {
