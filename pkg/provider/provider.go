@@ -3,6 +3,10 @@ package provider
 import (
 	"context"
 	"github.com/google/triage-party/pkg/models"
+	"io/ioutil"
+	"k8s.io/klog/v2"
+	"os"
+	"strings"
 )
 
 const (
@@ -22,29 +26,45 @@ type Provider interface {
 
 var (
 	githubProvider *GithubProvider
+	gitlabProvider *GitlabProvider
 )
-
-func initGitlab(ctx context.Context, c Config) {
-	// TODO
-}
 
 type Config struct {
 	GithubAPIRawURL *string
 	GithubTokenFile *string
+	GitlabTokenFile *string
 }
 
 func InitProviders(ctx context.Context, c Config) {
 	initGithub(ctx, c)
-	initGitlab(ctx, c)
+	initGitlab(c)
 }
 
 func ResolveProviderByHost(providerHost string) Provider {
-	// TODO implement gitlab
-	return githubProvider
-	//switch providerHost {
-	//case GithubProviderHost:
-	//	return githubProvider
-	//case GitlabProviderHost:
-	//	return nil //TODO
-	//}
+	switch providerHost {
+	case GithubProviderHost:
+		return githubProvider
+	case GitlabProviderHost:
+		return gitlabProvider
+	}
+}
+
+func mustReadToken(path string, env string) string {
+	token := os.Getenv(env)
+	if path != "" {
+		t, err := ioutil.ReadFile(path)
+		if err != nil {
+			klog.Exitf("unable to read token file: %v", err)
+		}
+		token = string(t)
+		klog.Infof("loaded %d byte github token from %s", len(token), path)
+	} else {
+		klog.Infof("loaded %d byte github token from %s", len(token), env)
+	}
+
+	token = strings.TrimSpace(token)
+	if len(token) < 8 {
+		klog.Exitf("github token impossibly small: %q", token)
+	}
+	return token
 }

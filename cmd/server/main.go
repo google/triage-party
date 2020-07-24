@@ -29,6 +29,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/google/triage-party/pkg/constants"
 	"net/http"
 	"os"
 	"os/signal"
@@ -57,7 +58,8 @@ var (
 	persistPath    = flag.String("persist-path", "", "Where to persist cache to (automatic)")
 
 	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
-	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via GITHUB_TOKEN")
+	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via "+constants.GithubTokenEnvVar)
+	gitlabTokenFile = flag.String("gitlab-token-file", "", "github token secret file, also settable via "+constants.GitlabTokenEnvVar)
 
 	// server specific
 	siteDir       = flag.String("site", "site/", "path to site files")
@@ -206,6 +208,7 @@ func initProviderClients(ctx context.Context) {
 	cfg := provider.Config{
 		GithubAPIRawURL: githubAPIRawURL,
 		GithubTokenFile: githubTokenFile,
+		GitlabTokenFile: gitlabTokenFile,
 	}
 	provider.InitProviders(ctx, cfg)
 }
