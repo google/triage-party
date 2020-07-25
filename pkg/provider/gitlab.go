@@ -95,8 +95,45 @@ func (p *GitlabProvider) IssuesListByRepo(sp models.SearchParams) (i []*models.I
 	return
 }
 
-func (p *GitlabProvider) IssuesListComments(sp models.SearchParams) ([]*models.IssueComment, *models.Response, error) {
+func (p *GitlabProvider) getListIssueNotesOptions(sp models.SearchParams) *gitlab.ListIssueNotesOptions {
+	return &gitlab.ListIssueNotesOptions{
+		ListOptions: p.getListOptions(sp.IssueListCommentsOptions.ListOptions),
+	}
+}
 
+func (p *GitlabProvider) getUser(i *gitlab.Note) *models.User {
+	id := int64(i.ID)
+	return &models.User{
+		ID:        &id,
+		Name:      &i.Author.Name,
+		Login:     &i.Author.Username, // TODO need to clarify
+		Email:     &i.Author.Email,
+		AvatarURL: &i.Author.AvatarURL,
+		HTMLURL:   &i.Author.WebURL, // TODO need to clarify
+	}
+}
+
+func (p *GitlabProvider) getIssueComments(i []*gitlab.Note) []*models.IssueComment {
+	r := make([]*models.IssueComment, len(i))
+	for k, v := range i {
+		m := &models.IssueComment{
+			User:      p.getUser(v),
+			Body:      &v.Body,
+			CreatedAt: v.CreatedAt,
+			UpdatedAt: v.UpdatedAt,
+		}
+		r[k] = m
+	}
+	return r
+}
+
+// https://docs.gitlab.com/ce/api/notes.html#list-project-issue-notes
+func (p *GitlabProvider) IssuesListComments(sp models.SearchParams) (i []*models.IssueComment, r *models.Response, err error) {
+	opt := p.getListIssueNotesOptions(sp)
+	in, gr, err := p.client.Notes.ListIssueNotes(sp.Repo.Project, sp.IssueNumber, opt)
+	i = p.getIssueComments(in)
+	r = p.getResponse(gr)
+	return
 }
 
 func (p *GitlabProvider) IssuesListIssueTimeline(sp models.SearchParams) ([]*models.Timeline, *models.Response, error) {
