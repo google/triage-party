@@ -68,7 +68,8 @@ func (p *GithubProvider) getResponse(i *github.Response) *models.Response {
 func (p *GithubProvider) getIssueListByRepoOptions(sp models.SearchParams) *github.IssueListByRepoOptions {
 	return &github.IssueListByRepoOptions{
 		ListOptions: p.getListOptions(sp.IssueListByRepoOptions.ListOptions),
-		State:       sp.State,
+		State:       sp.IssueListByRepoOptions.State,
+		Since:       sp.IssueListByRepoOptions.Since,
 	}
 }
 
