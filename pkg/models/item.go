@@ -4,7 +4,6 @@ import "time"
 
 // Item is an interface that matches both Issues and PullRequests
 type IItem interface {
-	// github specific
 	GetAssignee() *User
 	GetAuthorAssociation() string
 	GetBody() string

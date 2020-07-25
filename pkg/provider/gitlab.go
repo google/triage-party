@@ -101,7 +101,7 @@ func (p *GitlabProvider) getListIssueNotesOptions(sp models.SearchParams) *gitla
 	}
 }
 
-func (p *GitlabProvider) getUser(i *gitlab.Note) *models.User {
+func (p *GitlabProvider) getUserFromNote(i *gitlab.Note) *models.User {
 	id := int64(i.ID)
 	return &models.User{
 		ID:        &id,
@@ -117,7 +117,7 @@ func (p *GitlabProvider) getIssueComments(i []*gitlab.Note) []*models.IssueComme
 	r := make([]*models.IssueComment, len(i))
 	for k, v := range i {
 		m := &models.IssueComment{
-			User:      p.getUser(v),
+			User:      p.getUserFromNote(v),
 			Body:      &v.Body,
 			CreatedAt: v.CreatedAt,
 			UpdatedAt: v.UpdatedAt,
@@ -136,12 +136,81 @@ func (p *GitlabProvider) IssuesListComments(sp models.SearchParams) (i []*models
 	return
 }
 
-func (p *GitlabProvider) IssuesListIssueTimeline(sp models.SearchParams) ([]*models.Timeline, *models.Response, error) {
-
+func (p *GitlabProvider) IssuesListIssueTimeline(sp models.SearchParams) (i []*models.Timeline, r *models.Response, err error) {
+	// TODO need discuss - gitlab dont provide events by issue number (Issues, Merge Requests)
+	return
 }
 
-func (p *GitlabProvider) PullRequestsList(sp models.SearchParams) ([]*models.PullRequest, *models.Response, error) {
+func (p *GitlabProvider) getListProjectMergeRequestsOptions(sp models.SearchParams) *gitlab.ListProjectMergeRequestsOptions {
+	var orderBy string
+	if sp.PullRequestListOptions.Sort == constants.UpdatedSortOption {
+		orderBy = constants.UpdatedAtSortOption
+	} else {
+		orderBy = constants.CreatedAtSortOption
+	}
+	return &gitlab.ListProjectMergeRequestsOptions{
+		ListOptions: p.getListOptions(sp.PullRequestListOptions.ListOptions),
+		Sort:        &sp.PullRequestListOptions.Direction,
+		OrderBy:     &orderBy,
+	}
+}
 
+func (p *GitlabProvider) getUserFromBasicUser(i *gitlab.BasicUser) *models.User {
+	id := int64(i.ID)
+	return &models.User{
+		ID:        &id,
+		Name:      &i.Name,
+		Login:     &i.Username, // TODO need to clarify
+		AvatarURL: &i.AvatarURL,
+		HTMLURL:   &i.WebURL, // TODO need to clarify
+	}
+}
+
+func (p *GitlabProvider) getMilestone(i *gitlab.Milestone) *models.Milestone {
+	id := int64(i.ID)
+	dd := time.Time(*i.DueDate)
+	return &models.Milestone{
+		ID:          &id,
+		Number:      &i.IID,
+		Title:       &i.Title,
+		Description: &i.Description,
+		DueOn:       &dd,
+		State:       &i.State,
+		URL:         &i.WebURL, // TODO need to clarify
+		CreatedAt:   i.CreatedAt,
+		UpdatedAt:   i.UpdatedAt,
+	}
+}
+
+func (p *GitlabProvider) getPullRequests(i []*gitlab.MergeRequest) []*models.PullRequest {
+	r := make([]*models.PullRequest, len(i))
+	for k, v := range i {
+		id := int64(v.ID)
+		m := &models.PullRequest{
+			Assignee:  p.getUserFromBasicUser(v.Assignee),
+			User:      p.getUserFromBasicUser(v.Author),
+			Body:      &v.Description, // TODO need to clarify
+			CreatedAt: v.CreatedAt,
+			UpdatedAt: v.UpdatedAt,
+			ClosedAt:  v.ClosedAt,
+			URL:       &v.WebURL,
+			Title:     &v.Title,
+			State:     &v.State,
+			ID:        &id,
+			Number:    &v.IID,
+			Milestone: p.getMilestone(v.Milestone),
+		}
+		r[k] = m
+	}
+	return r
+}
+
+func (p *GitlabProvider) PullRequestsList(sp models.SearchParams) (i []*models.PullRequest, r *models.Response, err error) {
+	opt := p.getListProjectMergeRequestsOptions(sp)
+	in, gr, err := p.client.MergeRequests.ListProjectMergeRequests(sp.Repo.Project, opt)
+	i = p.getPullRequests(in)
+	r = p.getResponse(gr)
+	return
 }
 
 func (p *GitlabProvider) PullRequestsGet(sp models.SearchParams) (*models.PullRequest, *models.Response, error) {

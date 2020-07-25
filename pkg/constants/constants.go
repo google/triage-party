@@ -5,6 +5,8 @@ const (
 	ClosedState = "closed"
 
 	UpdatedSortOption   = "updated"
+	UpdatedAtSortOption = "updated_at"
+	CreatedAtSortOption = "created_at"
 	DescDirectionOption = "desc"
 
 	GithubTokenEnvVar = "GITHUB_TOKEN"
