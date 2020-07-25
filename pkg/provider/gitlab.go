@@ -182,24 +182,28 @@ func (p *GitlabProvider) getMilestone(i *gitlab.Milestone) *models.Milestone {
 	}
 }
 
+func (p *GitlabProvider) getPullRequest(v *gitlab.MergeRequest) *models.PullRequest {
+	id := int64(v.ID)
+	m := &models.PullRequest{
+		Assignee:  p.getUserFromBasicUser(v.Assignee),
+		User:      p.getUserFromBasicUser(v.Author),
+		Body:      &v.Description, // TODO need to clarify
+		CreatedAt: v.CreatedAt,
+		UpdatedAt: v.UpdatedAt,
+		ClosedAt:  v.ClosedAt,
+		URL:       &v.WebURL,
+		Title:     &v.Title,
+		State:     &v.State,
+		ID:        &id,
+		Number:    &v.IID,
+		Milestone: p.getMilestone(v.Milestone),
+	}
+}
+
 func (p *GitlabProvider) getPullRequests(i []*gitlab.MergeRequest) []*models.PullRequest {
 	r := make([]*models.PullRequest, len(i))
 	for k, v := range i {
-		id := int64(v.ID)
-		m := &models.PullRequest{
-			Assignee:  p.getUserFromBasicUser(v.Assignee),
-			User:      p.getUserFromBasicUser(v.Author),
-			Body:      &v.Description, // TODO need to clarify
-			CreatedAt: v.CreatedAt,
-			UpdatedAt: v.UpdatedAt,
-			ClosedAt:  v.ClosedAt,
-			URL:       &v.WebURL,
-			Title:     &v.Title,
-			State:     &v.State,
-			ID:        &id,
-			Number:    &v.IID,
-			Milestone: p.getMilestone(v.Milestone),
-		}
+		m := p.getPullRequest(v)
 		r[k] = m
 	}
 	return r
@@ -213,8 +217,12 @@ func (p *GitlabProvider) PullRequestsList(sp models.SearchParams) (i []*models.P
 	return
 }
 
-func (p *GitlabProvider) PullRequestsGet(sp models.SearchParams) (*models.PullRequest, *models.Response, error) {
-
+func (p *GitlabProvider) PullRequestsGet(sp models.SearchParams) (i *models.PullRequest, r *models.Response, err error) {
+	opt := &gitlab.GetMergeRequestsOptions{}
+	in, gr, err := p.client.MergeRequests.GetMergeRequest(sp.Repo.Project, sp.IssueNumber, opt)
+	i = p.getPullRequest(in)
+	r = p.getResponse(gr)
+	return
 }
 
 func (p *GitlabProvider) PullRequestsListComments(sp models.SearchParams) ([]*models.PullRequestComment, *models.Response, error) {
