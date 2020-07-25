@@ -251,6 +251,23 @@ func (p *GitlabProvider) PullRequestsListComments(sp models.SearchParams) (i []*
 	return
 }
 
-func (p *GitlabProvider) PullRequestsListReviews(sp models.SearchParams) ([]*models.PullRequestReview, *models.Response, error) {
+func (p *GitlabProvider) getPullRequestReviews(i *gitlab.MergeRequestApprovals) []*models.PullRequestReview {
+	r := make([]*models.PullRequestReview, len(i.ApprovedBy))
+	state := "APPROVED"
+	for k, v := range i.ApprovedBy {
+		m := &models.PullRequestReview{
+			User:  p.getUserFromBasicUser(v.User),
+			State: &state,
+		}
+		r[k] = m
+	}
+	return r
+}
 
+func (p *GitlabProvider) PullRequestsListReviews(sp models.SearchParams) (i []*models.PullRequestReview, r *models.Response, err error) {
+	// TODO need to clarify
+	in, gr, err := p.client.MergeRequests.GetMergeRequestApprovals(sp.Repo.Project, sp.IssueNumber)
+	i = p.getPullRequestReviews(in)
+	r = p.getResponse(gr)
+	return
 }
