@@ -198,6 +198,7 @@ func (p *GitlabProvider) getPullRequest(v *gitlab.MergeRequest) *models.PullRequ
 		Number:    &v.IID,
 		Milestone: p.getMilestone(v.Milestone),
 	}
+	return m
 }
 
 func (p *GitlabProvider) getPullRequests(i []*gitlab.MergeRequest) []*models.PullRequest {
@@ -225,8 +226,29 @@ func (p *GitlabProvider) PullRequestsGet(sp models.SearchParams) (i *models.Pull
 	return
 }
 
-func (p *GitlabProvider) PullRequestsListComments(sp models.SearchParams) ([]*models.PullRequestComment, *models.Response, error) {
+func (p *GitlabProvider) getPullRequestComments(i []*gitlab.Note) []*models.PullRequestComment {
+	r := make([]*models.PullRequestComment, len(i))
+	for k, v := range i {
+		id := int64(v.ID)
+		m := &models.PullRequestComment{
+			ID:        &id,
+			Body:      &v.Body,
+			CreatedAt: v.CreatedAt,
+			UpdatedAt: v.UpdatedAt,
+		}
+		r[k] = m
+	}
+	return r
+}
 
+func (p *GitlabProvider) PullRequestsListComments(sp models.SearchParams) (i []*models.PullRequestComment, r *models.Response, err error) {
+	opt := &gitlab.ListMergeRequestNotesOptions{
+		ListOptions: p.getListOptions(sp.ListOptions),
+	}
+	in, gr, err := p.client.Notes.ListMergeRequestNotes(sp.Repo.Project, sp.IssueNumber, opt)
+	i = p.getPullRequestComments(in)
+	r = p.getResponse(gr)
+	return
 }
 
 func (p *GitlabProvider) PullRequestsListReviews(sp models.SearchParams) ([]*models.PullRequestReview, *models.Response, error) {
