@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/models"
@@ -45,17 +44,48 @@ func (p *GitlabProvider) getListOptions(m models.ListOptions) gitlab.ListOptions
 	}
 }
 
+func (p *GitlabProvider) getUserFromIssueAssignee(i *gitlab.IssueAssignee) *models.User {
+	if i == nil {
+		return nil
+	}
+	id := int64(i.ID)
+	return &models.User{
+		ID:        &id,
+		Name:      &i.Name,
+		Login:     &i.Username, // TODO need to clarify
+		AvatarURL: &i.AvatarURL,
+		HTMLURL:   &i.WebURL, // TODO need to clarify
+	}
+}
+
+func (p *GitlabProvider) getUserFromIssueAuthor(i *gitlab.IssueAuthor) *models.User {
+	id := int64(i.ID)
+	return &models.User{
+		ID:        &id,
+		Name:      &i.Name,
+		Login:     &i.Username, // TODO need to clarify
+		AvatarURL: &i.AvatarURL,
+		HTMLURL:   &i.WebURL, // TODO need to clarify
+	}
+}
+
 func (p *GitlabProvider) getIssues(i []*gitlab.Issue) []*models.Issue {
 	r := make([]*models.Issue, len(i))
 	for k, v := range i {
-		m := models.Issue{}
-		b, err := json.Marshal(v)
-		if err != nil {
-			fmt.Println(err)
-		}
-		err = json.Unmarshal(b, &m)
-		if err != nil {
-			fmt.Println(err)
+		id := int64(v.ID)
+		m := models.Issue{
+			Assignee:  p.getUserFromIssueAssignee(v.Assignee),
+			HTMLURL:   &v.WebURL,
+			Title:     &v.Title,
+			URL:       &v.WebURL,
+			User:      p.getUserFromIssueAuthor(v.Author),
+			UpdatedAt: v.UpdatedAt,
+			State:     &v.State,
+			ClosedAt:  v.ClosedAt,
+			Number:    &v.IID,
+			Milestone: p.getMilestone(v.Milestone),
+			ID:        &id,
+			CreatedAt: v.CreatedAt,
 		}
 		r[k] = &m
 	}
@@ -208,6 +238,7 @@ func (p *GitlabProvider) getPullRequest(v *gitlab.MergeRequest) *models.PullRequ
 		ID:        &id,
 		Number:    &v.IID,
 		Milestone: p.getMilestone(v.Milestone),
+		HTMLURL:   &v.WebURL,
 	}
 	return m
 }
