@@ -3,16 +3,12 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/models"
 	"io/ioutil"
 	"k8s.io/klog/v2"
 	"os"
 	"strings"
-)
-
-const (
-	GithubProviderHost = "github.com"
-	GitlabProviderHost = "gitlab.com"
 )
 
 type Provider interface {
@@ -43,9 +39,9 @@ func InitProviders(ctx context.Context, c Config) {
 
 func ResolveProviderByHost(providerHost string) Provider {
 	switch providerHost {
-	case GithubProviderHost:
+	case constants.GithubProviderHost:
 		return githubProvider
-	case GitlabProviderHost:
+	case constants.GitlabProviderHost:
 		return gitlabProvider
 	}
 	fmt.Println("not existing provider")

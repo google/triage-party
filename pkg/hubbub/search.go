@@ -36,7 +36,7 @@ func (h *Engine) SearchAny(sp models.SearchParams) ([]*Conversation, time.Time, 
 
 // Search for GitHub issues or PR's
 func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Time, error) {
-	sp.Filters = openByDefault(sp.Filters)
+	sp.Filters = openByDefault(sp)
 	klog.V(1).Infof(
 		"Gathering raw data for %s/%s search %s - newer than %s",
 		sp.Repo.Organization,
@@ -57,6 +57,9 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 		defer wg.Done()
 
 		sp.State = constants.OpenState
+		if sp.Repo.Host == constants.GitlabProviderHost {
+			sp.State = constants.OpenedState
+		}
 
 		oi, ots, err := h.cachedIssues(sp)
 		if err != nil {
@@ -222,7 +225,7 @@ func NeedsClosed(fs []models.Filter) bool {
 			klog.V(1).Infof("will need closed items due to ClosedComments=%s", f.ClosedComments)
 			return true
 		}
-		if f.State != "" && f.State != "open" {
+		if f.State != "" && ((f.State != constants.OpenState) && (f.State != constants.OpenedState)) {
 			klog.V(1).Infof("will need closed items due to State=%s", f.State)
 			return true
 		}
@@ -231,7 +234,7 @@ func NeedsClosed(fs []models.Filter) bool {
 }
 
 func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, time.Time, error) {
-	sp.Filters = openByDefault(sp.Filters)
+	sp.Filters = openByDefault(sp)
 
 	klog.V(1).Infof("Searching %s/%s for PR's matching: %s - newer than %s",
 		sp.Repo.Organization, sp.Repo.Project, sp.Filters, logu.STime(sp.NewerThan))
@@ -249,6 +252,9 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 		defer wg.Done()
 
 		sp.State = constants.OpenState
+		if sp.Repo.Host == constants.GitlabProviderHost {
+			sp.State = constants.OpenedState
+		}
 		sp.UpdateAge = 0
 
 		op, ots, err := h.cachedPRs(sp)
@@ -404,7 +410,7 @@ func needComments(i models.IItem, fs []models.Filter) bool {
 		}
 	}
 
-	return i.GetState() == "open"
+	return (i.GetState() == constants.OpenState) || (i.GetState() == constants.OpenedState)
 }
 
 func needTimeline(i models.IItem, fs []models.Filter, pr bool, hidden bool) bool {
@@ -412,7 +418,7 @@ func needTimeline(i models.IItem, fs []models.Filter, pr bool, hidden bool) bool
 		return true
 	}
 
-	if i.GetState() != "open" {
+	if (i.GetState() != constants.OpenState) && (i.GetState() != constants.OpenedState) {
 		return false
 	}
 
@@ -441,7 +447,7 @@ func needTimeline(i models.IItem, fs []models.Filter, pr bool, hidden bool) bool
 }
 
 func needReviews(i models.IItem, fs []models.Filter, hidden bool) bool {
-	if i.GetState() != "open" {
+	if (i.GetState() != constants.OpenState) && (i.GetState() != constants.OpenedState) {
 		return false
 	}
 

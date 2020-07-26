@@ -16,6 +16,7 @@ package hubbub
 
 import (
 	"fmt"
+	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/models"
 	"regexp"
 	"strconv"
@@ -176,7 +177,7 @@ func (h *Engine) createConversation(i models.IItem, cs []*models.Comment, age ti
 		co.Tags = append(co.Tags, tag.RecvQ)
 	}
 
-	if co.Milestone != nil && co.Milestone.GetState() == "open" {
+	if co.Milestone != nil && ((co.Milestone.GetState() == constants.OpenState) || (co.Milestone.GetState() == constants.OpenedState)) {
 		co.Tags = append(co.Tags, tag.OpenMilestone)
 	}
 

@@ -17,4 +17,7 @@ const (
 	GitlabRateLimitHeader          = "RateLimit-Limit"
 	GitlabRateLimitRemainingHeader = "RateLimit-Remaining"
 	GitlabRateLimitResetHeader     = "RateLimit-Reset"
+
+	GithubProviderHost = "github.com"
+	GitlabProviderHost = "gitlab.com"
 )

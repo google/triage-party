@@ -16,6 +16,7 @@ package hubbub
 
 import (
 	"fmt"
+	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/models"
 	"github.com/google/triage-party/pkg/provider"
 	"sort"
@@ -188,17 +189,23 @@ func toYAML(v interface{}) string {
 	return strings.Replace(strings.TrimSpace(string(s)), "\n", "; ", -1)
 }
 
-func openByDefault(fs []models.Filter) []models.Filter {
+func openByDefault(sp models.SearchParams) []models.Filter {
 	found := false
-	for _, f := range fs {
+	for _, f := range sp.Filters {
 		if f.State != "" {
 			found = true
 		}
 	}
 	if !found {
-		fs = append(fs, models.Filter{State: "open"})
+		var state string
+		if sp.Repo.Host == constants.GitlabProviderHost {
+			state = constants.OpenedState
+		} else {
+			state = constants.OpenState
+		}
+		sp.Filters = append(sp.Filters, models.Filter{State: state})
 	}
-	return fs
+	return sp.Filters
 }
 
 func (h *Engine) createIssueSummary(i *models.Issue, cs []*models.IssueComment, age time.Time) *Conversation {

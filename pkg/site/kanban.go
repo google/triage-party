@@ -16,6 +16,7 @@ package site
 
 import (
 	"fmt"
+	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/models"
 	"html/template"
 	"math"
@@ -175,7 +176,7 @@ func calcETA(lanes []*Swimlane, perDay float64) time.Time {
 		for _, c := range lane.Columns {
 			if c != nil {
 				for _, co := range c.Items {
-					if co.State == "open" {
+					if (co.State == constants.OpenState) || (co.State == constants.OpenedState) {
 						open[co.URL] = true
 					}
 				}
