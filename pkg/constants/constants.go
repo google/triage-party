@@ -2,6 +2,7 @@ package constants
 
 const (
 	OpenState   = "open"
+	OpenedState = "opened"
 	ClosedState = "closed"
 
 	UpdatedSortOption   = "updated"

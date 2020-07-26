@@ -16,7 +16,7 @@ type GitlabProvider struct {
 }
 
 func initGitlab(c Config) {
-	cl, err := gitlab.NewClient(mustReadToken(*c.GithubTokenFile, constants.GitlabTokenEnvVar))
+	cl, err := gitlab.NewClient(mustReadToken(*c.GitlabTokenFile, constants.GitlabTokenEnvVar))
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
@@ -26,9 +26,14 @@ func initGitlab(c Config) {
 }
 
 func (p *GitlabProvider) getListProjectIssuesOptions(sp models.SearchParams) *gitlab.ListProjectIssuesOptions {
+	var state *string
+	if sp.IssueListByRepoOptions.State == constants.OpenState {
+		s := constants.OpenedState
+		state = &s
+	}
 	return &gitlab.ListProjectIssuesOptions{
 		ListOptions:  p.getListOptions(sp.IssueListByRepoOptions.ListOptions),
-		State:        &sp.IssueListByRepoOptions.State,
+		State:        state,
 		CreatedAfter: &sp.IssueListByRepoOptions.Since,
 	}
 }
@@ -89,7 +94,7 @@ func (p *GitlabProvider) getResponse(i *gitlab.Response) *models.Response {
 // https://docs.gitlab.com/ee/api/issues.html#list-project-issues
 func (p *GitlabProvider) IssuesListByRepo(sp models.SearchParams) (i []*models.Issue, r *models.Response, err error) {
 	opt := p.getListProjectIssuesOptions(sp)
-	is, gr, err := p.client.Issues.ListProjectIssues(sp.Repo.Project, opt)
+	is, gr, err := p.client.Issues.ListProjectIssues(p.getProjectId(sp.Repo), opt)
 	i = p.getIssues(is)
 	r = p.getResponse(gr)
 	return
@@ -130,7 +135,7 @@ func (p *GitlabProvider) getIssueComments(i []*gitlab.Note) []*models.IssueComme
 // https://docs.gitlab.com/ce/api/notes.html#list-project-issue-notes
 func (p *GitlabProvider) IssuesListComments(sp models.SearchParams) (i []*models.IssueComment, r *models.Response, err error) {
 	opt := p.getListIssueNotesOptions(sp)
-	in, gr, err := p.client.Notes.ListIssueNotes(sp.Repo.Project, sp.IssueNumber, opt)
+	in, gr, err := p.client.Notes.ListIssueNotes(p.getProjectId(sp.Repo), sp.IssueNumber, opt)
 	i = p.getIssueComments(in)
 	r = p.getResponse(gr)
 	return
@@ -156,6 +161,9 @@ func (p *GitlabProvider) getListProjectMergeRequestsOptions(sp models.SearchPara
 }
 
 func (p *GitlabProvider) getUserFromBasicUser(i *gitlab.BasicUser) *models.User {
+	if i == nil {
+		return nil
+	}
 	id := int64(i.ID)
 	return &models.User{
 		ID:        &id,
@@ -167,6 +175,9 @@ func (p *GitlabProvider) getUserFromBasicUser(i *gitlab.BasicUser) *models.User 
 }
 
 func (p *GitlabProvider) getMilestone(i *gitlab.Milestone) *models.Milestone {
+	if i == nil {
+		return nil
+	}
 	id := int64(i.ID)
 	dd := time.Time(*i.DueDate)
 	return &models.Milestone{
@@ -212,7 +223,7 @@ func (p *GitlabProvider) getPullRequests(i []*gitlab.MergeRequest) []*models.Pul
 
 func (p *GitlabProvider) PullRequestsList(sp models.SearchParams) (i []*models.PullRequest, r *models.Response, err error) {
 	opt := p.getListProjectMergeRequestsOptions(sp)
-	in, gr, err := p.client.MergeRequests.ListProjectMergeRequests(sp.Repo.Project, opt)
+	in, gr, err := p.client.MergeRequests.ListProjectMergeRequests(p.getProjectId(sp.Repo), opt)
 	i = p.getPullRequests(in)
 	r = p.getResponse(gr)
 	return
@@ -220,7 +231,7 @@ func (p *GitlabProvider) PullRequestsList(sp models.SearchParams) (i []*models.P
 
 func (p *GitlabProvider) PullRequestsGet(sp models.SearchParams) (i *models.PullRequest, r *models.Response, err error) {
 	opt := &gitlab.GetMergeRequestsOptions{}
-	in, gr, err := p.client.MergeRequests.GetMergeRequest(sp.Repo.Project, sp.IssueNumber, opt)
+	in, gr, err := p.client.MergeRequests.GetMergeRequest(p.getProjectId(sp.Repo), sp.IssueNumber, opt)
 	i = p.getPullRequest(in)
 	r = p.getResponse(gr)
 	return
@@ -245,7 +256,7 @@ func (p *GitlabProvider) PullRequestsListComments(sp models.SearchParams) (i []*
 	opt := &gitlab.ListMergeRequestNotesOptions{
 		ListOptions: p.getListOptions(sp.ListOptions),
 	}
-	in, gr, err := p.client.Notes.ListMergeRequestNotes(sp.Repo.Project, sp.IssueNumber, opt)
+	in, gr, err := p.client.Notes.ListMergeRequestNotes(p.getProjectId(sp.Repo), sp.IssueNumber, opt)
 	i = p.getPullRequestComments(in)
 	r = p.getResponse(gr)
 	return
@@ -266,8 +277,19 @@ func (p *GitlabProvider) getPullRequestReviews(i *gitlab.MergeRequestApprovals) 
 
 func (p *GitlabProvider) PullRequestsListReviews(sp models.SearchParams) (i []*models.PullRequestReview, r *models.Response, err error) {
 	// TODO need to clarify
-	in, gr, err := p.client.MergeRequests.GetMergeRequestApprovals(sp.Repo.Project, sp.IssueNumber)
+	in, gr, err := p.client.MergeRequests.GetMergeRequestApprovals(p.getProjectId(sp.Repo), sp.IssueNumber)
 	i = p.getPullRequestReviews(in)
 	r = p.getResponse(gr)
 	return
+}
+
+// https://gitlab.com/gitlab-org/gitlab-foss/-/issues/28342#note_23852124
+func (p *GitlabProvider) getProjectId(repo models.Repo) string {
+	var u string
+	if repo.Group != "" {
+		u = repo.Organization + "/" + repo.Group + "/" + repo.Project
+	} else {
+		u = repo.Organization + "/" + repo.Project
+	}
+	return u
 }

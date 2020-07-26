@@ -9,6 +9,7 @@ func TestParseRepo(t *testing.T) {
 	host := "github.com"
 	org := "org"
 	repo := "repo"
+	group := "group"
 	u := "https://" + host + "/" + org + "/" + repo
 	r, err := ParseRepo(u)
 	assert.Nil(t, err)
@@ -22,4 +23,12 @@ func TestParseRepo(t *testing.T) {
 	assert.Equal(t, "", r.Host)
 	assert.Equal(t, "", r.Organization)
 	assert.Equal(t, "", r.Project)
+
+	u = "https://" + host + "/" + org + "/" + group + "/" + repo
+	r, err = ParseRepo(u)
+	assert.Nil(t, err)
+	assert.Equal(t, host, r.Host)
+	assert.Equal(t, org, r.Organization)
+	assert.Equal(t, repo, r.Project)
+	assert.Equal(t, group, r.Group)
 }

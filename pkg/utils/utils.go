@@ -19,14 +19,25 @@ func ParseRepo(rawURL string) (r models.Repo, err error) {
 		return
 	}
 	parts := strings.Split(u.Path, "/")
-	if len(parts) != 3 {
-		err = fmt.Errorf("expected 2 repository parts, got %d: %v", len(parts), parts)
+	if len(parts) != 3 && len(parts) != 4 {
+		// gitlab may have https://gitlab.com/organization/group/repo
+		err = fmt.Errorf("expected 2/3 repository parts, got %d: %v", len(parts), parts)
 		return
 	}
-	r = models.Repo{
-		Host:         u.Host,
-		Organization: parts[1],
-		Project:      parts[2],
+	if len(parts) == 3 {
+		r = models.Repo{
+			Host:         u.Host,
+			Organization: parts[1],
+			Project:      parts[2],
+		}
+	} else {
+		r = models.Repo{
+			Host:         u.Host,
+			Organization: parts[1],
+			Group:        parts[2],
+			Project:      parts[3],
+		}
 	}
+
 	return
 }

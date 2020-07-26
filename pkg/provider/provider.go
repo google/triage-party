@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/triage-party/pkg/models"
 	"io/ioutil"
 	"k8s.io/klog/v2"
@@ -47,6 +48,8 @@ func ResolveProviderByHost(providerHost string) Provider {
 	case GitlabProviderHost:
 		return gitlabProvider
 	}
+	fmt.Println("not existing provider")
+	return nil
 }
 
 func mustReadToken(path string, env string) string {
@@ -57,14 +60,14 @@ func mustReadToken(path string, env string) string {
 			klog.Exitf("unable to read token file: %v", err)
 		}
 		token = string(t)
-		klog.Infof("loaded %d byte github token from %s", len(token), path)
+		klog.Infof("loaded %d byte github/gitlab token from %s", len(token), path)
 	} else {
-		klog.Infof("loaded %d byte github token from %s", len(token), env)
+		klog.Infof("loaded %d byte github/gitlab token from %s", len(token), env)
 	}
 
 	token = strings.TrimSpace(token)
 	if len(token) < 8 {
-		klog.Exitf("github token impossibly small: %q", token)
+		klog.Exitf("github/gitlab token impossibly small: %q", token)
 	}
 	return token
 }

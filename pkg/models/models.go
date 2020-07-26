@@ -41,6 +41,7 @@ type Repo struct {
 	Organization string
 	Project      string
 	Host         string
+	Group        string
 }
 
 type SearchParams struct {
