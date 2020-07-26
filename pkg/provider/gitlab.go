@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"errors"
 	"fmt"
 	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/models"
@@ -173,6 +174,9 @@ func (p *GitlabProvider) IssuesListComments(sp models.SearchParams) (i []*models
 
 func (p *GitlabProvider) IssuesListIssueTimeline(sp models.SearchParams) (i []*models.Timeline, r *models.Response, err error) {
 	// TODO need discuss - gitlab dont provide events by issue number (Issues, Merge Requests)
+	i = make([]*models.Timeline, 0)
+	r = &models.Response{}
+	err = errors.New("provider.IssuesListIssueTimeline method is not implemented for gitlab")
 	return
 }
 
@@ -208,14 +212,23 @@ func (p *GitlabProvider) getMilestone(i *gitlab.Milestone) *models.Milestone {
 	if i == nil {
 		return nil
 	}
+
 	id := int64(i.ID)
-	dd := time.Time(*i.DueDate)
+
+	var it *gitlab.ISOTime
+	var dueDate *time.Time
+	it = i.DueDate
+	if it != nil {
+		dd := time.Time(*it)
+		dueDate = &dd
+	}
+
 	return &models.Milestone{
 		ID:          &id,
 		Number:      &i.IID,
 		Title:       &i.Title,
 		Description: &i.Description,
-		DueOn:       &dd,
+		DueOn:       dueDate,
 		State:       &i.State,
 		URL:         &i.WebURL, // TODO need to clarify
 		CreatedAt:   i.CreatedAt,
