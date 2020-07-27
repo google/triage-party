@@ -195,6 +195,7 @@ func (h *Engine) cachedReviewComments(sp models.SearchParams) ([]*models.PullReq
 }
 
 // prComments mixes together code review comments and pull-request comments
+// TODO dont work properly for gitlab - issues API sometimes return 404. Needs investigation
 func (h *Engine) prComments(sp models.SearchParams) ([]*models.Comment, time.Time, error) {
 	start := time.Now()
 

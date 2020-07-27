@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"errors"
 	"fmt"
 	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/models"
@@ -53,9 +52,9 @@ func (p *GitlabProvider) getUserFromIssueAssignee(i *gitlab.IssueAssignee) *mode
 	return &models.User{
 		ID:        &id,
 		Name:      &i.Name,
-		Login:     &i.Username, // TODO need to clarify
+		Login:     &i.Username,
 		AvatarURL: &i.AvatarURL,
-		HTMLURL:   &i.WebURL, // TODO need to clarify
+		HTMLURL:   &i.WebURL,
 	}
 }
 
@@ -64,9 +63,9 @@ func (p *GitlabProvider) getUserFromIssueAuthor(i *gitlab.IssueAuthor) *models.U
 	return &models.User{
 		ID:        &id,
 		Name:      &i.Name,
-		Login:     &i.Username, // TODO need to clarify
+		Login:     &i.Username,
 		AvatarURL: &i.AvatarURL,
-		HTMLURL:   &i.WebURL, // TODO need to clarify
+		HTMLURL:   &i.WebURL,
 	}
 }
 
@@ -142,10 +141,10 @@ func (p *GitlabProvider) getUserFromNote(i *gitlab.Note) *models.User {
 	return &models.User{
 		ID:        &id,
 		Name:      &i.Author.Name,
-		Login:     &i.Author.Username, // TODO need to clarify
+		Login:     &i.Author.Username,
 		Email:     &i.Author.Email,
 		AvatarURL: &i.Author.AvatarURL,
-		HTMLURL:   &i.Author.WebURL, // TODO need to clarify
+		HTMLURL:   &i.Author.WebURL,
 	}
 }
 
@@ -176,7 +175,8 @@ func (p *GitlabProvider) IssuesListIssueTimeline(sp models.SearchParams) (i []*m
 	// TODO need discuss - gitlab dont provide events by issue number (Issues, Merge Requests)
 	i = make([]*models.Timeline, 0)
 	r = &models.Response{}
-	err = errors.New("provider.IssuesListIssueTimeline method is not implemented for gitlab")
+	err = nil
+	fmt.Println("provider.IssuesListIssueTimeline method is not implemented for gitlab")
 	return
 }
 
@@ -191,20 +191,28 @@ func (p *GitlabProvider) getListProjectMergeRequestsOptions(sp models.SearchPara
 		ListOptions: p.getListOptions(sp.PullRequestListOptions.ListOptions),
 		Sort:        &sp.PullRequestListOptions.Direction,
 		OrderBy:     &orderBy,
+		State:       &sp.State,
 	}
 }
 
-func (p *GitlabProvider) getUserFromBasicUser(i *gitlab.BasicUser) *models.User {
-	if i == nil {
-		return nil
+func (p *GitlabProvider) getUserFromBasicUser(i *gitlab.BasicUser, allowNil bool) *models.User {
+	if allowNil {
+		if i == nil {
+			return nil
+		}
+	} else {
+		if i == nil {
+			panic("User should not be nil")
+		}
 	}
+
 	id := int64(i.ID)
 	return &models.User{
 		ID:        &id,
 		Name:      &i.Name,
-		Login:     &i.Username, // TODO need to clarify
+		Login:     &i.Username,
 		AvatarURL: &i.AvatarURL,
-		HTMLURL:   &i.WebURL, // TODO need to clarify
+		HTMLURL:   &i.WebURL,
 	}
 }
 
@@ -230,7 +238,7 @@ func (p *GitlabProvider) getMilestone(i *gitlab.Milestone) *models.Milestone {
 		Description: &i.Description,
 		DueOn:       dueDate,
 		State:       &i.State,
-		URL:         &i.WebURL, // TODO need to clarify
+		URL:         &i.WebURL,
 		CreatedAt:   i.CreatedAt,
 		UpdatedAt:   i.UpdatedAt,
 	}
@@ -239,9 +247,9 @@ func (p *GitlabProvider) getMilestone(i *gitlab.Milestone) *models.Milestone {
 func (p *GitlabProvider) getPullRequest(v *gitlab.MergeRequest) *models.PullRequest {
 	id := int64(v.ID)
 	m := &models.PullRequest{
-		Assignee:  p.getUserFromBasicUser(v.Assignee),
-		User:      p.getUserFromBasicUser(v.Author),
-		Body:      &v.Description, // TODO need to clarify
+		Assignee:  p.getUserFromBasicUser(v.Assignee, true),
+		User:      p.getUserFromBasicUser(v.Author, false),
+		Body:      &v.Description,
 		CreatedAt: v.CreatedAt,
 		UpdatedAt: v.UpdatedAt,
 		ClosedAt:  v.ClosedAt,
@@ -290,6 +298,7 @@ func (p *GitlabProvider) getPullRequestComments(i []*gitlab.Note) []*models.Pull
 			Body:      &v.Body,
 			CreatedAt: v.CreatedAt,
 			UpdatedAt: v.UpdatedAt,
+			User:      p.getUserFromNote(v),
 		}
 		r[k] = m
 	}
@@ -311,7 +320,7 @@ func (p *GitlabProvider) getPullRequestReviews(i *gitlab.MergeRequestApprovals) 
 	state := "APPROVED"
 	for k, v := range i.ApprovedBy {
 		m := &models.PullRequestReview{
-			User:  p.getUserFromBasicUser(v.User),
+			User:  p.getUserFromBasicUser(v.User, false),
 			State: &state,
 		}
 		r[k] = m
