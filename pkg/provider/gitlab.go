@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/models"
@@ -122,7 +123,7 @@ func (p *GitlabProvider) getResponse(i *gitlab.Response) *models.Response {
 }
 
 // https://docs.gitlab.com/ee/api/issues.html#list-project-issues
-func (p *GitlabProvider) IssuesListByRepo(sp models.SearchParams) (i []*models.Issue, r *models.Response, err error) {
+func (p *GitlabProvider) IssuesListByRepo(ctx context.Context, sp models.SearchParams) (i []*models.Issue, r *models.Response, err error) {
 	opt := p.getListProjectIssuesOptions(sp)
 	is, gr, err := p.client.Issues.ListProjectIssues(p.getProjectId(sp.Repo), opt)
 	i = p.getIssues(is)
@@ -163,7 +164,7 @@ func (p *GitlabProvider) getIssueComments(i []*gitlab.Note) []*models.IssueComme
 }
 
 // https://docs.gitlab.com/ce/api/notes.html#list-project-issue-notes
-func (p *GitlabProvider) IssuesListComments(sp models.SearchParams) (i []*models.IssueComment, r *models.Response, err error) {
+func (p *GitlabProvider) IssuesListComments(ctx context.Context, sp models.SearchParams) (i []*models.IssueComment, r *models.Response, err error) {
 	opt := p.getListIssueNotesOptions(sp)
 	in, gr, err := p.client.Notes.ListIssueNotes(p.getProjectId(sp.Repo), sp.IssueNumber, opt)
 	i = p.getIssueComments(in)
@@ -171,7 +172,7 @@ func (p *GitlabProvider) IssuesListComments(sp models.SearchParams) (i []*models
 	return
 }
 
-func (p *GitlabProvider) IssuesListIssueTimeline(sp models.SearchParams) (i []*models.Timeline, r *models.Response, err error) {
+func (p *GitlabProvider) IssuesListIssueTimeline(ctx context.Context, sp models.SearchParams) (i []*models.Timeline, r *models.Response, err error) {
 	// TODO need discuss - gitlab dont provide events by issue number (Issues, Merge Requests)
 	i = make([]*models.Timeline, 0)
 	r = &models.Response{}
@@ -273,7 +274,7 @@ func (p *GitlabProvider) getPullRequests(i []*gitlab.MergeRequest) []*models.Pul
 	return r
 }
 
-func (p *GitlabProvider) PullRequestsList(sp models.SearchParams) (i []*models.PullRequest, r *models.Response, err error) {
+func (p *GitlabProvider) PullRequestsList(ctx context.Context, sp models.SearchParams) (i []*models.PullRequest, r *models.Response, err error) {
 	opt := p.getListProjectMergeRequestsOptions(sp)
 	in, gr, err := p.client.MergeRequests.ListProjectMergeRequests(p.getProjectId(sp.Repo), opt)
 	i = p.getPullRequests(in)
@@ -281,7 +282,7 @@ func (p *GitlabProvider) PullRequestsList(sp models.SearchParams) (i []*models.P
 	return
 }
 
-func (p *GitlabProvider) PullRequestsGet(sp models.SearchParams) (i *models.PullRequest, r *models.Response, err error) {
+func (p *GitlabProvider) PullRequestsGet(ctx context.Context, sp models.SearchParams) (i *models.PullRequest, r *models.Response, err error) {
 	opt := &gitlab.GetMergeRequestsOptions{}
 	in, gr, err := p.client.MergeRequests.GetMergeRequest(p.getProjectId(sp.Repo), sp.IssueNumber, opt)
 	i = p.getPullRequest(in)
@@ -305,7 +306,7 @@ func (p *GitlabProvider) getPullRequestComments(i []*gitlab.Note) []*models.Pull
 	return r
 }
 
-func (p *GitlabProvider) PullRequestsListComments(sp models.SearchParams) (i []*models.PullRequestComment, r *models.Response, err error) {
+func (p *GitlabProvider) PullRequestsListComments(ctx context.Context, sp models.SearchParams) (i []*models.PullRequestComment, r *models.Response, err error) {
 	opt := &gitlab.ListMergeRequestNotesOptions{
 		ListOptions: p.getListOptions(sp.ListOptions),
 	}
@@ -328,7 +329,7 @@ func (p *GitlabProvider) getPullRequestReviews(i *gitlab.MergeRequestApprovals) 
 	return r
 }
 
-func (p *GitlabProvider) PullRequestsListReviews(sp models.SearchParams) (i []*models.PullRequestReview, r *models.Response, err error) {
+func (p *GitlabProvider) PullRequestsListReviews(ctx context.Context, sp models.SearchParams) (i []*models.PullRequestReview, r *models.Response, err error) {
 	// TODO need to clarify
 	in, gr, err := p.client.MergeRequests.GetMergeRequestApprovals(p.getProjectId(sp.Repo), sp.IssueNumber)
 	i = p.getPullRequestReviews(in)

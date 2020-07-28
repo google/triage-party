@@ -12,13 +12,13 @@ import (
 )
 
 type Provider interface {
-	IssuesListByRepo(sp models.SearchParams) ([]*models.Issue, *models.Response, error)
-	IssuesListComments(sp models.SearchParams) ([]*models.IssueComment, *models.Response, error)
-	IssuesListIssueTimeline(sp models.SearchParams) ([]*models.Timeline, *models.Response, error)
-	PullRequestsList(sp models.SearchParams) ([]*models.PullRequest, *models.Response, error)
-	PullRequestsGet(sp models.SearchParams) (*models.PullRequest, *models.Response, error)
-	PullRequestsListComments(sp models.SearchParams) ([]*models.PullRequestComment, *models.Response, error)
-	PullRequestsListReviews(sp models.SearchParams) ([]*models.PullRequestReview, *models.Response, error)
+	IssuesListByRepo(ctx context.Context, sp models.SearchParams) ([]*models.Issue, *models.Response, error)
+	IssuesListComments(ctx context.Context, sp models.SearchParams) ([]*models.IssueComment, *models.Response, error)
+	IssuesListIssueTimeline(ctx context.Context, sp models.SearchParams) ([]*models.Timeline, *models.Response, error)
+	PullRequestsList(ctx context.Context, sp models.SearchParams) ([]*models.PullRequest, *models.Response, error)
+	PullRequestsGet(ctx context.Context, sp models.SearchParams) (*models.PullRequest, *models.Response, error)
+	PullRequestsListComments(ctx context.Context, sp models.SearchParams) ([]*models.PullRequestComment, *models.Response, error)
+	PullRequestsListReviews(ctx context.Context, sp models.SearchParams) ([]*models.PullRequestReview, *models.Response, error)
 }
 
 var (

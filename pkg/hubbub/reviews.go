@@ -21,11 +21,12 @@ import (
 	"strings"
 	"time"
 
+	"context"
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
 )
 
-func (h *Engine) cachedReviews(sp models.SearchParams) ([]*models.PullRequestReview, time.Time, error) {
+func (h *Engine) cachedReviews(ctx context.Context, sp models.SearchParams) ([]*models.PullRequestReview, time.Time, error) {
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-pr-reviews", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 
 	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
@@ -36,10 +37,10 @@ func (h *Engine) cachedReviews(sp models.SearchParams) ([]*models.PullRequestRev
 	if !sp.Fetch {
 		return nil, time.Time{}, nil
 	}
-	return h.updateReviews(sp)
+	return h.updateReviews(ctx, sp)
 }
 
-func (h *Engine) updateReviews(sp models.SearchParams) ([]*models.PullRequestReview, time.Time, error) {
+func (h *Engine) updateReviews(ctx context.Context, sp models.SearchParams) ([]*models.PullRequestReview, time.Time, error) {
 	klog.V(1).Infof("Downloading reviews for %s/%s #%d", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	start := time.Now()
 
@@ -51,7 +52,7 @@ func (h *Engine) updateReviews(sp models.SearchParams) ([]*models.PullRequestRev
 			sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, sp.ListOptions.Page)
 
 		p := provider.ResolveProviderByHost(sp.Repo.Host)
-		cs, resp, err := p.PullRequestsListReviews(sp)
+		cs, resp, err := p.PullRequestsListReviews(ctx, sp)
 
 		if err != nil {
 			return cs, start, err

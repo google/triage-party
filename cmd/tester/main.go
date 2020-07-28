@@ -155,12 +155,11 @@ func executeRule(ctx context.Context, tp *triage.Party) {
 	}
 
 	sp := models.SearchParams{
-		Ctx:       ctx,
 		NewerThan: time.Now(),
 		Hidden:    false,
 	}
 
-	rr, err := tp.ExecuteRule(sp, r, nil)
+	rr, err := tp.ExecuteRule(ctx, sp, r, nil)
 	if err != nil {
 		klog.Exitf("execute: %v", err)
 	}

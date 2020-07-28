@@ -10,19 +10,20 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hokaccha/go-prettyjson"
 
+	"context"
 	"github.com/google/triage-party/pkg/logu"
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
 )
 
 // Search for GitHub issues or PR's
-func (h *Engine) SearchAny(sp models.SearchParams) ([]*Conversation, time.Time, error) {
-	cs, ts, err := h.SearchIssues(sp)
+func (h *Engine) SearchAny(ctx context.Context, sp models.SearchParams) ([]*Conversation, time.Time, error) {
+	cs, ts, err := h.SearchIssues(ctx, sp)
 	if err != nil {
 		return cs, ts, err
 	}
 
-	pcs, pts, err := h.SearchPullRequests(sp)
+	pcs, pts, err := h.SearchPullRequests(ctx, sp)
 	if err != nil {
 		return cs, ts, err
 	}
@@ -35,7 +36,7 @@ func (h *Engine) SearchAny(sp models.SearchParams) ([]*Conversation, time.Time, 
 }
 
 // Search for GitHub issues or PR's
-func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Time, error) {
+func (h *Engine) SearchIssues(ctx context.Context, sp models.SearchParams) ([]*Conversation, time.Time, error) {
 	sp.Filters = openByDefault(sp)
 	klog.V(1).Infof(
 		"Gathering raw data for %s/%s search %s - newer than %s",
@@ -61,7 +62,7 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 			sp.State = constants.OpenedState
 		}
 
-		oi, ots, err := h.cachedIssues(sp)
+		oi, ots, err := h.cachedIssues(ctx, sp)
 		if err != nil {
 			klog.Errorf("open issues: %v", err)
 			return
@@ -83,7 +84,7 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 		sp.State = constants.ClosedState
 		sp.UpdateAge = h.MaxClosedUpdateAge
 
-		ci, cts, err := h.cachedIssues(sp)
+		ci, cts, err := h.cachedIssues(ctx, sp)
 		if err != nil {
 			klog.Errorf("closed issues: %v", err)
 		}
@@ -154,7 +155,7 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 			sp.NewerThan = h.mtime(i)
 			sp.Fetch = !sp.NewerThan.IsZero()
 
-			comments, _, err = h.cachedIssueComments(sp)
+			comments, _, err = h.cachedIssueComments(ctx, sp)
 			if err != nil {
 				klog.Errorf("comments: %v", err)
 			}
@@ -181,7 +182,7 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 			sp.IssueNumber = i.GetNumber()
 			sp.Fetch = !sp.NewerThan.IsZero()
 
-			timeline, err = h.cachedTimeline(sp)
+			timeline, err = h.cachedTimeline(ctx, sp)
 			if err != nil {
 				klog.Errorf("timeline: %v", err)
 				continue
@@ -190,7 +191,7 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 
 		sp.Fetch = !sp.NewerThan.IsZero()
 
-		h.addEvents(sp, co, timeline)
+		h.addEvents(ctx, sp, co, timeline)
 
 		// Some labels are judged by linked PR state. Ensure that they are updated to the same timestamp.
 		if needReviews(i, sp.Filters, sp.Hidden) && len(co.PullRequestRefs) > 0 {
@@ -198,7 +199,7 @@ func (h *Engine) SearchIssues(sp models.SearchParams) ([]*Conversation, time.Tim
 			sp.NewerThan = mostRecentUpdate
 			sp.Fetch = !sp.NewerThan.IsZero()
 
-			co.PullRequestRefs = h.updateLinkedPRs(sp, co)
+			co.PullRequestRefs = h.updateLinkedPRs(ctx, sp, co)
 		}
 
 		if !postEventsMatch(co, sp.Filters) {
@@ -233,7 +234,7 @@ func NeedsClosed(fs []models.Filter) bool {
 	return false
 }
 
-func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, time.Time, error) {
+func (h *Engine) SearchPullRequests(ctx context.Context, sp models.SearchParams) ([]*Conversation, time.Time, error) {
 	sp.Filters = openByDefault(sp)
 
 	klog.V(1).Infof("Searching %s/%s for PR's matching: %s - newer than %s",
@@ -257,7 +258,7 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 		}
 		sp.UpdateAge = 0
 
-		op, ots, err := h.cachedPRs(sp)
+		op, ots, err := h.cachedPRs(ctx, sp)
 		if err != nil {
 			klog.Errorf("open prs: %v", err)
 			return
@@ -280,7 +281,7 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 		sp.UpdateAge = h.MaxClosedUpdateAge
 		sp.State = constants.ClosedState
 
-		cp, cts, err := h.cachedPRs(sp)
+		cp, cts, err := h.cachedPRs(ctx, sp)
 		if err != nil {
 			klog.Errorf("closed prs: %v", err)
 			return
@@ -326,7 +327,7 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 			sp.NewerThan = h.mtime(pr)
 			sp.Fetch = !sp.NewerThan.IsZero()
 
-			comments, _, err = h.prComments(sp)
+			comments, _, err = h.prComments(ctx, sp)
 			if err != nil {
 				klog.Errorf("comments: %v", err)
 			}
@@ -338,7 +339,7 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 			sp.NewerThan = h.mtime(pr)
 			sp.Fetch = !sp.NewerThan.IsZero()
 
-			timeline, err = h.cachedTimeline(sp)
+			timeline, err = h.cachedTimeline(ctx, sp)
 			if err != nil {
 				klog.Errorf("timeline: %v", err)
 				continue
@@ -351,7 +352,7 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 			sp.NewerThan = h.mtime(pr)
 			sp.Fetch = !sp.NewerThan.IsZero()
 
-			reviews, _, err = h.cachedReviews(sp)
+			reviews, _, err = h.cachedReviews(ctx, sp)
 			if err != nil {
 				klog.Errorf("reviews: %v", err)
 				continue
@@ -365,7 +366,7 @@ func (h *Engine) SearchPullRequests(sp models.SearchParams) ([]*Conversation, ti
 		sp.Fetch = !sp.NewerThan.IsZero()
 		sp.Age = age
 
-		co := h.PRSummary(sp, pr, comments, timeline, reviews)
+		co := h.PRSummary(ctx, sp, pr, comments, timeline, reviews)
 		co.Labels = pr.Labels
 		co.Similar = h.FindSimilar(co)
 		if len(co.Similar) > 0 {

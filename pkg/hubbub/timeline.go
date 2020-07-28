@@ -15,6 +15,7 @@
 package hubbub
 
 import (
+	"context"
 	"fmt"
 	"github.com/google/triage-party/pkg/models"
 	"github.com/google/triage-party/pkg/provider"
@@ -25,7 +26,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func (h *Engine) cachedTimeline(sp models.SearchParams) ([]*models.Timeline, error) {
+func (h *Engine) cachedTimeline(ctx context.Context, sp models.SearchParams) ([]*models.Timeline, error) {
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-timeline", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	klog.V(1).Infof("Need timeline for %s as of %s", sp.SearchKey, sp.NewerThan)
 
@@ -37,10 +38,10 @@ func (h *Engine) cachedTimeline(sp models.SearchParams) ([]*models.Timeline, err
 	if !sp.Fetch {
 		return nil, nil
 	}
-	return h.updateTimeline(sp)
+	return h.updateTimeline(ctx, sp)
 }
 
-func (h *Engine) updateTimeline(sp models.SearchParams) ([]*models.Timeline, error) {
+func (h *Engine) updateTimeline(ctx context.Context, sp models.SearchParams) ([]*models.Timeline, error) {
 	//	klog.Infof("Downloading event timeline for %s/%s #%d", org, project, num)
 
 	sp.ListOptions = models.ListOptions{
@@ -50,7 +51,7 @@ func (h *Engine) updateTimeline(sp models.SearchParams) ([]*models.Timeline, err
 	for {
 
 		pr := provider.ResolveProviderByHost(sp.Repo.Host)
-		evs, resp, err := pr.IssuesListIssueTimeline(sp)
+		evs, resp, err := pr.IssuesListIssueTimeline(ctx, sp)
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +76,7 @@ func (h *Engine) updateTimeline(sp models.SearchParams) ([]*models.Timeline, err
 }
 
 // Add events to the conversation summary if useful
-func (h *Engine) addEvents(sp models.SearchParams, co *Conversation, timeline []*models.Timeline) {
+func (h *Engine) addEvents(ctx context.Context, sp models.SearchParams, co *Conversation, timeline []*models.Timeline) {
 	priority := ""
 	for _, l := range co.Labels {
 		if strings.HasPrefix(l.GetName(), "priority") {
@@ -129,7 +130,7 @@ func (h *Engine) addEvents(sp models.SearchParams, co *Conversation, timeline []
 
 				sp.Age = h.mtimeCo(co)
 
-				ref := h.prRef(sp, ri)
+				ref := h.prRef(ctx, sp, ri)
 				co.UpdatePullRequestRefs(ref)
 				refTag := reviewStateTag(ref.ReviewState)
 				refTag.ID = fmt.Sprintf("pr-%s", refTag.ID)
@@ -144,7 +145,7 @@ func (h *Engine) addEvents(sp models.SearchParams, co *Conversation, timeline []
 	co.Tags = tag.Dedup(co.Tags)
 }
 
-func (h *Engine) prRef(sp models.SearchParams, pr models.IItem) *RelatedConversation {
+func (h *Engine) prRef(ctx context.Context, sp models.SearchParams, pr models.IItem) *RelatedConversation {
 	if pr == nil {
 		klog.Errorf("PR is nil")
 		return nil
@@ -168,7 +169,7 @@ func (h *Engine) prRef(sp models.SearchParams, pr models.IItem) *RelatedConversa
 	sp.Repo.Project = co.Project
 	sp.IssueNumber = pr.GetNumber()
 
-	timeline, err := h.cachedTimeline(sp)
+	timeline, err := h.cachedTimeline(ctx, sp)
 	if err != nil {
 		klog.Errorf("timeline: %v", err)
 	}
@@ -180,7 +181,7 @@ func (h *Engine) prRef(sp models.SearchParams, pr models.IItem) *RelatedConversa
 
 	var reviews []*models.PullRequestReview
 	if pr.GetState() != "closed" {
-		reviews, _, err = h.cachedReviews(sp)
+		reviews, _, err = h.cachedReviews(ctx, sp)
 		if err != nil {
 			klog.Errorf("reviews: %v", err)
 		}
@@ -193,7 +194,7 @@ func (h *Engine) prRef(sp models.SearchParams, pr models.IItem) *RelatedConversa
 	return rel
 }
 
-func (h *Engine) updateLinkedPRs(sp models.SearchParams, parent *Conversation) []*RelatedConversation {
+func (h *Engine) updateLinkedPRs(ctx context.Context, sp models.SearchParams, parent *Conversation) []*RelatedConversation {
 	newRefs := []*RelatedConversation{}
 
 	for _, ref := range parent.PullRequestRefs {
@@ -215,7 +216,7 @@ func (h *Engine) updateLinkedPRs(sp models.SearchParams, parent *Conversation) [
 		sp.Repo.Project = ref.Project
 		sp.IssueNumber = ref.ID
 
-		pr, age, err := h.cachedPR(sp)
+		pr, age, err := h.cachedPR(ctx, sp)
 		if err != nil {
 			klog.Errorf("error updating cached PR: %v", err)
 			newRefs = append(newRefs, ref)
@@ -230,7 +231,7 @@ func (h *Engine) updateLinkedPRs(sp models.SearchParams, parent *Conversation) [
 
 		sp.Age = age
 
-		newRefs = append(newRefs, h.prRef(sp, pr))
+		newRefs = append(newRefs, h.prRef(ctx, sp, pr))
 	}
 
 	return newRefs

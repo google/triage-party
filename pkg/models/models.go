@@ -1,7 +1,6 @@
 package models
 
 import (
-	"context"
 	"time"
 )
 
@@ -47,7 +46,6 @@ type Repo struct {
 type SearchParams struct {
 	Repo        Repo
 	Filters     []Filter
-	Ctx         context.Context
 	NewerThan   time.Time
 	Hidden      bool
 	State       string

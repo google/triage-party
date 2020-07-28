@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"context"
 	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/logu"
 	"k8s.io/klog/v2"
@@ -109,7 +110,7 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 }
 
 // ExecuteRule executes a rule. seen is optional.
-func (p *Party) ExecuteRule(sp models.SearchParams, t Rule, seen map[string]*Rule) (*RuleResult, error) {
+func (p *Party) ExecuteRule(ctx context.Context, sp models.SearchParams, t Rule, seen map[string]*Rule) (*RuleResult, error) {
 	klog.V(1).Infof("executing rule %q for results newer than %s", t.ID, logu.STime(sp.NewerThan))
 	rcs := []*hubbub.Conversation{}
 	oldest := time.Now()
@@ -130,11 +131,11 @@ func (p *Party) ExecuteRule(sp models.SearchParams, t Rule, seen map[string]*Rul
 
 		switch t.Type {
 		case hubbub.Issue:
-			cs, ts, err = p.engine.SearchIssues(sp)
+			cs, ts, err = p.engine.SearchIssues(ctx, sp)
 		case hubbub.PullRequest:
-			cs, ts, err = p.engine.SearchPullRequests(sp)
+			cs, ts, err = p.engine.SearchPullRequests(ctx, sp)
 		default:
-			cs, ts, err = p.engine.SearchAny(sp)
+			cs, ts, err = p.engine.SearchAny(ctx, sp)
 		}
 
 		if err != nil {

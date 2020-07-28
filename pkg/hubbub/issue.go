@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"context"
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/logu"
 	"gopkg.in/yaml.v2"
@@ -30,7 +31,7 @@ import (
 )
 
 // cachedIssues returns issues, cached if possible
-func (h *Engine) cachedIssues(sp models.SearchParams) ([]*models.Issue, time.Time, error) {
+func (h *Engine) cachedIssues(ctx context.Context, sp models.SearchParams) ([]*models.Issue, time.Time, error) {
 	sp.SearchKey = issueSearchKey(sp)
 
 	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
@@ -43,7 +44,7 @@ func (h *Engine) cachedIssues(sp models.SearchParams) ([]*models.Issue, time.Tim
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", sp.SearchKey, logu.STime(sp.NewerThan))
-	issues, created, err := h.updateIssues(sp)
+	issues, created, err := h.updateIssues(ctx, sp)
 	if err != nil {
 		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
 		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
@@ -55,7 +56,7 @@ func (h *Engine) cachedIssues(sp models.SearchParams) ([]*models.Issue, time.Tim
 }
 
 // updateIssues updates the issues in cache
-func (h *Engine) updateIssues(sp models.SearchParams) ([]*models.Issue, time.Time, error) {
+func (h *Engine) updateIssues(ctx context.Context, sp models.SearchParams) ([]*models.Issue, time.Time, error) {
 	start := time.Now()
 
 	sp.IssueListByRepoOptions = models.IssueListByRepoOptions{
@@ -84,7 +85,7 @@ func (h *Engine) updateIssues(sp models.SearchParams) ([]*models.Issue, time.Tim
 			)
 		}
 		pr := provider.ResolveProviderByHost(sp.Repo.Host)
-		is, resp, err := pr.IssuesListByRepo(sp)
+		is, resp, err := pr.IssuesListByRepo(ctx, sp)
 
 		if _, ok := err.(*github.RateLimitError); ok {
 			klog.Errorf("oh snap! I reached the GitHub search API limit: %v", err)
@@ -121,7 +122,7 @@ func (h *Engine) updateIssues(sp models.SearchParams) ([]*models.Issue, time.Tim
 	return allIssues, start, nil
 }
 
-func (h *Engine) cachedIssueComments(sp models.SearchParams) ([]*models.IssueComment, time.Time, error) {
+func (h *Engine) cachedIssueComments(ctx context.Context, sp models.SearchParams) ([]*models.IssueComment, time.Time, error) {
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-issue-comments", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 
 	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
@@ -134,7 +135,7 @@ func (h *Engine) cachedIssueComments(sp models.SearchParams) ([]*models.IssueCom
 
 	klog.V(1).Infof("cache miss for %s newer than %s", sp.SearchKey, logu.STime(sp.NewerThan))
 
-	comments, created, err := h.updateIssueComments(sp)
+	comments, created, err := h.updateIssueComments(ctx, sp)
 	if err != nil {
 		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
 		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
@@ -146,7 +147,7 @@ func (h *Engine) cachedIssueComments(sp models.SearchParams) ([]*models.IssueCom
 	return comments, created, err
 }
 
-func (h *Engine) updateIssueComments(sp models.SearchParams) ([]*models.IssueComment, time.Time, error) {
+func (h *Engine) updateIssueComments(ctx context.Context, sp models.SearchParams) ([]*models.IssueComment, time.Time, error) {
 	klog.V(1).Infof("Downloading issue comments for %s/%s #%d", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	start := time.Now()
 
@@ -160,7 +161,7 @@ func (h *Engine) updateIssueComments(sp models.SearchParams) ([]*models.IssueCom
 			sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, sp.IssueListCommentsOptions.Page)
 
 		pr := provider.ResolveProviderByHost(sp.Repo.Host)
-		cs, resp, err := pr.IssuesListComments(sp)
+		cs, resp, err := pr.IssuesListComments(ctx, sp)
 
 		if err != nil {
 			return cs, start, err

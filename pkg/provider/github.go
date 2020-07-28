@@ -73,9 +73,9 @@ func (p *GithubProvider) getIssueListByRepoOptions(sp models.SearchParams) *gith
 	}
 }
 
-func (p *GithubProvider) IssuesListByRepo(sp models.SearchParams) (i []*models.Issue, r *models.Response, err error) {
+func (p *GithubProvider) IssuesListByRepo(ctx context.Context, sp models.SearchParams) (i []*models.Issue, r *models.Response, err error) {
 	opt := p.getIssueListByRepoOptions(sp)
-	gi, gr, err := p.client.Issues.ListByRepo(sp.Ctx, sp.Repo.Organization, sp.Repo.Project, opt)
+	gi, gr, err := p.client.Issues.ListByRepo(ctx, sp.Repo.Organization, sp.Repo.Project, opt)
 	i = p.getIssues(gi)
 	r = p.getResponse(gr)
 	return
@@ -104,9 +104,9 @@ func (p *GithubProvider) getIssueComments(i []*github.IssueComment) []*models.Is
 	return r
 }
 
-func (p *GithubProvider) IssuesListComments(sp models.SearchParams) (i []*models.IssueComment, r *models.Response, err error) {
+func (p *GithubProvider) IssuesListComments(ctx context.Context, sp models.SearchParams) (i []*models.IssueComment, r *models.Response, err error) {
 	opt := p.getIssuesListCommentsOptions(sp)
-	gc, gr, err := p.client.Issues.ListComments(sp.Ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, opt)
+	gc, gr, err := p.client.Issues.ListComments(ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, opt)
 	i = p.getIssueComments(gc)
 	r = p.getResponse(gr)
 	return
@@ -135,9 +135,9 @@ func (p *GithubProvider) getIssueTimeline(i []*github.Timeline) []*models.Timeli
 	return r
 }
 
-func (p *GithubProvider) IssuesListIssueTimeline(sp models.SearchParams) (i []*models.Timeline, r *models.Response, err error) {
+func (p *GithubProvider) IssuesListIssueTimeline(ctx context.Context, sp models.SearchParams) (i []*models.Timeline, r *models.Response, err error) {
 	opt := p.getIssuesListIssueTimelineOptions(sp)
-	it, ir, err := p.client.Issues.ListIssueTimeline(sp.Ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, opt)
+	it, ir, err := p.client.Issues.ListIssueTimeline(ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, opt)
 	i = p.getIssueTimeline(it)
 	r = p.getResponse(ir)
 	return
@@ -169,9 +169,9 @@ func (p *GithubProvider) getPullRequestsList(i []*github.PullRequest) []*models.
 	return r
 }
 
-func (p *GithubProvider) PullRequestsList(sp models.SearchParams) (i []*models.PullRequest, r *models.Response, err error) {
+func (p *GithubProvider) PullRequestsList(ctx context.Context, sp models.SearchParams) (i []*models.PullRequest, r *models.Response, err error) {
 	opt := p.getPullRequestsListOptions(sp)
-	gpr, gr, err := p.client.PullRequests.List(sp.Ctx, sp.Repo.Organization, sp.Repo.Project, opt)
+	gpr, gr, err := p.client.PullRequests.List(ctx, sp.Repo.Organization, sp.Repo.Project, opt)
 	i = p.getPullRequestsList(gpr)
 	r = p.getResponse(gr)
 	return
@@ -190,8 +190,8 @@ func (p *GithubProvider) getPullRequest(i *github.PullRequest) *models.PullReque
 	return &r
 }
 
-func (p *GithubProvider) PullRequestsGet(sp models.SearchParams) (i *models.PullRequest, r *models.Response, err error) {
-	pr, gr, err := p.client.PullRequests.Get(sp.Ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
+func (p *GithubProvider) PullRequestsGet(ctx context.Context, sp models.SearchParams) (i *models.PullRequest, r *models.Response, err error) {
+	pr, gr, err := p.client.PullRequests.Get(ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	i = p.getPullRequest(pr)
 	r = p.getResponse(gr)
 	return
@@ -220,9 +220,9 @@ func (p *GithubProvider) getPullRequestsListCommentsOptions(sp models.SearchPara
 	}
 }
 
-func (p *GithubProvider) PullRequestsListComments(sp models.SearchParams) (i []*models.PullRequestComment, r *models.Response, err error) {
+func (p *GithubProvider) PullRequestsListComments(ctx context.Context, sp models.SearchParams) (i []*models.PullRequestComment, r *models.Response, err error) {
 	opt := p.getPullRequestsListCommentsOptions(sp)
-	pr, gr, err := p.client.PullRequests.ListComments(sp.Ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, opt)
+	pr, gr, err := p.client.PullRequests.ListComments(ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, opt)
 	i = p.getPullRequestListComments(pr)
 	r = p.getResponse(gr)
 	return
@@ -245,9 +245,9 @@ func (p *GithubProvider) getPullRequestsListReviews(i []*github.PullRequestRevie
 	return r
 }
 
-func (p *GithubProvider) PullRequestsListReviews(sp models.SearchParams) (i []*models.PullRequestReview, r *models.Response, err error) {
+func (p *GithubProvider) PullRequestsListReviews(ctx context.Context, sp models.SearchParams) (i []*models.PullRequestReview, r *models.Response, err error) {
 	opt := p.getListOptions(sp.ListOptions)
-	pr, gr, err := p.client.PullRequests.ListReviews(sp.Ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, &opt)
+	pr, gr, err := p.client.PullRequests.ListReviews(ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, &opt)
 	i = p.getPullRequestsListReviews(pr)
 	r = p.getResponse(gr)
 	return

@@ -22,6 +22,7 @@ import (
 	"sort"
 	"time"
 
+	"context"
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
@@ -39,7 +40,7 @@ const (
 )
 
 // cachedPRs returns a list of cached PR's if possible
-func (h *Engine) cachedPRs(sp models.SearchParams) ([]*models.PullRequest, time.Time, error) {
+func (h *Engine) cachedPRs(ctx context.Context, sp models.SearchParams) ([]*models.PullRequest, time.Time, error) {
 	sp.SearchKey = prSearchKey(sp)
 	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
 		// Normally the similarity tables are only updated when fresh data is encountered.
@@ -50,7 +51,7 @@ func (h *Engine) cachedPRs(sp models.SearchParams) ([]*models.PullRequest, time.
 	}
 
 	klog.V(1).Infof("cache miss: %s newer than %s", sp.SearchKey, sp.NewerThan)
-	prs, created, err := h.updatePRs(sp)
+	prs, created, err := h.updatePRs(ctx, sp)
 	if err != nil {
 		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
 		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
@@ -62,7 +63,7 @@ func (h *Engine) cachedPRs(sp models.SearchParams) ([]*models.PullRequest, time.
 }
 
 // updatePRs returns and caches live PR's
-func (h *Engine) updatePRs(sp models.SearchParams) ([]*models.PullRequest, time.Time, error) {
+func (h *Engine) updatePRs(ctx context.Context, sp models.SearchParams) ([]*models.PullRequest, time.Time, error) {
 	start := time.Now()
 	sp.PullRequestListOptions = models.PullRequestListOptions{
 		ListOptions: models.ListOptions{PerPage: 100},
@@ -84,7 +85,7 @@ func (h *Engine) updatePRs(sp models.SearchParams) ([]*models.PullRequest, time.
 		}
 
 		pr := provider.ResolveProviderByHost(sp.Repo.Host)
-		prs, resp, err := pr.PullRequestsList(sp)
+		prs, resp, err := pr.PullRequestsList(ctx, sp)
 
 		if err != nil {
 			if _, ok := err.(*github.RateLimitError); ok {
@@ -125,7 +126,7 @@ func (h *Engine) updatePRs(sp models.SearchParams) ([]*models.PullRequest, time.
 	return allPRs, start, nil
 }
 
-func (h *Engine) cachedPR(sp models.SearchParams) (*models.PullRequest, time.Time, error) {
+func (h *Engine) cachedPR(ctx context.Context, sp models.SearchParams) (*models.PullRequest, time.Time, error) {
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-pr", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 
 	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
@@ -137,7 +138,7 @@ func (h *Engine) cachedPR(sp models.SearchParams) (*models.PullRequest, time.Tim
 		return nil, time.Time{}, nil
 	}
 
-	pr, created, err := h.updatePR(sp)
+	pr, created, err := h.updatePR(ctx, sp)
 
 	if err != nil {
 		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
@@ -150,12 +151,12 @@ func (h *Engine) cachedPR(sp models.SearchParams) (*models.PullRequest, time.Tim
 }
 
 // pr gets a single PR (not used very often)
-func (h *Engine) updatePR(sp models.SearchParams) (*models.PullRequest, time.Time, error) {
+func (h *Engine) updatePR(ctx context.Context, sp models.SearchParams) (*models.PullRequest, time.Time, error) {
 	klog.V(1).Infof("Downloading single PR %s/%s #%d", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	start := time.Now()
 
 	p := provider.ResolveProviderByHost(sp.Repo.Host)
-	pr, resp, err := p.PullRequestsGet(sp)
+	pr, resp, err := p.PullRequestsGet(ctx, sp)
 
 	if err != nil {
 		return pr, start, err
@@ -171,7 +172,7 @@ func (h *Engine) updatePR(sp models.SearchParams) (*models.PullRequest, time.Tim
 	return pr, start, nil
 }
 
-func (h *Engine) cachedReviewComments(sp models.SearchParams) ([]*models.PullRequestComment, time.Time, error) {
+func (h *Engine) cachedReviewComments(ctx context.Context, sp models.SearchParams) ([]*models.PullRequestComment, time.Time, error) {
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-pr-comments", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 
 	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
@@ -183,7 +184,7 @@ func (h *Engine) cachedReviewComments(sp models.SearchParams) ([]*models.PullReq
 	}
 
 	klog.V(1).Infof("cache miss for %s newer than %s", sp.SearchKey, sp.NewerThan)
-	comments, created, err := h.updateReviewComments(sp)
+	comments, created, err := h.updateReviewComments(ctx, sp)
 	if err != nil {
 		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
 		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
@@ -196,11 +197,11 @@ func (h *Engine) cachedReviewComments(sp models.SearchParams) ([]*models.PullReq
 
 // prComments mixes together code review comments and pull-request comments
 // TODO dont work properly for gitlab - issues API sometimes return 404. Needs investigation
-func (h *Engine) prComments(sp models.SearchParams) ([]*models.Comment, time.Time, error) {
+func (h *Engine) prComments(ctx context.Context, sp models.SearchParams) ([]*models.Comment, time.Time, error) {
 	start := time.Now()
 
 	var comments []*models.Comment
-	cs, _, err := h.cachedIssueComments(sp)
+	cs, _, err := h.cachedIssueComments(ctx, sp)
 	if err != nil {
 		klog.Errorf("pr comments: %v", err)
 	}
@@ -208,7 +209,7 @@ func (h *Engine) prComments(sp models.SearchParams) ([]*models.Comment, time.Tim
 		comments = append(comments, models.NewComment(c))
 	}
 
-	rc, _, err := h.cachedReviewComments(sp)
+	rc, _, err := h.cachedReviewComments(ctx, sp)
 	if err != nil {
 		klog.Errorf("comments: %v", err)
 	}
@@ -230,7 +231,7 @@ func (h *Engine) prComments(sp models.SearchParams) ([]*models.Comment, time.Tim
 	return comments, start, err
 }
 
-func (h *Engine) updateReviewComments(sp models.SearchParams) ([]*models.PullRequestComment, time.Time, error) {
+func (h *Engine) updateReviewComments(ctx context.Context, sp models.SearchParams) ([]*models.PullRequestComment, time.Time, error) {
 	klog.V(1).Infof("Downloading review comments for %s/%s #%d", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	start := time.Now()
 
@@ -241,7 +242,7 @@ func (h *Engine) updateReviewComments(sp models.SearchParams) ([]*models.PullReq
 			sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, sp.ListOptions.Page)
 
 		p := provider.ResolveProviderByHost(sp.Repo.Host)
-		cs, resp, err := p.PullRequestsListComments(sp)
+		cs, resp, err := p.PullRequestsListComments(ctx, sp)
 
 		if err != nil {
 			return cs, start, err
@@ -267,13 +268,13 @@ func (h *Engine) updateReviewComments(sp models.SearchParams) ([]*models.PullReq
 	return allComments, start, nil
 }
 
-func (h *Engine) createPRSummary(sp models.SearchParams, pr *models.PullRequest, cs []*models.Comment,
+func (h *Engine) createPRSummary(ctx context.Context, sp models.SearchParams, pr *models.PullRequest, cs []*models.Comment,
 	timeline []*models.Timeline, reviews []*models.PullRequestReview) *Conversation {
 	co := h.createConversation(pr, cs, sp.Age)
 	co.Type = PullRequest
 	co.ReviewsTotal = len(reviews)
 	co.TimelineTotal = len(timeline)
-	h.addEvents(sp, co, timeline)
+	h.addEvents(ctx, sp, co, timeline)
 
 	co.ReviewState = reviewState(pr, timeline, reviews)
 	co.Tags = append(co.Tags, reviewStateTag(co.ReviewState))
@@ -293,7 +294,7 @@ func (h *Engine) createPRSummary(sp models.SearchParams, pr *models.PullRequest,
 	return co
 }
 
-func (h *Engine) PRSummary(sp models.SearchParams, pr *models.PullRequest, cs []*models.Comment, timeline []*models.Timeline,
+func (h *Engine) PRSummary(ctx context.Context, sp models.SearchParams, pr *models.PullRequest, cs []*models.Comment, timeline []*models.Timeline,
 	reviews []*models.PullRequestReview) *Conversation {
 	key := pr.GetHTMLURL()
 	cached, ok := h.seen[key]
@@ -304,6 +305,6 @@ func (h *Engine) PRSummary(sp models.SearchParams, pr *models.PullRequest, cs []
 		klog.Infof("%s in PR cache, but was invalid. Live @ %s (%d comments), cached @ %s (%d comments)  ", pr.GetHTMLURL(), pr.GetUpdatedAt(), len(cs), cached.Updated, cached.CommentsTotal)
 	}
 
-	h.seen[key] = h.createPRSummary(sp, pr, cs, timeline, reviews)
+	h.seen[key] = h.createPRSummary(ctx, sp, pr, cs, timeline, reviews)
 	return h.seen[key]
 }
