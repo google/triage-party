@@ -2,10 +2,6 @@ package models
 
 import "time"
 
-// Timeline represents an event that occurred around an Issue or Pull Request.
-//
-// It is similar to an IssueEvent but may contain more information.
-// GitHub API docs: https://developer.github.com/v3/issues/timeline/
 type Timeline struct {
 	ID        *int64  `json:"id,omitempty"`
 	URL       *string `json:"url,omitempty"`
@@ -105,12 +101,6 @@ type Timeline struct {
 	// The 'id', 'actor', and 'url' for the source of a reference from another issue.
 	// Only provided for 'cross-referenced' events.
 	Source *Source `json:"source,omitempty"`
-
-	// An object containing rename details including 'from' and 'to' attributes.
-	// Only provided for 'renamed' events.
-	//Rename      *Rename      `json:"rename,omitempty"`
-
-	//ProjectCard *ProjectCard `json:"project_card,omitempty"`
 }
 
 // GetActor returns the Actor field.
@@ -119,14 +109,6 @@ func (t *Timeline) GetActor() *User {
 		return nil
 	}
 	return t.Actor
-}
-
-// GetAssignee returns the Assignee field.
-func (t *Timeline) GetAssignee() *User {
-	if t == nil {
-		return nil
-	}
-	return t.Assignee
 }
 
 // GetCommitID returns the CommitID field if it's non-nil, zero value otherwise.
@@ -161,14 +143,6 @@ func (t *Timeline) GetEvent() string {
 	return *t.Event
 }
 
-// GetID returns the ID field if it's non-nil, zero value otherwise.
-func (t *Timeline) GetID() int64 {
-	if t == nil || t.ID == nil {
-		return 0
-	}
-	return *t.ID
-}
-
 // GetLabel returns the Label field.
 func (t *Timeline) GetLabel() *Label {
 	if t == nil {
@@ -176,30 +150,6 @@ func (t *Timeline) GetLabel() *Label {
 	}
 	return t.Label
 }
-
-// GetMilestone returns the Milestone field.
-func (t *Timeline) GetMilestone() *Milestone {
-	if t == nil {
-		return nil
-	}
-	return t.Milestone
-}
-
-// GetProjectCard returns the ProjectCard field.
-//func (t *Timeline) GetProjectCard() *ProjectCard {
-//	if t == nil {
-//		return nil
-//	}
-//	return t.ProjectCard
-//}
-//
-//// GetRename returns the Rename field.
-//func (t *Timeline) GetRename() *Rename {
-//	if t == nil {
-//		return nil
-//	}
-//	return t.Rename
-//}
 
 // GetSource returns the Source field.
 func (t *Timeline) GetSource() *Source {

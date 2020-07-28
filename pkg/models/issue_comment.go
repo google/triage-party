@@ -4,7 +4,6 @@ import (
 	"time"
 )
 
-// abstraction model for github.IssueComment struct
 // IssueComment represents a comment left on an issue.
 type IssueComment struct {
 	ID     *int64  `json:"id,omitempty"`
@@ -62,22 +61,6 @@ func (i *IssueComment) GetID() int64 {
 		return 0
 	}
 	return *i.ID
-}
-
-// GetIssueURL returns the IssueURL field if it's non-nil, zero value otherwise.
-func (i *IssueComment) GetIssueURL() string {
-	if i == nil || i.IssueURL == nil {
-		return ""
-	}
-	return *i.IssueURL
-}
-
-// GetNodeID returns the NodeID field if it's non-nil, zero value otherwise.
-func (i *IssueComment) GetNodeID() string {
-	if i == nil || i.NodeID == nil {
-		return ""
-	}
-	return *i.NodeID
 }
 
 // GetReactions returns the Reactions field.

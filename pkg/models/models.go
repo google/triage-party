@@ -62,7 +62,6 @@ type SearchParams struct {
 	PullRequestListOptions   PullRequestListOptions
 }
 
-// abstraction model for github.IssueListByRepoOptions struct
 // IssueListByRepoOptions specifies the optional parameters to the
 // IssuesService.ListByRepo method.
 type IssueListByRepoOptions struct {

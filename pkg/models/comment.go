@@ -49,14 +49,14 @@ func (i *Comment) GetReactions() *Reactions {
 
 func (i *Comment) GetUpdatedAt() time.Time {
 	if i == nil {
-		return time.Now() // TODO need review
+		return time.Now()
 	}
 	return i.Updated
 }
 
 func (i *Comment) GetCreatedAt() time.Time {
 	if i == nil {
-		return time.Now() // TODO need review
+		return time.Now()
 	}
 	return i.Created
 }

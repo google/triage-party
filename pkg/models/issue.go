@@ -4,13 +4,6 @@ import (
 	"time"
 )
 
-// Issue represents a GitHub issue on a repository.
-//
-// Note: As far as the GitHub API is concerned, every pull request is an issue,
-// but not every issue is a pull request. Some endpoints, events, and webhooks
-// may also return pull requests via this struct. If PullRequestLinks is nil,
-// this is an issue, and if PullRequestLinks is not nil, this is a pull request.
-// The IsPullRequest helper method can be used to check that.
 type Issue struct {
 	ID                *int64            `json:"id,omitempty"`
 	Number            *int              `json:"number,omitempty"`
@@ -40,21 +33,9 @@ type Issue struct {
 	Assignees         []*User           `json:"assignees,omitempty"`
 	NodeID            *string           `json:"node_id,omitempty"`
 
-	// TextMatches is only populated from search results that request text matches
-	// See: search.go and https://developer.github.com/v3/search/#text-match-metadata
-	//TextMatches []*TextMatch `json:"text_matches,omitempty"`
-
 	// ActiveLockReason is populated only when LockReason is provided while locking the issue.
 	// Possible values are: "off-topic", "too heated", "resolved", and "spam".
 	ActiveLockReason *string `json:"active_lock_reason,omitempty"`
-}
-
-// GetActiveLockReason returns the ActiveLockReason field if it's non-nil, zero value otherwise.
-func (i *Issue) GetActiveLockReason() string {
-	if i == nil || i.ActiveLockReason == nil {
-		return ""
-	}
-	return *i.ActiveLockReason
 }
 
 // GetAssignee returns the Assignee field.
@@ -105,28 +86,12 @@ func (i *Issue) GetComments() int {
 	return *i.Comments
 }
 
-// GetCommentsURL returns the CommentsURL field if it's non-nil, zero value otherwise.
-func (i *Issue) GetCommentsURL() string {
-	if i == nil || i.CommentsURL == nil {
-		return ""
-	}
-	return *i.CommentsURL
-}
-
 // GetCreatedAt returns the CreatedAt field if it's non-nil, zero value otherwise.
 func (i *Issue) GetCreatedAt() time.Time {
 	if i == nil || i.CreatedAt == nil {
 		return time.Time{}
 	}
 	return *i.CreatedAt
-}
-
-// GetEventsURL returns the EventsURL field if it's non-nil, zero value otherwise.
-func (i *Issue) GetEventsURL() string {
-	if i == nil || i.EventsURL == nil {
-		return ""
-	}
-	return *i.EventsURL
 }
 
 // GetHTMLURL returns the HTMLURL field if it's non-nil, zero value otherwise.
@@ -145,22 +110,6 @@ func (i *Issue) GetID() int64 {
 	return *i.ID
 }
 
-// GetLabelsURL returns the LabelsURL field if it's non-nil, zero value otherwise.
-func (i *Issue) GetLabelsURL() string {
-	if i == nil || i.LabelsURL == nil {
-		return ""
-	}
-	return *i.LabelsURL
-}
-
-// GetLocked returns the Locked field if it's non-nil, zero value otherwise.
-func (i *Issue) GetLocked() bool {
-	if i == nil || i.Locked == nil {
-		return false
-	}
-	return *i.Locked
-}
-
 // GetMilestone returns the Milestone field.
 func (i *Issue) GetMilestone() *Milestone {
 	if i == nil {
@@ -169,28 +118,12 @@ func (i *Issue) GetMilestone() *Milestone {
 	return i.Milestone
 }
 
-// GetNodeID returns the NodeID field if it's non-nil, zero value otherwise.
-func (i *Issue) GetNodeID() string {
-	if i == nil || i.NodeID == nil {
-		return ""
-	}
-	return *i.NodeID
-}
-
 // GetNumber returns the Number field if it's non-nil, zero value otherwise.
 func (i *Issue) GetNumber() int {
 	if i == nil || i.Number == nil {
 		return 0
 	}
 	return *i.Number
-}
-
-// GetPullRequestLinks returns the PullRequestLinks field.
-func (i *Issue) GetPullRequestLinks() *PullRequestLinks {
-	if i == nil {
-		return nil
-	}
-	return i.PullRequestLinks
 }
 
 // GetReactions returns the Reactions field.
@@ -207,14 +140,6 @@ func (i *Issue) GetRepository() *Repository {
 		return nil
 	}
 	return i.Repository
-}
-
-// GetRepositoryURL returns the RepositoryURL field if it's non-nil, zero value otherwise.
-func (i *Issue) GetRepositoryURL() string {
-	if i == nil || i.RepositoryURL == nil {
-		return ""
-	}
-	return *i.RepositoryURL
 }
 
 // GetState returns the State field if it's non-nil, zero value otherwise.
@@ -261,9 +186,6 @@ func (i Issue) String() string {
 	return Stringify(i)
 }
 
-// IsPullRequest reports whether the issue is also a pull request. It uses the
-// method recommended by GitHub's API documentation, which is to check whether
-// PullRequestLinks is non-nil.
 func (i Issue) IsPullRequest() bool {
 	return i.PullRequestLinks != nil
 }

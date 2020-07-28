@@ -1,6 +1,5 @@
 package models
 
-// Reactions represents a summary of GitHub reactions.
 type Reactions struct {
 	TotalCount *int    `json:"total_count,omitempty"`
 	PlusOne    *int    `json:"+1,omitempty"`
@@ -66,12 +65,4 @@ func (r *Reactions) GetTotalCount() int {
 		return 0
 	}
 	return *r.TotalCount
-}
-
-// GetURL returns the URL field if it's non-nil, zero value otherwise.
-func (r *Reactions) GetURL() string {
-	if r == nil || r.URL == nil {
-		return ""
-	}
-	return *r.URL
 }

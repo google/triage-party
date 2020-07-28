@@ -1,6 +1,5 @@
 package models
 
-// Label represents a GitHub label on an Issue
 type Label struct {
 	ID          *int64  `json:"id,omitempty"`
 	URL         *string `json:"url,omitempty"`
