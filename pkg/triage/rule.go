@@ -17,7 +17,8 @@ package triage
 import (
 	"fmt"
 	"github.com/google/triage-party/pkg/models"
-	"github.com/google/triage-party/pkg/utils"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/google/triage-party/pkg/hubbub"
@@ -114,7 +115,7 @@ func (p *Party) ExecuteRule(sp models.SearchParams, t Rule, seen map[string]*Rul
 	oldest := time.Now()
 
 	for _, repoUrl := range t.Repos {
-		r, err := utils.ParseRepo(repoUrl)
+		r, err := parseRepo(repoUrl)
 		if err != nil {
 			return nil, err
 		}
@@ -180,4 +181,41 @@ func (p *Party) ListRules() ([]Rule, error) {
 		ts = append(ts, s)
 	}
 	return ts, nil
+}
+
+// parseRepo returns provider, organization and project for a URL
+// rawURL should be a valid url with host like https://github.com/org/repo
+// or https://gitlab.com/org/repo
+// or https://gitlab.com/org/group/repo
+func parseRepo(rawURL string) (r models.Repo, err error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return
+	}
+	if u.Host == "" {
+		err = fmt.Errorf("Provided string %s is not a valid URL", rawURL)
+		return
+	}
+	parts := strings.Split(u.Path, "/")
+	if len(parts) != 3 && len(parts) != 4 {
+		// gitlab may have https://gitlab.com/organization/group/repo
+		err = fmt.Errorf("expected 2/3 repository parts, got %d: %v", len(parts), parts)
+		return
+	}
+	if len(parts) == 3 {
+		r = models.Repo{
+			Host:         u.Host,
+			Organization: parts[1],
+			Project:      parts[2],
+		}
+	} else {
+		r = models.Repo{
+			Host:         u.Host,
+			Organization: parts[1],
+			Group:        parts[2],
+			Project:      parts[3],
+		}
+	}
+
+	return
 }
