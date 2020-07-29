@@ -1,4 +1,4 @@
-package models
+package provider
 
 type Reactions struct {
 	TotalCount *int    `json:"total_count,omitempty"`

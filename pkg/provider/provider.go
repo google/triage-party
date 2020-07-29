@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/triage-party/pkg/constants"
-	"github.com/google/triage-party/pkg/models"
 	"io/ioutil"
 	"k8s.io/klog/v2"
 	"os"
@@ -12,13 +11,13 @@ import (
 )
 
 type Provider interface {
-	IssuesListByRepo(ctx context.Context, sp models.SearchParams) ([]*models.Issue, *models.Response, error)
-	IssuesListComments(ctx context.Context, sp models.SearchParams) ([]*models.IssueComment, *models.Response, error)
-	IssuesListIssueTimeline(ctx context.Context, sp models.SearchParams) ([]*models.Timeline, *models.Response, error)
-	PullRequestsList(ctx context.Context, sp models.SearchParams) ([]*models.PullRequest, *models.Response, error)
-	PullRequestsGet(ctx context.Context, sp models.SearchParams) (*models.PullRequest, *models.Response, error)
-	PullRequestsListComments(ctx context.Context, sp models.SearchParams) ([]*models.PullRequestComment, *models.Response, error)
-	PullRequestsListReviews(ctx context.Context, sp models.SearchParams) ([]*models.PullRequestReview, *models.Response, error)
+	IssuesListByRepo(ctx context.Context, sp SearchParams) ([]*Issue, *Response, error)
+	IssuesListComments(ctx context.Context, sp SearchParams) ([]*IssueComment, *Response, error)
+	IssuesListIssueTimeline(ctx context.Context, sp SearchParams) ([]*Timeline, *Response, error)
+	PullRequestsList(ctx context.Context, sp SearchParams) ([]*PullRequest, *Response, error)
+	PullRequestsGet(ctx context.Context, sp SearchParams) (*PullRequest, *Response, error)
+	PullRequestsListComments(ctx context.Context, sp SearchParams) ([]*PullRequestComment, *Response, error)
+	PullRequestsListReviews(ctx context.Context, sp SearchParams) ([]*PullRequestReview, *Response, error)
 }
 
 var (

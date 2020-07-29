@@ -17,7 +17,7 @@ package triage
 import (
 	"context"
 	"fmt"
-	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 	"time"
 
 	"github.com/google/triage-party/pkg/hubbub"
@@ -89,7 +89,7 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 
 		hidden := s.Hidden && s.UsedForStats
 
-		sp := models.SearchParams{
+		sp := provider.SearchParams{
 			NewerThan: newerThan,
 			Hidden:    hidden,
 		}

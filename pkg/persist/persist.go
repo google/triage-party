@@ -18,7 +18,7 @@ package persist
 import (
 	"encoding/gob"
 	"fmt"
-	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 	"os"
 	"time"
 )
@@ -40,16 +40,16 @@ type Config struct {
 type Cacher interface {
 	String() string
 
-	Set(string, *models.Thing) error
+	Set(string, *provider.Thing) error
 	DeleteOlderThan(string, time.Time) error
-	GetNewerThan(string, time.Time) *models.Thing
+	GetNewerThan(string, time.Time) *provider.Thing
 
 	Initialize() error
 	Cleanup() error
 }
 
 func New(cfg Config) (Cacher, error) {
-	gob.Register(&models.Thing{})
+	gob.Register(&provider.Thing{})
 	switch cfg.Type {
 	case "mysql":
 		return NewMySQL(cfg)

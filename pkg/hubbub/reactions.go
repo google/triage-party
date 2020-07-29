@@ -15,7 +15,7 @@
 package hubbub
 
 import (
-	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 )
 
 const reactThumbsUp = "thumbs_up"
@@ -25,7 +25,7 @@ const reactConfused = "confused"
 const reactHeart = "heart"
 const reactHooray = "hooray"
 
-func reactions(r *models.Reactions) map[string]int {
+func reactions(r *provider.Reactions) map[string]int {
 	return map[string]int{
 		reactThumbsUp:   r.GetPlusOne(),
 		reactThumbsDown: r.GetMinusOne(),

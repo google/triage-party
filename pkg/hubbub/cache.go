@@ -2,11 +2,11 @@ package hubbub
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 )
 
 // issueSearchKey is the cache key used for issues
-func issueSearchKey(sp models.SearchParams) string {
+func issueSearchKey(sp provider.SearchParams) string {
 	if sp.UpdateAge > 0 {
 		return fmt.Sprintf("%s-%s-%s-issues-within-%.1fh", sp.Repo.Organization, sp.Repo.Project, sp.State, sp.UpdateAge.Hours())
 	}
@@ -14,7 +14,7 @@ func issueSearchKey(sp models.SearchParams) string {
 }
 
 // prSearchKey is the cache key used for prs
-func prSearchKey(sp models.SearchParams) string {
+func prSearchKey(sp provider.SearchParams) string {
 	if sp.UpdateAge > 0 {
 		return fmt.Sprintf("%s-%s-%s-prs-within-%.1fh", sp.Repo.Organization, sp.Repo.Project, sp.State, sp.UpdateAge.Hours())
 	}

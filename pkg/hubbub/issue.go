@@ -17,7 +17,6 @@ package hubbub
 import (
 	"fmt"
 	"github.com/google/triage-party/pkg/constants"
-	"github.com/google/triage-party/pkg/models"
 	"github.com/google/triage-party/pkg/provider"
 	"sort"
 	"strings"
@@ -31,7 +30,7 @@ import (
 )
 
 // cachedIssues returns issues, cached if possible
-func (h *Engine) cachedIssues(ctx context.Context, sp models.SearchParams) ([]*models.Issue, time.Time, error) {
+func (h *Engine) cachedIssues(ctx context.Context, sp provider.SearchParams) ([]*provider.Issue, time.Time, error) {
 	sp.SearchKey = issueSearchKey(sp)
 
 	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
@@ -56,11 +55,11 @@ func (h *Engine) cachedIssues(ctx context.Context, sp models.SearchParams) ([]*m
 }
 
 // updateIssues updates the issues in cache
-func (h *Engine) updateIssues(ctx context.Context, sp models.SearchParams) ([]*models.Issue, time.Time, error) {
+func (h *Engine) updateIssues(ctx context.Context, sp provider.SearchParams) ([]*provider.Issue, time.Time, error) {
 	start := time.Now()
 
-	sp.IssueListByRepoOptions = models.IssueListByRepoOptions{
-		ListOptions: models.ListOptions{PerPage: 100},
+	sp.IssueListByRepoOptions = provider.IssueListByRepoOptions{
+		ListOptions: provider.ListOptions{PerPage: 100},
 		State:       sp.State,
 	}
 
@@ -68,7 +67,7 @@ func (h *Engine) updateIssues(ctx context.Context, sp models.SearchParams) ([]*m
 		sp.IssueListByRepoOptions.Since = time.Now().Add(-1 * sp.UpdateAge)
 	}
 
-	var allIssues []*models.Issue
+	var allIssues []*provider.Issue
 
 	for {
 		if sp.UpdateAge == 0 {
@@ -114,7 +113,7 @@ func (h *Engine) updateIssues(ctx context.Context, sp models.SearchParams) ([]*m
 		sp.IssueListByRepoOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &models.Thing{Issues: allIssues}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &provider.Thing{Issues: allIssues}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
@@ -122,7 +121,7 @@ func (h *Engine) updateIssues(ctx context.Context, sp models.SearchParams) ([]*m
 	return allIssues, start, nil
 }
 
-func (h *Engine) cachedIssueComments(ctx context.Context, sp models.SearchParams) ([]*models.IssueComment, time.Time, error) {
+func (h *Engine) cachedIssueComments(ctx context.Context, sp provider.SearchParams) ([]*provider.IssueComment, time.Time, error) {
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-issue-comments", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 
 	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
@@ -147,15 +146,15 @@ func (h *Engine) cachedIssueComments(ctx context.Context, sp models.SearchParams
 	return comments, created, err
 }
 
-func (h *Engine) updateIssueComments(ctx context.Context, sp models.SearchParams) ([]*models.IssueComment, time.Time, error) {
+func (h *Engine) updateIssueComments(ctx context.Context, sp provider.SearchParams) ([]*provider.IssueComment, time.Time, error) {
 	klog.V(1).Infof("Downloading issue comments for %s/%s #%d", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	start := time.Now()
 
-	sp.IssueListCommentsOptions = models.IssueListCommentsOptions{
-		ListOptions: models.ListOptions{PerPage: 100},
+	sp.IssueListCommentsOptions = provider.IssueListCommentsOptions{
+		ListOptions: provider.ListOptions{PerPage: 100},
 	}
 
-	var allComments []*models.IssueComment
+	var allComments []*provider.IssueComment
 	for {
 		klog.Infof("Downloading comments for %s/%s #%d (page %d)...",
 			sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, sp.IssueListCommentsOptions.Page)
@@ -175,7 +174,7 @@ func (h *Engine) updateIssueComments(ctx context.Context, sp models.SearchParams
 		sp.IssueListCommentsOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &models.Thing{IssueComments: allComments}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &provider.Thing{IssueComments: allComments}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
@@ -190,7 +189,7 @@ func toYAML(v interface{}) string {
 	return strings.Replace(strings.TrimSpace(string(s)), "\n", "; ", -1)
 }
 
-func openByDefault(sp models.SearchParams) []models.Filter {
+func openByDefault(sp provider.SearchParams) []provider.Filter {
 	found := false
 	for _, f := range sp.Filters {
 		if f.State != "" {
@@ -204,15 +203,15 @@ func openByDefault(sp models.SearchParams) []models.Filter {
 		} else {
 			state = constants.OpenState
 		}
-		sp.Filters = append(sp.Filters, models.Filter{State: state})
+		sp.Filters = append(sp.Filters, provider.Filter{State: state})
 	}
 	return sp.Filters
 }
 
-func (h *Engine) createIssueSummary(i *models.Issue, cs []*models.IssueComment, age time.Time) *Conversation {
-	cl := []*models.Comment{}
+func (h *Engine) createIssueSummary(i *provider.Issue, cs []*provider.IssueComment, age time.Time) *Conversation {
+	cl := []*provider.Comment{}
 	for _, c := range cs {
-		cl = append(cl, models.NewComment(c))
+		cl = append(cl, provider.NewComment(c))
 	}
 
 	co := h.createConversation(i, cl, age)
@@ -228,7 +227,7 @@ func (h *Engine) createIssueSummary(i *models.Issue, cs []*models.IssueComment, 
 }
 
 // IssueSummary returns a cached conversation for an issue
-func (h *Engine) IssueSummary(i *models.Issue, cs []*models.IssueComment, age time.Time) *Conversation {
+func (h *Engine) IssueSummary(i *provider.Issue, cs []*provider.IssueComment, age time.Time) *Conversation {
 	key := i.GetHTMLURL()
 	cached, ok := h.seen[key]
 	if ok {
@@ -242,7 +241,7 @@ func (h *Engine) IssueSummary(i *models.Issue, cs []*models.IssueComment, age ti
 	return h.seen[key]
 }
 
-func isBot(u *models.User) bool {
+func isBot(u *provider.User) bool {
 	if u.GetType() == "bot" {
 		return true
 	}

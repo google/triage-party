@@ -17,7 +17,6 @@ package hubbub
 import (
 	"context"
 	"fmt"
-	"github.com/google/triage-party/pkg/models"
 	"github.com/google/triage-party/pkg/provider"
 	"strings"
 	"time"
@@ -26,7 +25,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func (h *Engine) cachedTimeline(ctx context.Context, sp models.SearchParams) ([]*models.Timeline, error) {
+func (h *Engine) cachedTimeline(ctx context.Context, sp provider.SearchParams) ([]*provider.Timeline, error) {
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-timeline", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	klog.V(1).Infof("Need timeline for %s as of %s", sp.SearchKey, sp.NewerThan)
 
@@ -41,13 +40,13 @@ func (h *Engine) cachedTimeline(ctx context.Context, sp models.SearchParams) ([]
 	return h.updateTimeline(ctx, sp)
 }
 
-func (h *Engine) updateTimeline(ctx context.Context, sp models.SearchParams) ([]*models.Timeline, error) {
+func (h *Engine) updateTimeline(ctx context.Context, sp provider.SearchParams) ([]*provider.Timeline, error) {
 	//	klog.Infof("Downloading event timeline for %s/%s #%d", org, project, num)
 
-	sp.ListOptions = models.ListOptions{
+	sp.ListOptions = provider.ListOptions{
 		PerPage: 100,
 	}
-	var allEvents []*models.Timeline
+	var allEvents []*provider.Timeline
 	for {
 
 		pr := provider.ResolveProviderByHost(sp.Repo.Host)
@@ -68,7 +67,7 @@ func (h *Engine) updateTimeline(ctx context.Context, sp models.SearchParams) ([]
 		sp.ListOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &models.Thing{Timeline: allEvents}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &provider.Thing{Timeline: allEvents}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
@@ -76,7 +75,7 @@ func (h *Engine) updateTimeline(ctx context.Context, sp models.SearchParams) ([]
 }
 
 // Add events to the conversation summary if useful
-func (h *Engine) addEvents(ctx context.Context, sp models.SearchParams, co *Conversation, timeline []*models.Timeline) {
+func (h *Engine) addEvents(ctx context.Context, sp provider.SearchParams, co *Conversation, timeline []*provider.Timeline) {
 	priority := ""
 	for _, l := range co.Labels {
 		if strings.HasPrefix(l.GetName(), "priority") {
@@ -145,7 +144,7 @@ func (h *Engine) addEvents(ctx context.Context, sp models.SearchParams, co *Conv
 	co.Tags = tag.Dedup(co.Tags)
 }
 
-func (h *Engine) prRef(ctx context.Context, sp models.SearchParams, pr models.IItem) *RelatedConversation {
+func (h *Engine) prRef(ctx context.Context, sp provider.SearchParams, pr provider.IItem) *RelatedConversation {
 	if pr == nil {
 		klog.Errorf("PR is nil")
 		return nil
@@ -179,7 +178,7 @@ func (h *Engine) prRef(ctx context.Context, sp models.SearchParams, pr models.II
 		sp.NewerThan = h.mtime(pr)
 	}
 
-	var reviews []*models.PullRequestReview
+	var reviews []*provider.PullRequestReview
 	if pr.GetState() != "closed" {
 		reviews, _, err = h.cachedReviews(ctx, sp)
 		if err != nil {
@@ -194,7 +193,7 @@ func (h *Engine) prRef(ctx context.Context, sp models.SearchParams, pr models.II
 	return rel
 }
 
-func (h *Engine) updateLinkedPRs(ctx context.Context, sp models.SearchParams, parent *Conversation) []*RelatedConversation {
+func (h *Engine) updateLinkedPRs(ctx context.Context, sp provider.SearchParams, parent *Conversation) []*RelatedConversation {
 	newRefs := []*RelatedConversation{}
 
 	for _, ref := range parent.PullRequestRefs {
@@ -237,7 +236,7 @@ func (h *Engine) updateLinkedPRs(ctx context.Context, sp models.SearchParams, pa
 	return newRefs
 }
 
-func (h *Engine) issueRef(i *models.Issue, age time.Time) *RelatedConversation {
+func (h *Engine) issueRef(i *provider.Issue, age time.Time) *RelatedConversation {
 	co := h.createConversation(i, nil, age)
 	return makeRelated(co)
 }

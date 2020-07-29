@@ -16,12 +16,12 @@ package hubbub
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 
 	"k8s.io/klog/v2"
 )
 
-func (h *Engine) logRate(r models.Rate) {
+func (h *Engine) logRate(r provider.Rate) {
 	msg := fmt.Sprintf("GitHub API hourly quota remaining: %d of %d, resets at %s", r.Remaining, r.Limit, r.Reset)
 
 	if r.Remaining < 25 {

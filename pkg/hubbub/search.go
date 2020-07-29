@@ -2,7 +2,7 @@ package hubbub
 
 import (
 	"github.com/google/triage-party/pkg/constants"
-	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 	"strings"
 	"sync"
 	"time"
@@ -17,7 +17,7 @@ import (
 )
 
 // Search for GitHub issues or PR's
-func (h *Engine) SearchAny(ctx context.Context, sp models.SearchParams) ([]*Conversation, time.Time, error) {
+func (h *Engine) SearchAny(ctx context.Context, sp provider.SearchParams) ([]*Conversation, time.Time, error) {
 	cs, ts, err := h.SearchIssues(ctx, sp)
 	if err != nil {
 		return cs, ts, err
@@ -36,7 +36,7 @@ func (h *Engine) SearchAny(ctx context.Context, sp models.SearchParams) ([]*Conv
 }
 
 // Search for GitHub issues or PR's
-func (h *Engine) SearchIssues(ctx context.Context, sp models.SearchParams) ([]*Conversation, time.Time, error) {
+func (h *Engine) SearchIssues(ctx context.Context, sp provider.SearchParams) ([]*Conversation, time.Time, error) {
 	sp.Filters = openByDefault(sp)
 	klog.V(1).Infof(
 		"Gathering raw data for %s/%s search %s - newer than %s",
@@ -47,8 +47,8 @@ func (h *Engine) SearchIssues(ctx context.Context, sp models.SearchParams) ([]*C
 	)
 	var wg sync.WaitGroup
 
-	var open []*models.Issue
-	var closed []*models.Issue
+	var open []*provider.Issue
+	var closed []*provider.Issue
 	var err error
 
 	age := time.Now()
@@ -99,7 +99,7 @@ func (h *Engine) SearchIssues(ctx context.Context, sp models.SearchParams) ([]*C
 
 	wg.Wait()
 
-	var is []*models.Issue
+	var is []*provider.Issue
 	seen := map[string]bool{}
 
 	for _, i := range append(open, closed...) {
@@ -133,7 +133,7 @@ func (h *Engine) SearchIssues(ctx context.Context, sp models.SearchParams) ([]*C
 
 	for _, i := range is {
 		// Inconsistency warning: issues use a list of labels, prs a list of label pointers
-		labels := []*models.Label{}
+		labels := []*provider.Label{}
 		for _, l := range i.Labels {
 			l := l
 			labels = append(labels, l)
@@ -146,7 +146,7 @@ func (h *Engine) SearchIssues(ctx context.Context, sp models.SearchParams) ([]*C
 
 		klog.V(1).Infof("#%d - %q made it past pre-fetch: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
 
-		comments := []*models.IssueComment{}
+		comments := []*provider.IssueComment{}
 
 		if needComments(i, sp.Filters) && i.GetComments() > 0 {
 			klog.V(1).Infof("#%d - %q: need comments for final filtering", i.GetNumber(), i.GetTitle())
@@ -176,7 +176,7 @@ func (h *Engine) SearchIssues(ctx context.Context, sp models.SearchParams) ([]*C
 		klog.V(1).Infof("#%d - %q made it past post-fetch: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
 
 		sp.UpdateAt = h.mtime(i)
-		var timeline []*models.Timeline
+		var timeline []*provider.Timeline
 		if needTimeline(i, sp.Filters, false, sp.Hidden) {
 
 			sp.IssueNumber = i.GetNumber()
@@ -215,7 +215,7 @@ func (h *Engine) SearchIssues(ctx context.Context, sp models.SearchParams) ([]*C
 }
 
 // NeedsClosed returns whether or not the filters require closed items
-func NeedsClosed(fs []models.Filter) bool {
+func NeedsClosed(fs []provider.Filter) bool {
 	// First-pass filter: do any filters require closed data?
 	for _, f := range fs {
 		if f.ClosedCommenters != "" {
@@ -234,7 +234,7 @@ func NeedsClosed(fs []models.Filter) bool {
 	return false
 }
 
-func (h *Engine) SearchPullRequests(ctx context.Context, sp models.SearchParams) ([]*Conversation, time.Time, error) {
+func (h *Engine) SearchPullRequests(ctx context.Context, sp provider.SearchParams) ([]*Conversation, time.Time, error) {
 	sp.Filters = openByDefault(sp)
 
 	klog.V(1).Infof("Searching %s/%s for PR's matching: %s - newer than %s",
@@ -243,8 +243,8 @@ func (h *Engine) SearchPullRequests(ctx context.Context, sp models.SearchParams)
 
 	var wg sync.WaitGroup
 
-	var open []*models.PullRequest
-	var closed []*models.PullRequest
+	var open []*provider.PullRequest
+	var closed []*provider.PullRequest
 	var err error
 	age := time.Now()
 
@@ -299,7 +299,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, sp models.SearchParams)
 
 	wg.Wait()
 
-	prs := []*models.PullRequest{}
+	prs := []*provider.PullRequest{}
 	for _, pr := range append(open, closed...) {
 		if len(h.debug) > 0 {
 			if h.debug[pr.GetNumber()] {
@@ -317,9 +317,9 @@ func (h *Engine) SearchPullRequests(ctx context.Context, sp models.SearchParams)
 			continue
 		}
 
-		var timeline []*models.Timeline
-		var reviews []*models.PullRequestReview
-		var comments []*models.Comment
+		var timeline []*provider.Timeline
+		var reviews []*provider.PullRequestReview
+		var comments []*provider.Comment
 
 		if needComments(pr, sp.Filters) {
 
@@ -389,7 +389,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, sp models.SearchParams)
 	return filtered, age, nil
 }
 
-func needComments(i models.IItem, fs []models.Filter) bool {
+func needComments(i provider.IItem, fs []provider.Filter) bool {
 	for _, f := range fs {
 		if f.TagRegex() != nil {
 			if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
@@ -414,7 +414,7 @@ func needComments(i models.IItem, fs []models.Filter) bool {
 	return (i.GetState() == constants.OpenState) || (i.GetState() == constants.OpenedState)
 }
 
-func needTimeline(i models.IItem, fs []models.Filter, pr bool, hidden bool) bool {
+func needTimeline(i provider.IItem, fs []provider.Filter, pr bool, hidden bool) bool {
 	if i.GetMilestone() != nil {
 		return true
 	}
@@ -447,7 +447,7 @@ func needTimeline(i models.IItem, fs []models.Filter, pr bool, hidden bool) bool
 	return !hidden
 }
 
-func needReviews(i models.IItem, fs []models.Filter, hidden bool) bool {
+func needReviews(i provider.IItem, fs []provider.Filter, hidden bool) bool {
 	if (i.GetState() != constants.OpenState) && (i.GetState() != constants.OpenedState) {
 		return false
 	}

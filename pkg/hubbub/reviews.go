@@ -16,7 +16,6 @@ package hubbub
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/models"
 	"github.com/google/triage-party/pkg/provider"
 	"strings"
 	"time"
@@ -26,7 +25,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func (h *Engine) cachedReviews(ctx context.Context, sp models.SearchParams) ([]*models.PullRequestReview, time.Time, error) {
+func (h *Engine) cachedReviews(ctx context.Context, sp provider.SearchParams) ([]*provider.PullRequestReview, time.Time, error) {
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-pr-reviews", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 
 	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
@@ -40,13 +39,13 @@ func (h *Engine) cachedReviews(ctx context.Context, sp models.SearchParams) ([]*
 	return h.updateReviews(ctx, sp)
 }
 
-func (h *Engine) updateReviews(ctx context.Context, sp models.SearchParams) ([]*models.PullRequestReview, time.Time, error) {
+func (h *Engine) updateReviews(ctx context.Context, sp provider.SearchParams) ([]*provider.PullRequestReview, time.Time, error) {
 	klog.V(1).Infof("Downloading reviews for %s/%s #%d", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	start := time.Now()
 
-	sp.ListOptions = models.ListOptions{PerPage: 100}
+	sp.ListOptions = provider.ListOptions{PerPage: 100}
 
-	var allReviews []*models.PullRequestReview
+	var allReviews []*provider.PullRequestReview
 	for {
 		klog.V(2).Infof("Downloading reviews for %s/%s #%d (page %d)...",
 			sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, sp.ListOptions.Page)
@@ -67,7 +66,7 @@ func (h *Engine) updateReviews(ctx context.Context, sp models.SearchParams) ([]*
 		sp.ListOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &models.Thing{Reviews: allReviews}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &provider.Thing{Reviews: allReviews}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
@@ -75,7 +74,7 @@ func (h *Engine) updateReviews(ctx context.Context, sp models.SearchParams) ([]*
 }
 
 // reviewState parses review events to see where an issue was left off
-func reviewState(pr models.IItem, timeline []*models.Timeline, reviews []*models.PullRequestReview) string {
+func reviewState(pr provider.IItem, timeline []*provider.Timeline, reviews []*provider.PullRequestReview) string {
 	state := Unreviewed
 
 	if len(timeline) == 0 && len(reviews) == 0 {

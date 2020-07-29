@@ -1,4 +1,4 @@
-package models
+package provider
 
 type Repository struct {
 	ID                  *int64           `json:"id,omitempty"`

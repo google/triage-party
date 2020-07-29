@@ -1,4 +1,4 @@
-package models
+package provider
 
 // Source represents a reference's source.
 type Source struct {

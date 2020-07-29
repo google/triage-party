@@ -1,4 +1,4 @@
-package models
+package provider
 
 // PullRequestLinks object is added to the Issue object when it's an issue included
 // in the IssueCommentEvent webhook payload, if the webhook is fired by a comment on a PR.

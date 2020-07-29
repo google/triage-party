@@ -2,7 +2,7 @@ package hubbub
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,7 +13,7 @@ import (
 )
 
 // Check if an item matches the filters, pre-comment fetch
-func preFetchMatch(i models.IItem, labels []*models.Label, fs []models.Filter) bool {
+func preFetchMatch(i provider.IItem, labels []*provider.Label, fs []provider.Filter) bool {
 	for _, f := range fs {
 
 		if f.State != "" && f.State != "all" {
@@ -101,7 +101,7 @@ func preFetchMatch(i models.IItem, labels []*models.Label, fs []models.Filter) b
 }
 
 // Check if an issue matches the summarized version
-func postFetchMatch(co *Conversation, fs []models.Filter) bool {
+func postFetchMatch(co *Conversation, fs []provider.Filter) bool {
 	for _, f := range fs {
 		klog.V(2).Infof("post-fetch matching item #%d against filter: %+v", co.ID, f)
 
@@ -163,7 +163,7 @@ func postFetchMatch(co *Conversation, fs []models.Filter) bool {
 }
 
 // Check if an issue matches the summarized version, after events have been loaded
-func postEventsMatch(co *Conversation, fs []models.Filter) bool {
+func postEventsMatch(co *Conversation, fs []provider.Filter) bool {
 	for _, f := range fs {
 		if f.TagRegex() != nil {
 			if ok, _ := matchTag(co.Tags, f.TagRegex(), f.TagNegate()); !ok {
@@ -182,7 +182,7 @@ func postEventsMatch(co *Conversation, fs []models.Filter) bool {
 	return true
 }
 
-func matchLabel(labels []*models.Label, re *regexp.Regexp, negate bool) bool {
+func matchLabel(labels []*provider.Label, re *regexp.Regexp, negate bool) bool {
 	for _, l := range labels {
 		if re.MatchString(*l.Name) {
 			return !negate

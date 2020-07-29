@@ -15,7 +15,7 @@
 package persist
 
 import (
-	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -34,7 +34,7 @@ func loadMem(items map[string]cache.Item) *cache.Cache {
 	return cache.NewFrom(MaxLoadAge, memCleanupInterval, items)
 }
 
-func setMem(c *cache.Cache, key string, th *models.Thing) {
+func setMem(c *cache.Cache, key string, th *provider.Thing) {
 	if th.Created.IsZero() {
 		th.Created = time.Now()
 	}
@@ -43,14 +43,14 @@ func setMem(c *cache.Cache, key string, th *models.Thing) {
 	c.Set(key, th, MaxLoadAge)
 }
 
-func newerThanMem(c *cache.Cache, key string, t time.Time) *models.Thing {
+func newerThanMem(c *cache.Cache, key string, t time.Time) *provider.Thing {
 	x, ok := c.Get(key)
 	if !ok {
 		klog.V(1).Infof("%s is not within in-memory cache!", key)
 		return nil
 	}
 
-	th, ok := x.(*models.Thing)
+	th, ok := x.(*provider.Thing)
 	if !ok {
 		klog.V(1).Infof("%s is not of type Thing", key)
 	}

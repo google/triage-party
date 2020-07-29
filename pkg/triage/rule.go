@@ -16,7 +16,7 @@ package triage
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 	"net/url"
 	"strings"
 	"time"
@@ -30,11 +30,11 @@ import (
 // Rule is a logical triage group
 type Rule struct {
 	ID         string
-	Resolution string          `yaml:"resolution,omitempty"`
-	Name       string          `yaml:"name,omitempty"`
-	Repos      []string        `yaml:"repos,omitempty"`
-	Type       string          `yaml:"type,omitempty"`
-	Filters    []models.Filter `yaml:"filters"`
+	Resolution string            `yaml:"resolution,omitempty"`
+	Name       string            `yaml:"name,omitempty"`
+	Repos      []string          `yaml:"repos,omitempty"`
+	Type       string            `yaml:"type,omitempty"`
+	Filters    []provider.Filter `yaml:"filters"`
 }
 
 type RuleResult struct {
@@ -110,7 +110,7 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 }
 
 // ExecuteRule executes a rule. seen is optional.
-func (p *Party) ExecuteRule(ctx context.Context, sp models.SearchParams, t Rule, seen map[string]*Rule) (*RuleResult, error) {
+func (p *Party) ExecuteRule(ctx context.Context, sp provider.SearchParams, t Rule, seen map[string]*Rule) (*RuleResult, error) {
 	klog.V(1).Infof("executing rule %q for results newer than %s", t.ID, logu.STime(sp.NewerThan))
 	rcs := []*hubbub.Conversation{}
 	oldest := time.Now()
@@ -188,7 +188,7 @@ func (p *Party) ListRules() ([]Rule, error) {
 // rawURL should be a valid url with host like https://github.com/org/repo
 // or https://gitlab.com/org/repo
 // or https://gitlab.com/org/group/repo
-func parseRepo(rawURL string) (r models.Repo, err error) {
+func parseRepo(rawURL string) (r provider.Repo, err error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return
@@ -204,13 +204,13 @@ func parseRepo(rawURL string) (r models.Repo, err error) {
 		return
 	}
 	if len(parts) == 3 {
-		r = models.Repo{
+		r = provider.Repo{
 			Host:         u.Host,
 			Organization: parts[1],
 			Project:      parts[2],
 		}
 	} else {
-		r = models.Repo{
+		r = provider.Repo{
 			Host:         u.Host,
 			Organization: parts[1],
 			Group:        parts[2],

@@ -17,7 +17,7 @@ package hubbub
 import (
 	"fmt"
 	"github.com/google/triage-party/pkg/constants"
-	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 	"regexp"
 	"strconv"
 	"strings"
@@ -44,7 +44,7 @@ var (
 )
 
 // createConversation creates a conversation from an issue-like
-func (h *Engine) createConversation(i models.IItem, cs []*models.Comment, age time.Time) *Conversation {
+func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, age time.Time) *Conversation {
 
 	authorIsMember := false
 	if h.isMember(i.GetUser().GetLogin(), i.GetAuthorAssociation()) {

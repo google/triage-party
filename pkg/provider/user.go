@@ -1,4 +1,4 @@
-package models
+package provider
 
 type User struct {
 	Login                   *string    `json:"login,omitempty"`

@@ -16,7 +16,7 @@ package triage
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 	"io"
 	"io/ioutil"
 	"time"
@@ -152,7 +152,7 @@ func (p *Party) Load(r io.Reader) error {
 }
 
 // closedAge returns how old we need to look back for a set of filters
-func closedAge(fs []models.Filter) time.Duration {
+func closedAge(fs []provider.Filter) time.Duration {
 	oldest := time.Duration(0)
 	if !hubbub.NeedsClosed(fs) {
 		return oldest
@@ -249,7 +249,7 @@ func processRules(raw map[string]Rule) (map[string]Rule, error) {
 
 	for id, t := range raw {
 		rules[id] = t
-		newfs := []models.Filter{}
+		newfs := []provider.Filter{}
 
 		for _, f := range raw[id].Filters {
 			if f.RawLabel != "" {
