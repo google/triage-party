@@ -5,3 +5,7 @@
       content: "🚒";
       padding-right: 0.5em;
 }
+
+.collapsible {
+      cursor: pointer;
+}
