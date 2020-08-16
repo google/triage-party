@@ -63,31 +63,31 @@ var (
 	None = Tag{ID: "none", Desc: "No tag matched", NeedsComments: true, NeedsReviews: true, NeedsTimeline: true}
 )
 
-var Tags = []Tag{
-	Assigned,
-	Closed,
-	OpenMilestone,
-	Similar,
-	Merged,
-	Draft,
-	Commented,
-	Send,
-	Recv,
-	RecvQ,
-	AuthorLast,
-	AssigneeUpdated,
-	Approved,
-	ReviewedWithComment,
-	ChangesRequested,
-	NewCommits,
-	PushedAfterApproval,
-	Unreviewed,
-	XrefApproved,
-	XrefReviewedWithComment,
-	XrefChangesRequested,
-	XrefNewCommits,
-	XrefPushedAfterApproval,
-	XrefUnreviewed,
+var Tags = map[Tag]bool{
+	Assigned:                true,
+	Closed:                  true,
+	OpenMilestone:           true,
+	Similar:                 true,
+	Merged:                  true,
+	Draft:                   true,
+	Commented:               true,
+	Send:                    true,
+	Recv:                    true,
+	RecvQ:                   true,
+	AuthorLast:              true,
+	AssigneeUpdated:         true,
+	Approved:                true,
+	ReviewedWithComment:     true,
+	ChangesRequested:        true,
+	NewCommits:              true,
+	PushedAfterApproval:     true,
+	Unreviewed:              true,
+	XrefApproved:            true,
+	XrefReviewedWithComment: true,
+	XrefChangesRequested:    true,
+	XrefNewCommits:          true,
+	XrefPushedAfterApproval: true,
+	XrefUnreviewed:          true,
 }
 
 func RoleLast(role string) Tag {
@@ -95,19 +95,4 @@ func RoleLast(role string) Tag {
 		ID:   fmt.Sprintf("%s-last", role),
 		Desc: fmt.Sprintf("The last commenter was a project %s", role),
 	}
-}
-
-func Dedup(tags []Tag) []Tag {
-	deduped := []Tag{}
-	seen := map[string]bool{}
-
-	for _, t := range tags {
-		if seen[t.ID] {
-			continue
-		}
-		deduped = append(deduped, t)
-		seen[t.ID] = true
-	}
-
-	return deduped
 }

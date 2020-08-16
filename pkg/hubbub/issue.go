@@ -17,7 +17,6 @@ package hubbub
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -204,7 +203,6 @@ func (h *Engine) createIssueSummary(i *github.Issue, cs []*github.IssueComment, 
 	}
 	co.ClosedBy = i.GetClosedBy()
 
-	sort.Slice(co.Tags, func(i, j int) bool { return co.Tags[i].ID < co.Tags[j].ID })
 	return co
 }
 

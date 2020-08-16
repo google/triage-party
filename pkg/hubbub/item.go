@@ -88,6 +88,7 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 		Reactions:            map[string]int{},
 		LastCommentAuthor:    i.GetUser(),
 		LastCommentBody:      i.GetBody(),
+		Tags:                 map[tag.Tag]bool{},
 	}
 
 	if co.CommentsTotal == 0 {
@@ -102,7 +103,7 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 
 	if i.GetAssignee() != nil {
 		co.Assignees = append(co.Assignees, i.GetAssignee())
-		co.Tags = append(co.Tags, tag.Assigned)
+		co.Tags[tag.Assigned] = true
 	}
 
 	if !authorIsMember {
@@ -160,7 +161,7 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 			}
 			co.LatestMemberResponse = c.Created
 			if !seenMemberComment {
-				co.Tags = append(co.Tags, tag.Commented)
+				co.Tags[tag.Commented] = true
 				seenMemberComment = true
 			}
 		}
@@ -184,24 +185,24 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 	}
 
 	if co.LatestMemberResponse.After(co.LatestAuthorResponse) {
-		co.Tags = append(co.Tags, tag.Send)
+		co.Tags[tag.Send] = true
 		co.CurrentHoldTime = 0
 	} else if !authorIsMember {
-		co.Tags = append(co.Tags, tag.Recv)
+		co.Tags[tag.Recv] = true
 		co.CurrentHoldTime += time.Since(co.LatestAuthorResponse)
 		co.AccumulatedHoldTime += time.Since(co.LatestAuthorResponse)
 	}
 
 	if lastQuestion.After(co.LatestMemberResponse) {
-		co.Tags = append(co.Tags, tag.RecvQ)
+		co.Tags[tag.RecvQ] = true
 	}
 
 	if co.Milestone != nil && co.Milestone.GetState() == "open" {
-		co.Tags = append(co.Tags, tag.OpenMilestone)
+		co.Tags[tag.OpenMilestone] = true
 	}
 
 	if !co.LatestAssigneeResponse.IsZero() {
-		co.Tags = append(co.Tags, tag.AssigneeUpdated)
+		co.Tags[tag.AssigneeUpdated] = true
 	}
 
 	if len(cs) > 0 {
@@ -209,10 +210,10 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 		assoc := strings.ToLower(last.AuthorAssoc)
 		if assoc == "none" {
 			if last.User.GetLogin() == i.GetUser().GetLogin() {
-				co.Tags = append(co.Tags, tag.AuthorLast)
+				co.Tags[tag.AuthorLast] = true
 			}
 		} else {
-			co.Tags = append(co.Tags, tag.RoleLast(assoc))
+			co.Tags[tag.RoleLast(assoc)] = true
 		}
 
 		if last.Updated.After(co.Updated) {
@@ -221,7 +222,7 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 	}
 
 	if co.State == "closed" {
-		co.Tags = append(co.Tags, tag.Closed)
+		co.Tags[tag.Closed] = true
 	}
 
 	co.CommentersTotal = len(seenCommenters)

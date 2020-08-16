@@ -145,7 +145,7 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 		co.Similar = h.FindSimilar(co)
 		if len(co.Similar) > 0 {
-			co.Tags = append(co.Tags, tag.Similar)
+			co.Tags[tag.Similar] = true
 		}
 
 		if !postFetchMatch(co, fs) {
@@ -309,7 +309,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		co.Labels = pr.Labels
 		co.Similar = h.FindSimilar(co)
 		if len(co.Similar) > 0 {
-			co.Tags = append(co.Tags, tag.Similar)
+			co.Tags[tag.Similar] = true
 		}
 
 		if !postFetchMatch(co, fs) {
