@@ -215,10 +215,10 @@ func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment, age ti
 	key := i.GetHTMLURL()
 	cached, ok := h.seen[key]
 	if ok {
-		if !cached.Updated.Before(i.GetUpdatedAt()) && cached.CommentsTotal >= len(cs) {
+		if !cached.Seen.Before(h.mtime(i)) && cached.CommentsTotal >= len(cs) {
 			return h.seen[key]
 		}
-		klog.Infof("%s in issue cache, but was invalid. Live @ %s (%d comments), cached @ %s (%d comments)  ", i.GetHTMLURL(), i.GetUpdatedAt(), len(cs), cached.Updated, cached.CommentsTotal)
+		klog.Infof("%s in issue cache, but was invalid. Live @ %s (%d comments), cached @ %s (%d comments)  ", i.GetHTMLURL(), h.mtime(i), len(cs), cached.Seen, cached.CommentsTotal)
 	}
 
 	h.seen[key] = h.createIssueSummary(i, cs, age)
