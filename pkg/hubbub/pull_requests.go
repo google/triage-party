@@ -288,10 +288,10 @@ func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Co
 	key := pr.GetHTMLURL()
 	cached, ok := h.seen[key]
 	if ok {
-		if !cached.Updated.Before(pr.GetUpdatedAt()) && cached.CommentsTotal >= len(cs) && cached.TimelineTotal >= len(timeline) && cached.ReviewsTotal >= len(reviews) {
+		if !cached.Seen.Before(h.mtime(pr)) && cached.CommentsTotal >= len(cs) && cached.TimelineTotal >= len(timeline) && cached.ReviewsTotal >= len(reviews) {
 			return h.seen[key]
 		}
-		klog.Infof("%s in PR cache, but was invalid. Live @ %s (%d comments), cached @ %s (%d comments)  ", pr.GetHTMLURL(), pr.GetUpdatedAt(), len(cs), cached.Updated, cached.CommentsTotal)
+		klog.Infof("%s in PR cache, but was invalid. Live @ %s (%d comments), cached @ %s (%d comments)  ", pr.GetHTMLURL(), h.mtime(pr), len(cs), cached.Seen, cached.CommentsTotal)
 	}
 
 	h.seen[key] = h.createPRSummary(ctx, pr, cs, timeline, reviews, age, fetch)
