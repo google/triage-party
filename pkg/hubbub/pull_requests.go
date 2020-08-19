@@ -281,6 +281,7 @@ func (h *Engine) createPRSummary(ctx context.Context, pr *github.PullRequest, cs
 		co.Tags = append(co.Tags, tag.Merged)
 	}
 
+	co.Tags = tag.Dedup(co.Tags)
 	sort.Slice(co.Tags, func(i, j int) bool { return co.Tags[i].ID < co.Tags[j].ID })
 	return co
 }
