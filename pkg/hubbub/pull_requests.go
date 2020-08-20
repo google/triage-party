@@ -288,10 +288,18 @@ func (h *Engine) PRSummary(ctx context.Context, pr *github.PullRequest, cs []*Co
 	key := pr.GetHTMLURL()
 	cached, ok := h.seen[key]
 	if ok {
-		if !cached.Seen.Before(h.mtime(pr)) && cached.CommentsTotal >= len(cs) && cached.TimelineTotal >= len(timeline) && cached.ReviewsTotal >= len(reviews) {
+		if !cached.Seen.Before(h.mtime(pr)) && cached.CommentsSeen >= len(cs) && cached.TimelineTotal >= len(timeline) && cached.ReviewsTotal >= len(reviews) {
 			return h.seen[key]
 		}
-		klog.Infof("%s in PR cache, but was invalid. Live @ %s (%d comments), cached @ %s (%d comments)  ", pr.GetHTMLURL(), h.mtime(pr), len(cs), cached.Seen, cached.CommentsTotal)
+		if cached.CommentsSeen < len(cs) {
+			klog.V(2).Infof("%s in issue cache, but is missing comments. Live @ %s (%d comments), cached @ %s (%d comments)  ", pr.GetHTMLURL(), h.mtime(pr), len(cs), cached.Seen, cached.CommentsSeen)
+		} else if cached.TimelineTotal < len(timeline) {
+			klog.Infof("%s in issue cache, but is missing timeline events. Live @ %s (%d events), cached @ %s (%d events)  ", pr.GetHTMLURL(), h.mtime(pr), len(timeline), cached.Seen, cached.TimelineTotal)
+		} else if cached.ReviewsTotal < len(reviews) {
+			klog.Infof("%s in issue cache, but is missing reviews. Live @ %s (%d reviews), cached @ %s (%d reviews)  ", pr.GetHTMLURL(), h.mtime(pr), len(reviews), cached.Seen, cached.ReviewsTotal)
+		} else {
+			klog.Infof("%s in issue cache, but may be missing updated references. Live @ %s (%d comments), cached @ %s (%d comments)  ", pr.GetHTMLURL(), h.mtime(pr), len(cs), cached.Seen, cached.CommentsSeen)
+		}
 	}
 
 	h.seen[key] = h.createPRSummary(ctx, pr, cs, timeline, reviews, age, fetch)

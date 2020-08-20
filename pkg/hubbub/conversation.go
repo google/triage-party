@@ -45,7 +45,8 @@ type Conversation struct {
 	Updated time.Time `json:"updated"`
 
 	// Seen is the age of the data which generated this data
-	Seen time.Time `json:"seen"`
+	Seen         time.Time `json:"seen"`
+	CommentsSeen int       `json:"comments_seen"`
 
 	// When did this item reach the current priority?
 	Prioritized time.Time `json:"prioritized"`
