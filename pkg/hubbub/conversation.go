@@ -86,7 +86,7 @@ type Conversation struct {
 	IssueRefs       []*RelatedConversation `json:"issue_refs"`
 	PullRequestRefs []*RelatedConversation `json:"pull_request_refs"`
 
-	Tags []tag.Tag `json:"tags"`
+	Tags map[tag.Tag]bool `json:"tags"`
 
 	// Similar issues to this one
 	Similar []*RelatedConversation `json:"similar"`
@@ -96,10 +96,10 @@ type Conversation struct {
 
 // A subset of Conversation for related items (requires less memory than a Conversation)
 type RelatedConversation struct {
-	Organization string    `json:"org"`
-	Project      string    `json:"project"`
-	ID           int       `json:"int"`
-	Tags         []tag.Tag `json:"tags"`
+	Organization string           `json:"org"`
+	Project      string           `json:"project"`
+	ID           int              `json:"int"`
+	Tags         map[tag.Tag]bool `json:"tags"`
 
 	URL         string       `json:"url"`
 	Title       string       `json:"title"`

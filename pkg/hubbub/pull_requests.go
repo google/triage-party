@@ -268,21 +268,19 @@ func (h *Engine) createPRSummary(ctx context.Context, pr *github.PullRequest, cs
 	h.addEvents(ctx, co, timeline, fetch)
 
 	co.ReviewState = reviewState(pr, timeline, reviews)
-	co.Tags = append(co.Tags, reviewStateTag(co.ReviewState))
+	co.Tags[reviewStateTag(co.ReviewState)] = true
 
 	if pr.GetDraft() {
-		co.Tags = append(co.Tags, tag.Draft)
+		co.Tags[tag.Draft] = true
 	}
 
 	// Technically not the same thing, but close enough for me.
 	co.ClosedBy = pr.GetMergedBy()
 	if pr.GetMerged() {
 		co.ReviewState = Merged
-		co.Tags = append(co.Tags, tag.Merged)
+		co.Tags[tag.Merged] = true
 	}
 
-	co.Tags = tag.Dedup(co.Tags)
-	sort.Slice(co.Tags, func(i, j int) bool { return co.Tags[i].ID < co.Tags[j].ID })
 	return co
 }
 

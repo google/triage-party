@@ -103,7 +103,7 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 			if assignedTo[t.GetActor().GetLogin()] {
 				if t.GetCreatedAt().After(co.LatestAssigneeResponse) {
 					co.LatestAssigneeResponse = t.GetCreatedAt()
-					co.Tags = append(co.Tags, tag.AssigneeUpdated)
+					co.Tags[tag.AssigneeUpdated] = true
 				}
 			}
 
@@ -130,14 +130,12 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 				refTag := reviewStateTag(ref.ReviewState)
 				refTag.ID = fmt.Sprintf("pr-%s", refTag.ID)
 				refTag.Desc = fmt.Sprintf("cross-referenced PR: %s", refTag.Desc)
-				co.Tags = append(co.Tags, refTag)
+				co.Tags[refTag] = true
 			} else {
 				co.UpdateIssueRefs(h.issueRef(t.GetSource().GetIssue(), co.Seen))
 			}
 		}
 	}
-
-	co.Tags = tag.Dedup(co.Tags)
 }
 
 func (h *Engine) prRef(ctx context.Context, pr GitHubItem, age time.Time, fetch bool) *RelatedConversation {

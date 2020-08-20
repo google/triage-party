@@ -17,14 +17,12 @@ package hubbub
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/logu"
 	"github.com/google/triage-party/pkg/persist"
-	"github.com/google/triage-party/pkg/tag"
 	"gopkg.in/yaml.v2"
 	"k8s.io/klog/v2"
 )
@@ -205,8 +203,6 @@ func (h *Engine) createIssueSummary(i *github.Issue, cs []*github.IssueComment, 
 	}
 	co.ClosedBy = i.GetClosedBy()
 
-	co.Tags = tag.Dedup(co.Tags)
-	sort.Slice(co.Tags, func(i, j int) bool { return co.Tags[i].ID < co.Tags[j].ID })
 	return co
 }
 

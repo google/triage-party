@@ -11,18 +11,18 @@
 <nav class="navbar secondary" role="navigation" aria-label="secondary navigation">
   <div class="navbar-secondary-brand">
   </div>
-  
+
   <div id="navbarBasicExample" class="navbar-menu">
     <div class="navbar-center">
           <div class="right-item">
           <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
-          <span title="Data as of {{ .ResultAge | HumanDuration}} ago">{{ if eq (len .UniqueItems) .Total }}{{ .Total }} unique items{{ else }}Showing {{ len .UniqueItems }} of {{ .Total}} unique items{{ end }}, 
-          Avg age: {{ .CollectionResult.AvgAge | toDays }}, 
+          <span title="Data as of {{ .ResultAge | HumanDuration}} ago">{{ if eq (len .UniqueItems) .Total }}{{ .Total }} unique items{{ else }}Showing {{ len .UniqueItems }} of {{ .Total}} unique items{{ end }},
+          Avg age: {{ .CollectionResult.AvgAge | toDays }},
           Avg wait: {{ .CollectionResult.AvgCurrentHold | toDays }}
           </span>
-          
+
           <span class="alt-view"><a href="/k/{{ .ID }}{{ $.GetVars }}">Kanban</a></span>
-          
+
           </div>
           <script>
           function openAllTabs() {
@@ -160,7 +160,7 @@
                 {{ end }}
               </td>
               <td class="cell-tags">
-                {{ range .Tags }}<div class="gh-tag tag-{{ .ID }}" title="{{ .Desc }}">{{ .ID }}</div> {{ end }}
+                {{ range $k, $_ := .Tags }}<div class="gh-tag tag-{{ $k.ID }}" title="{{ $k.Desc }}">{{ $k.ID }}</div> {{ end }}
               </td>
             </tr>
             {{ end }}
@@ -190,10 +190,10 @@
       <p>You did it! You have fought valiantly for the user, and saved the day.</p>
     </div>
 
-    {{ end }} 
+    {{ end }}
   {{ end }}
 
-{{ end }} 
+{{ end }}
 
 {{ define "js" }}
 <script src="/third_party/jquery/jquery-3.3.1.min.js"></script>
