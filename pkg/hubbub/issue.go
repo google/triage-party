@@ -211,10 +211,15 @@ func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment, age ti
 	key := i.GetHTMLURL()
 	cached, ok := h.seen[key]
 	if ok {
-		if !cached.Seen.Before(h.mtime(i)) && cached.CommentsTotal >= len(cs) {
+		minAge := h.mtime(i)
+		if !cached.Seen.Before(minAge) && cached.CommentsSeen >= len(cs) {
 			return h.seen[key]
 		}
-		klog.Infof("%s in issue cache, but was invalid. Live @ %s (%d comments), cached @ %s (%d comments)  ", i.GetHTMLURL(), h.mtime(i), len(cs), cached.Seen, cached.CommentsTotal)
+		if cached.CommentsSeen < len(cs) {
+			klog.V(2).Infof("%s in issue cache, but is missing comments. Live @ %s (%d comments), cached @ %s (%d comments)  ", i.GetHTMLURL(), minAge, len(cs), cached.Seen, cached.CommentsSeen)
+		} else {
+			klog.Infof("%s in issue cache, but may be missing updated references. Live @ %s (%d comments), cached @ %s (%d comments)  ", i.GetHTMLURL(), minAge, len(cs), cached.Seen, cached.CommentsSeen)
+		}
 	}
 
 	h.seen[key] = h.createIssueSummary(i, cs, age)
@@ -223,10 +228,12 @@ func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment, age ti
 
 func isBot(u *github.User) bool {
 	if u.GetType() == "bot" {
+		klog.V(3).Infof("%s type=bot", u.GetLogin())
 		return true
 	}
 
 	if strings.Contains(u.GetBio(), "stale issues") {
+		klog.V(3).Infof("%s bio=stale", u.GetLogin())
 		return true
 	}
 

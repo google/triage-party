@@ -37,7 +37,7 @@ func (h *Engine) SearchAny(ctx context.Context, org string, project string, fs [
 // Search for GitHub issues or PR's
 func (h *Engine) SearchIssues(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time, hidden bool) ([]*Conversation, time.Time, error) {
 	fs = openByDefault(fs)
-	klog.V(1).Infof("Gathering raw data for %s/%s search %s - newer than %s", org, project, fs, logu.STime(newerThan))
+	klog.Infof("Gathering raw data for %s/%s issues %s - newer than %s", org, project, fs, logu.STime(newerThan))
 	var wg sync.WaitGroup
 
 	var open []*github.Issue
@@ -88,7 +88,6 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 	for _, i := range append(open, closed...) {
 		if len(h.debug) > 0 {
-			klog.Infof("DEBUG FILTER: %s", h.debug)
 			if h.debug[i.GetNumber()] {
 				klog.Errorf("*** Found debug issue #%d:\n%s", i.GetNumber(), formatStruct(*i))
 			} else {
@@ -132,12 +131,15 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 		comments := []*github.IssueComment{}
 
+		fetchComments := false
 		if needComments(i, fs) && i.GetComments() > 0 {
 			klog.V(1).Infof("#%d - %q: need comments for final filtering", i.GetNumber(), i.GetTitle())
-			comments, _, err = h.cachedIssueComments(ctx, org, project, i.GetNumber(), h.mtime(i), !newerThan.IsZero())
-			if err != nil {
-				klog.Errorf("comments: %v", err)
-			}
+			fetchComments = !newerThan.IsZero()
+		}
+
+		comments, _, err = h.cachedIssueComments(ctx, org, project, i.GetNumber(), h.mtime(i), fetchComments)
+		if err != nil {
+			klog.Errorf("comments: %v", err)
 		}
 
 		co := h.IssueSummary(i, comments, age)
@@ -156,20 +158,23 @@ func (h *Engine) SearchIssues(ctx context.Context, org string, project string, f
 
 		updatedAt := h.mtime(i)
 		var timeline []*github.Timeline
+		fetchTimeline := false
 		if needTimeline(i, fs, false, hidden) {
-			timeline, err = h.cachedTimeline(ctx, org, project, i.GetNumber(), updatedAt, !newerThan.IsZero())
-			if err != nil {
-				klog.Errorf("timeline: %v", err)
-				continue
-			}
+			fetchTimeline = !newerThan.IsZero()
 		}
 
-		h.addEvents(ctx, co, timeline, !newerThan.IsZero())
+		timeline, err = h.cachedTimeline(ctx, org, project, i.GetNumber(), updatedAt, fetchTimeline)
+		if err != nil {
+			klog.Errorf("timeline: %v", err)
+		}
+		h.addEvents(ctx, co, timeline, fetchTimeline)
 
 		// Some labels are judged by linked PR state. Ensure that they are updated to the same timestamp.
+		fetchReviews := false
 		if needReviews(i, fs, hidden) && len(co.PullRequestRefs) > 0 {
-			co.PullRequestRefs = h.updateLinkedPRs(ctx, co, mostRecentUpdate, !newerThan.IsZero())
+			fetchReviews = !newerThan.IsZero()
 		}
+		co.PullRequestRefs = h.updateLinkedPRs(ctx, co, mostRecentUpdate, fetchReviews)
 
 		if !postEventsMatch(co, fs) {
 			klog.V(1).Infof("#%d - %q did not match post-events filter: %s", i.GetNumber(), i.GetTitle(), fs)
@@ -206,7 +211,7 @@ func NeedsClosed(fs []Filter) bool {
 func (h *Engine) SearchPullRequests(ctx context.Context, org string, project string, fs []Filter, newerThan time.Time, hidden bool) ([]*Conversation, time.Time, error) {
 	fs = openByDefault(fs)
 
-	klog.V(1).Infof("Searching %s/%s for PR's matching: %s - newer than %s", org, project, fs, logu.STime(newerThan))
+	klog.Infof("Gathering raw data for %s/%s PR's matching: %s - newer than %s", org, project, fs, logu.STime(newerThan))
 	filtered := []*Conversation{}
 
 	var wg sync.WaitGroup
@@ -278,27 +283,34 @@ func (h *Engine) SearchPullRequests(ctx context.Context, org string, project str
 		var reviews []*github.PullRequestReview
 		var comments []*Comment
 
+		fetchComments := false
 		if needComments(pr, fs) {
-			comments, _, err = h.prComments(ctx, org, project, pr.GetNumber(), h.mtime(pr), !newerThan.IsZero())
-			if err != nil {
-				klog.Errorf("comments: %v", err)
-			}
+			fetchComments = !newerThan.IsZero()
 		}
 
+		comments, _, err = h.prComments(ctx, org, project, pr.GetNumber(), h.mtime(pr), fetchComments)
+		if err != nil {
+			klog.Errorf("comments: %v", err)
+		}
+
+		fetchTimeline := false
 		if needTimeline(pr, fs, true, hidden) {
-			timeline, err = h.cachedTimeline(ctx, org, project, pr.GetNumber(), h.mtime(pr), !newerThan.IsZero())
-			if err != nil {
-				klog.Errorf("timeline: %v", err)
-				continue
-			}
+			fetchTimeline = !newerThan.IsZero()
 		}
 
+		timeline, err = h.cachedTimeline(ctx, org, project, pr.GetNumber(), h.mtime(pr), fetchTimeline)
+		if err != nil {
+			klog.Errorf("timeline: %v", err)
+		}
+
+		fetchReviews := false
 		if needReviews(pr, fs, hidden) {
-			reviews, _, err = h.cachedReviews(ctx, org, project, pr.GetNumber(), h.mtime(pr), !newerThan.IsZero())
-			if err != nil {
-				klog.Errorf("reviews: %v", err)
-				continue
-			}
+			fetchReviews = !newerThan.IsZero()
+		}
+		reviews, _, err = h.cachedReviews(ctx, org, project, pr.GetNumber(), h.mtime(pr), fetchReviews)
+		if err != nil {
+			klog.Errorf("reviews: %v", err)
+			continue
 		}
 
 		if h.debug[pr.GetNumber()] {
@@ -333,19 +345,19 @@ func needComments(i GitHubItem, fs []Filter) bool {
 		if f.TagRegex() != nil {
 			if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
 				if t.NeedsComments {
-					klog.V(1).Infof("#%d - need comments due to tag %s (negate=%v)", i.GetNumber(), f.TagRegex(), f.TagNegate())
+					klog.Infof("#%d - need comments due to tag %s (negate=%v)", i.GetNumber(), f.TagRegex(), f.TagNegate())
 					return true
 				}
 			}
 		}
 
 		if f.ClosedCommenters != "" || f.ClosedComments != "" {
-			klog.V(1).Infof("#%d - need comments due to closed comments", i.GetNumber())
+			klog.Infof("#%d - need comments due to closed comments", i.GetNumber())
 			return true
 		}
 
 		if f.Responded != "" || f.Commenters != "" {
-			klog.V(1).Infof("#%d - need comments due to responded/commenters filter", i.GetNumber())
+			klog.Infof("#%d - need comments due to responded/commenters filter", i.GetNumber())
 			return true
 		}
 	}

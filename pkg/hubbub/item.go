@@ -64,6 +64,7 @@ type GitHubItem interface {
 
 // createConversation creates a conversation from an issue-like
 func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) *Conversation {
+	klog.Infof("creating conversation for #%d with %d/%d comments (age: %s)", i.GetNumber(), len(cs), i.GetComments(), age)
 
 	authorIsMember := false
 	if h.isMember(i.GetUser().GetLogin(), i.GetAuthorAssociation()) {
@@ -71,16 +72,18 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 	}
 
 	co := &Conversation{
-		ID:                   i.GetNumber(),
-		URL:                  i.GetHTMLURL(),
-		Author:               i.GetUser(),
-		Title:                i.GetTitle(),
-		State:                i.GetState(),
-		Type:                 Issue,
-		Seen:                 age,
-		Created:              i.GetCreatedAt(),
-		Updated:              i.GetUpdatedAt(),
-		CommentsTotal:        i.GetComments(),
+		ID:            i.GetNumber(),
+		URL:           i.GetHTMLURL(),
+		Author:        i.GetUser(),
+		Title:         i.GetTitle(),
+		State:         i.GetState(),
+		Type:          Issue,
+		Seen:          age,
+		Created:       i.GetCreatedAt(),
+		Updated:       i.GetUpdatedAt(),
+		CommentsTotal: i.GetComments(),
+		// How many comments were parsed
+		CommentsSeen:         len(cs),
 		ClosedAt:             i.GetClosedAt(),
 		SelfInflicted:        authorIsMember,
 		LatestAuthorResponse: i.GetCreatedAt(),
@@ -184,25 +187,28 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 		}
 	}
 
-	if co.LatestMemberResponse.After(co.LatestAuthorResponse) {
-		co.Tags[tag.Send] = true
-		co.CurrentHoldTime = 0
-	} else if !authorIsMember {
-		co.Tags[tag.Recv] = true
-		co.CurrentHoldTime += time.Since(co.LatestAuthorResponse)
-		co.AccumulatedHoldTime += time.Since(co.LatestAuthorResponse)
-	}
-
-	if lastQuestion.After(co.LatestMemberResponse) {
-		co.Tags[tag.RecvQ] = true
-	}
-
 	if co.Milestone != nil && co.Milestone.GetState() == "open" {
 		co.Tags[tag.OpenMilestone] = true
 	}
 
 	if !co.LatestAssigneeResponse.IsZero() {
 		co.Tags[tag.AssigneeUpdated] = true
+	}
+
+	// Only add these tags if we've seen all the comments
+	if len(cs) >= co.CommentsTotal {
+		if co.LatestMemberResponse.After(co.LatestAuthorResponse) {
+			co.Tags[tag.Send] = true
+			co.CurrentHoldTime = 0
+		} else if !authorIsMember {
+			co.Tags[tag.Recv] = true
+			co.CurrentHoldTime += time.Since(co.LatestAuthorResponse)
+			co.AccumulatedHoldTime += time.Since(co.LatestAuthorResponse)
+		}
+
+		if lastQuestion.After(co.LatestMemberResponse) {
+			co.Tags[tag.RecvQ] = true
+		}
 	}
 
 	if len(cs) > 0 {
@@ -236,6 +242,15 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 	months := time.Since(co.Created).Hours() / 24 / 30
 	co.CommentersPerMonth = float64(co.CommentersTotal) / months
 	co.ReactionsPerMonth = float64(co.ReactionsTotal) / months
+
+	tagNames := []string{}
+	for k := range co.Tags {
+		tagNames = append(tagNames, k.ID)
+	}
+
+	if len(tagNames) > 0 {
+		klog.V(1).Infof("#%d tags based on %d/%d comments: %s", co.ID, co.CommentsSeen, co.CommentsTotal, tagNames)
+	}
 	return co
 }
 
@@ -249,6 +264,7 @@ func (h *Engine) isMember(user string, role string) bool {
 		return true
 	}
 
+	klog.V(1).Infof("%s (%s) is not considered a member: members=%s memberRoles=%s", user, role, h.members, h.memberRoles)
 	return false
 }
 
