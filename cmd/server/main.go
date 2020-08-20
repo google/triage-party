@@ -159,10 +159,11 @@ func main() {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		for sig := range sigc {
-			klog.Infof("signal caught: %v", sig)
-			os.Exit(0)
-		}
+		sig := <-sigc
+		klog.Infof("signal caught: %v (saving!)", sig)
+		u.Persist()
+		klog.Infof("Exiting by signal as requested.")
+		os.Exit(1)
 	}()
 
 	go func() {
