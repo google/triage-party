@@ -1,5 +1,21 @@
 # Release Notes
 
+## Version 1.3.0 - 2020-08-24
+
+* Defer comment tags until all data is fetched, use cached metadata when available [#207](https://github.com/google/triage-party/pull/207)
+* Make the Tags a set to avoid issues of DeDup [#203](https://github.com/google/triage-party/pull/203)
+* Use internal mtime tracking to determine in-memory issue validatity  [#205](https://github.com/google/triage-party/pull/205)
+* Add svg for future scaling image uses [#202](https://github.com/google/triage-party/pull/202)
+* fix startup panic [#199](https://github.com/google/triage-party/pull/199)
+* cursor:pointer for collapsible [#198](https://github.com/google/triage-party/pull/198)
+* Allow collections to define their own velocity stats [#191](https://github.com/google/triage-party/pull/191)
+
+Huge thank you for this release towards our contributors:
+
+- Grant Mccloskey
+- Thomas Strömberg
+- balopat
+
 ## Version 1.2.1 - 2020-07-17
 
 * Return stale results if GitHub cannot be queried [#189](https://github.com/google/triage-party/pull/189)
