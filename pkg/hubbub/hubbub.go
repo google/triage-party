@@ -73,6 +73,11 @@ type Engine struct {
 	seen map[string]*Conversation
 }
 
+// ConversationsTotal returns the number of conversations we've seen so far
+func (e *Engine) ConversationsTotal() int {
+	return len(e.seen)
+}
+
 func New(cfg Config) *Engine {
 	e := &Engine{
 		cache:  cfg.Cache,
