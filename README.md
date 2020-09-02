@@ -2,7 +2,7 @@
 
 `NOTE: This is not an officially supported Google product`
 
-Triage Party is a stateless web application to optimize issue and PR triage for large open-source projects, built with the GitHub API.
+Triage Party is a stateless web app to optimize issue and PR triage for large open-source projects using the GitHub API.
 
 ![screenshot](docs/images/screenshot.png)
 
