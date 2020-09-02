@@ -12,8 +12,8 @@ Triage Party is configured via YAML, and designed for projects to self-host on a
 
 ## Novel Features
 
-* Conversation direction tracking and filtering
 * Multiplayer mode: Up to 20 simultaneous players in group triage
+* Conversation direction tracking and filtering
 * Query across GitHub projects or repositories
 * Duplicate issue detection
 * Filters that are not possible on GitHub:
