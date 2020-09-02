@@ -6,7 +6,6 @@ import (
 	"github.com/google/triage-party/pkg/constants"
 	"io/ioutil"
 	"k8s.io/klog/v2"
-	"os"
 	"strings"
 )
 
@@ -34,35 +33,43 @@ type Config struct {
 func InitProviders(ctx context.Context, c Config) {
 	initGithub(ctx, c)
 	initGitlab(c)
+	if (githubProvider == nil) && (gitlabProvider == nil) {
+		klog.Exitf("You should use at least 1 provider: gitlab/github")
+	}
 }
 
 func ResolveProviderByHost(providerHost string) Provider {
 	switch providerHost {
 	case constants.GithubProviderHost:
+		if githubProvider == nil {
+			klog.Exitf("You need initialize github provider")
+		}
 		return githubProvider
 	case constants.GitlabProviderHost:
+		if gitlabProvider == nil {
+			klog.Exitf("You need initialize gitlab provider")
+		}
 		return gitlabProvider
 	}
 	fmt.Println("not existing provider")
 	return nil
 }
 
-func mustReadToken(path string, env string) string {
-	token := os.Getenv(env)
+func mustReadToken(path string, token, env, providerName string) string {
 	if path != "" {
 		t, err := ioutil.ReadFile(path)
 		if err != nil {
 			klog.Exitf("unable to read token file: %v", err)
 		}
 		token = string(t)
-		klog.Infof("loaded %d byte github/gitlab token from %s", len(token), path)
+		klog.Infof("loaded %d byte %s token from %s", len(token), providerName, path)
 	} else {
-		klog.Infof("loaded %d byte github/gitlab token from %s", len(token), env)
+		klog.Infof("loaded %d byte %s token from %s", len(token), providerName, env)
 	}
 
 	token = strings.TrimSpace(token)
 	if len(token) < 8 {
-		klog.Exitf("github/gitlab token impossibly small: %q", token)
+		klog.Exitf("%s token impossibly small: %q", providerName, token)
 	}
 	return token
 }

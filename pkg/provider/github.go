@@ -9,6 +9,7 @@ import (
 	"golang.org/x/oauth2"
 	"k8s.io/klog/v2"
 	"net/http"
+	"os"
 )
 
 type GithubProvider struct {
@@ -264,8 +265,13 @@ func MustCreateGithubClient(githubAPIRawURL string, httpClient *http.Client) *gi
 }
 
 func initGithub(ctx context.Context, c Config) {
+	token := os.Getenv(constants.GithubTokenEnvVar)
+	path := *c.GithubTokenFile
+	if (token == "") && (path == "") {
+		return
+	}
 	cl := MustCreateGithubClient(*c.GithubAPIRawURL, oauth2.NewClient(ctx, oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: mustReadToken(*c.GithubTokenFile, constants.GithubTokenEnvVar)},
+		&oauth2.Token{AccessToken: mustReadToken(path, token, constants.GithubTokenEnvVar, constants.GithubProviderName)},
 	)))
 	githubProvider = &GithubProvider{
 		client: cl,

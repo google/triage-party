@@ -6,6 +6,7 @@ import (
 	"github.com/google/triage-party/pkg/constants"
 	"github.com/xanzy/go-gitlab"
 	"log"
+	"os"
 	"strconv"
 	"time"
 )
@@ -15,7 +16,12 @@ type GitlabProvider struct {
 }
 
 func initGitlab(c Config) {
-	cl, err := gitlab.NewClient(mustReadToken(*c.GitlabTokenFile, constants.GitlabTokenEnvVar))
+	token := os.Getenv(constants.GitlabTokenEnvVar)
+	path := *c.GitlabTokenFile
+	if (token == "") && (path == "") {
+		return
+	}
+	cl, err := gitlab.NewClient(mustReadToken(path, token, constants.GitlabTokenEnvVar, constants.GitlabProviderName))
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
