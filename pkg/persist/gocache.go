@@ -32,7 +32,7 @@ func createMem() *cache.Cache {
 
 func loadMem(items map[string]cache.Item) *cache.Cache {
 	for key, v := range items {
-		th, ok := v.Object.(*Thing)
+		th, ok := v.Object.(*provider.Thing)
 		if !ok {
 			klog.Warningf("%s is not of type Thing", key)
 		} else {
