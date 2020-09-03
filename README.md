@@ -1,19 +1,19 @@
-# Triage Party 🎉
+# Triage Party: massively multi-player GitHub triage 🎉
 
 `NOTE: This is not an officially supported Google product`
 
-Triage Party is a tool for triaging incoming GitHub issues for large open-source projects, built with the GitHub API.
+Triage Party is a stateless web app to optimize issue and PR triage for large open-source projects using the GitHub API.
 
 ![screenshot](docs/images/screenshot.png)
 
 Triage Party focuses on reducing response latency for incoming GitHub issues and PR's, and ensure that conversations are not lost in the ether. It was built from the [Google Container DevEx team](https://github.com/GoogleContainerTools)'s experience contributing to popular open-source projects, such as [minikube](https://github.com/kubernetes/minikube), [Skaffold](https://github.com/GoogleContainerTools/skaffold/), and [Kaniko](https://github.com/GoogleContainerTools/kaniko/).
 
-Triage Party is a stateless Go web application, configured via YAML. While it has been optimized for Google Cloud Run deployments, it's deployable anywhere due to its low memory footprint: even on a Raspberry Pi.
+Triage Party is configured via YAML, and designed for projects to self-host on anything from a Raspberry Pi, Google Cloud Run, or Kubernetes.
 
 ## Novel Features
 
-* Conversation direction tracking and filtering
 * Multiplayer mode: Up to 20 simultaneous players in group triage
+* Conversation direction tracking and filtering
 * Query across GitHub projects or repositories
 * Duplicate issue detection
 * Filters that are not possible on GitHub:

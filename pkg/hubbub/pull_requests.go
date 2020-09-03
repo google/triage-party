@@ -276,20 +276,19 @@ func (h *Engine) createPRSummary(ctx context.Context, sp provider.SearchParams, 
 	h.addEvents(ctx, sp, co, timeline)
 
 	co.ReviewState = reviewState(pr, timeline, reviews)
-	co.Tags = append(co.Tags, reviewStateTag(co.ReviewState))
+	co.Tags[reviewStateTag(co.ReviewState)] = true
 
 	if pr.GetDraft() {
-		co.Tags = append(co.Tags, tag.Draft)
+		co.Tags[tag.Draft] = true
 	}
 
 	// Technically not the same thing, but close enough for me.
 	co.ClosedBy = pr.GetMergedBy()
 	if pr.GetMerged() {
 		co.ReviewState = Merged
-		co.Tags = append(co.Tags, tag.Merged)
+		co.Tags[tag.Merged] = true
 	}
 
-	sort.Slice(co.Tags, func(i, j int) bool { return co.Tags[i].ID < co.Tags[j].ID })
 	return co
 }
 
@@ -298,10 +297,18 @@ func (h *Engine) PRSummary(ctx context.Context, sp provider.SearchParams, pr *pr
 	key := pr.GetHTMLURL()
 	cached, ok := h.seen[key]
 	if ok {
-		if !cached.Updated.Before(pr.GetUpdatedAt()) && cached.CommentsTotal >= len(cs) && cached.TimelineTotal >= len(timeline) && cached.ReviewsTotal >= len(reviews) {
+		if !cached.Seen.Before(h.mtime(pr)) && cached.CommentsSeen >= len(cs) && cached.TimelineTotal >= len(timeline) && cached.ReviewsTotal >= len(reviews) {
 			return h.seen[key]
 		}
-		klog.Infof("%s in PR cache, but was invalid. Live @ %s (%d comments), cached @ %s (%d comments)  ", pr.GetHTMLURL(), pr.GetUpdatedAt(), len(cs), cached.Updated, cached.CommentsTotal)
+		if cached.CommentsSeen < len(cs) {
+			klog.V(2).Infof("%s in issue cache, but is missing comments. Live @ %s (%d comments), cached @ %s (%d comments)  ", pr.GetHTMLURL(), h.mtime(pr), len(cs), cached.Seen, cached.CommentsSeen)
+		} else if cached.TimelineTotal < len(timeline) {
+			klog.Infof("%s in issue cache, but is missing timeline events. Live @ %s (%d events), cached @ %s (%d events)  ", pr.GetHTMLURL(), h.mtime(pr), len(timeline), cached.Seen, cached.TimelineTotal)
+		} else if cached.ReviewsTotal < len(reviews) {
+			klog.Infof("%s in issue cache, but is missing reviews. Live @ %s (%d reviews), cached @ %s (%d reviews)  ", pr.GetHTMLURL(), h.mtime(pr), len(reviews), cached.Seen, cached.ReviewsTotal)
+		} else {
+			klog.Infof("%s in issue cache, but may be missing updated references. Live @ %s (%d comments), cached @ %s (%d comments)  ", pr.GetHTMLURL(), h.mtime(pr), len(cs), cached.Seen, cached.CommentsSeen)
+		}
 	}
 
 	h.seen[key] = h.createPRSummary(ctx, sp, pr, cs, timeline, reviews)

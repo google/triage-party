@@ -87,13 +87,13 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 	}
 
 	if result.RuleResults == nil {
-		p.Notification = template.HTML(`Gathering data ...`)
+		p.Notification = template.HTML(fmt.Sprintf("Gathering data (%d issues examined) ...", h.party.ConversationsTotal()))
 	} else if p.ResultAge > h.warnAge {
 		p.Notification = template.HTML(fmt.Sprintf(`Refreshing data in the background. Displayed data may be up to %s old. Use <a href="https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache">Shift-Reload</a> to force a data refresh at any time.`, humanDuration(time.Since(result.OldestInput))))
 		p.Stale = true
 	}
 
-	if result.Collection.Velocity != "" {
+	if result.Collection != nil && result.Collection.Velocity != "" {
 		p.VelocityStats = h.updater.Lookup(ctx, result.Collection.Velocity, false)
 	} else {
 		for _, s := range sts {

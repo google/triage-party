@@ -25,7 +25,7 @@ import (
 
 var (
 	// MaxSaveAge is the oldest allowable entry to persist
-	MaxSaveAge = 1 * 24 * time.Hour
+	MaxSaveAge = 2 * 24 * time.Hour
 	// MaxLoadAge is the oldest allowable entry to load
 	MaxLoadAge = 10 * 24 * time.Hour
 )

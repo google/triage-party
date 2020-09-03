@@ -295,3 +295,8 @@ func processRules(raw map[string]Rule) (map[string]Rule, error) {
 
 	return rules, nil
 }
+
+// ConversationsTotal returns the number of conversations we've seen so far
+func (p *Party) ConversationsTotal() int {
+	return p.engine.ConversationsTotal()
+}

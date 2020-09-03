@@ -17,6 +17,7 @@ package hubbub
 import (
 	"fmt"
 	"github.com/google/triage-party/pkg/provider"
+	"runtime"
 	"strings"
 	"time"
 
@@ -41,6 +42,7 @@ func (h *Engine) mtimeRef(rc *RelatedConversation) time.Time {
 func (h *Engine) mtimeKey(idea time.Time, key string) time.Time {
 	updatedAt := idea
 	updateSeen := h.updatedAt[key]
+	klog.V(2).Infof("%s was definitely updated by %s - possibly by %s", key, updatedAt, updateSeen)
 
 	if updateSeen == updatedAt {
 		return updatedAt
@@ -85,7 +87,12 @@ func (h *Engine) updateMtimeLong(org string, project string, num int, t time.Tim
 func (h *Engine) updateMtimeByKey(key string, ts time.Time) {
 	if ts.After(h.updatedAt[key]) {
 		if !h.updatedAt[key].IsZero() {
-			klog.V(1).Infof("Updating %s last update time for %s to %s", key, h.updatedAt[key], ts)
+			_, file, no, ok := runtime.Caller(2)
+			if ok {
+				klog.V(2).Infof("Updating %s last update time for %s to %s - caller: %s:%d", key, h.updatedAt[key], ts, file, no)
+			} else {
+				klog.V(2).Infof("Updating %s last update time for %s to %s", key, h.updatedAt[key], ts)
+			}
 		}
 		h.updatedAt[key] = ts
 	}

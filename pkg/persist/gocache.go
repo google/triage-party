@@ -31,6 +31,14 @@ func createMem() *cache.Cache {
 }
 
 func loadMem(items map[string]cache.Item) *cache.Cache {
+	for key, v := range items {
+		th, ok := v.Object.(*Thing)
+		if !ok {
+			klog.Warningf("%s is not of type Thing", key)
+		} else {
+			klog.Infof("found %s (created: %s)", key, th.Created)
+		}
+	}
 	return cache.NewFrom(MaxLoadAge, memCleanupInterval, items)
 }
 
@@ -39,7 +47,7 @@ func setMem(c *cache.Cache, key string, th *provider.Thing) {
 		th.Created = time.Now()
 	}
 
-	klog.V(1).Infof("Storing %s within in-memory cache", key)
+	klog.V(1).Infof("Storing %s within in-memory cache (created: %s)", key, th.Created)
 	c.Set(key, th, MaxLoadAge)
 }
 

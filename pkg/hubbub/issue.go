@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/provider"
-	"sort"
 	"strings"
 	"time"
 
@@ -222,7 +221,6 @@ func (h *Engine) createIssueSummary(i *provider.Issue, cs []*provider.IssueComme
 	}
 	co.ClosedBy = i.GetClosedBy()
 
-	sort.Slice(co.Tags, func(i, j int) bool { return co.Tags[i].ID < co.Tags[j].ID })
 	return co
 }
 
@@ -231,10 +229,15 @@ func (h *Engine) IssueSummary(i *provider.Issue, cs []*provider.IssueComment, ag
 	key := i.GetHTMLURL()
 	cached, ok := h.seen[key]
 	if ok {
-		if !cached.Updated.Before(i.GetUpdatedAt()) && cached.CommentsTotal >= len(cs) {
+		minAge := h.mtime(i)
+		if !cached.Seen.Before(minAge) && cached.CommentsSeen >= len(cs) {
 			return h.seen[key]
 		}
-		klog.Infof("%s in issue cache, but was invalid. Live @ %s (%d comments), cached @ %s (%d comments)  ", i.GetHTMLURL(), i.GetUpdatedAt(), len(cs), cached.Updated, cached.CommentsTotal)
+		if cached.CommentsSeen < len(cs) {
+			klog.V(2).Infof("%s in issue cache, but is missing comments. Live @ %s (%d comments), cached @ %s (%d comments)  ", i.GetHTMLURL(), minAge, len(cs), cached.Seen, cached.CommentsSeen)
+		} else {
+			klog.Infof("%s in issue cache, but may be missing updated references. Live @ %s (%d comments), cached @ %s (%d comments)  ", i.GetHTMLURL(), minAge, len(cs), cached.Seen, cached.CommentsSeen)
+		}
 	}
 
 	h.seen[key] = h.createIssueSummary(i, cs, age)
@@ -243,10 +246,12 @@ func (h *Engine) IssueSummary(i *provider.Issue, cs []*provider.IssueComment, ag
 
 func isBot(u *provider.User) bool {
 	if u.GetType() == "bot" {
+		klog.V(3).Infof("%s type=bot", u.GetLogin())
 		return true
 	}
 
 	if strings.Contains(u.GetBio(), "stale issues") {
+		klog.V(3).Infof("%s bio=stale", u.GetLogin())
 		return true
 	}
 

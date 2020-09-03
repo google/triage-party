@@ -18,14 +18,12 @@ import (
 	"fmt"
 	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/provider"
+	"github.com/google/triage-party/pkg/tag"
+	"k8s.io/klog/v2"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"k8s.io/klog/v2"
-
-	"github.com/google/triage-party/pkg/tag"
 )
 
 var (
@@ -45,6 +43,7 @@ var (
 
 // createConversation creates a conversation from an issue-like
 func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, age time.Time) *Conversation {
+	klog.Infof("creating conversation for #%d with %d/%d comments (age: %s)", i.GetNumber(), len(cs), i.GetComments(), age)
 
 	authorIsMember := false
 	if h.isMember(i.GetUser().GetLogin(), i.GetAuthorAssociation()) {
@@ -52,16 +51,18 @@ func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, ag
 	}
 
 	co := &Conversation{
-		ID:                   i.GetNumber(),
-		URL:                  i.GetHTMLURL(),
-		Author:               i.GetUser(),
-		Title:                i.GetTitle(),
-		State:                i.GetState(),
-		Type:                 Issue,
-		Seen:                 age,
-		Created:              i.GetCreatedAt(),
-		Updated:              i.GetUpdatedAt(),
-		CommentsTotal:        i.GetComments(),
+		ID:            i.GetNumber(),
+		URL:           i.GetHTMLURL(),
+		Author:        i.GetUser(),
+		Title:         i.GetTitle(),
+		State:         i.GetState(),
+		Type:          Issue,
+		Seen:          age,
+		Created:       i.GetCreatedAt(),
+		Updated:       i.GetUpdatedAt(),
+		CommentsTotal: i.GetComments(),
+		// How many comments were parsed
+		CommentsSeen:         len(cs),
 		ClosedAt:             i.GetClosedAt(),
 		SelfInflicted:        authorIsMember,
 		LatestAuthorResponse: i.GetCreatedAt(),
@@ -69,6 +70,7 @@ func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, ag
 		Reactions:            map[string]int{},
 		LastCommentAuthor:    i.GetUser(),
 		LastCommentBody:      i.GetBody(),
+		Tags:                 map[tag.Tag]bool{},
 	}
 
 	if co.CommentsTotal == 0 {
@@ -83,7 +85,7 @@ func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, ag
 
 	if i.GetAssignee() != nil {
 		co.Assignees = append(co.Assignees, i.GetAssignee())
-		co.Tags = append(co.Tags, tag.Assigned)
+		co.Tags[tag.Assigned] = true
 	}
 
 	if !authorIsMember {
@@ -141,7 +143,7 @@ func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, ag
 			}
 			co.LatestMemberResponse = c.Created
 			if !seenMemberComment {
-				co.Tags = append(co.Tags, tag.Commented)
+				co.Tags[tag.Commented] = true
 				seenMemberComment = true
 			}
 		}
@@ -164,25 +166,28 @@ func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, ag
 		}
 	}
 
-	if co.LatestMemberResponse.After(co.LatestAuthorResponse) {
-		co.Tags = append(co.Tags, tag.Send)
-		co.CurrentHoldTime = 0
-	} else if !authorIsMember {
-		co.Tags = append(co.Tags, tag.Recv)
-		co.CurrentHoldTime += time.Since(co.LatestAuthorResponse)
-		co.AccumulatedHoldTime += time.Since(co.LatestAuthorResponse)
-	}
-
-	if lastQuestion.After(co.LatestMemberResponse) {
-		co.Tags = append(co.Tags, tag.RecvQ)
-	}
-
-	if co.Milestone != nil && ((co.Milestone.GetState() == constants.OpenState) || (co.Milestone.GetState() == constants.OpenedState)) {
-		co.Tags = append(co.Tags, tag.OpenMilestone)
+	if co.Milestone != nil && co.Milestone.GetState() == "open" {
+		co.Tags[tag.OpenMilestone] = true
 	}
 
 	if !co.LatestAssigneeResponse.IsZero() {
-		co.Tags = append(co.Tags, tag.AssigneeUpdated)
+		co.Tags[tag.AssigneeUpdated] = true
+	}
+
+	// Only add these tags if we've seen all the comments
+	if len(cs) >= co.CommentsTotal {
+		if co.LatestMemberResponse.After(co.LatestAuthorResponse) {
+			co.Tags[tag.Send] = true
+			co.CurrentHoldTime = 0
+		} else if !authorIsMember {
+			co.Tags[tag.Recv] = true
+			co.CurrentHoldTime += time.Since(co.LatestAuthorResponse)
+			co.AccumulatedHoldTime += time.Since(co.LatestAuthorResponse)
+		}
+
+		if lastQuestion.After(co.LatestMemberResponse) {
+			co.Tags[tag.RecvQ] = true
+		}
 	}
 
 	if len(cs) > 0 {
@@ -190,10 +195,10 @@ func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, ag
 		assoc := strings.ToLower(last.AuthorAssoc)
 		if assoc == "none" {
 			if last.User.GetLogin() == i.GetUser().GetLogin() {
-				co.Tags = append(co.Tags, tag.AuthorLast)
+				co.Tags[tag.AuthorLast] = true
 			}
 		} else {
-			co.Tags = append(co.Tags, tag.RoleLast(assoc))
+			co.Tags[tag.RoleLast(assoc)] = true
 		}
 
 		if last.Updated.After(co.Updated) {
@@ -201,8 +206,8 @@ func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, ag
 		}
 	}
 
-	if co.State == "closed" {
-		co.Tags = append(co.Tags, tag.Closed)
+	if co.State == constants.ClosedState {
+		co.Tags[tag.Closed] = true
 	}
 
 	co.CommentersTotal = len(seenCommenters)
@@ -216,6 +221,15 @@ func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, ag
 	months := time.Since(co.Created).Hours() / 24 / 30
 	co.CommentersPerMonth = float64(co.CommentersTotal) / months
 	co.ReactionsPerMonth = float64(co.ReactionsTotal) / months
+
+	tagNames := []string{}
+	for k := range co.Tags {
+		tagNames = append(tagNames, k.ID)
+	}
+
+	if len(tagNames) > 0 {
+		klog.V(1).Infof("#%d tags based on %d/%d comments: %s", co.ID, co.CommentsSeen, co.CommentsTotal, tagNames)
+	}
 	return co
 }
 
@@ -229,6 +243,7 @@ func (h *Engine) isMember(user string, role string) bool {
 		return true
 	}
 
+	klog.V(1).Infof("%s (%s) is not considered a member: members=%s memberRoles=%s", user, role, h.members, h.memberRoles)
 	return false
 }
 

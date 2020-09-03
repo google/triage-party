@@ -39,7 +39,7 @@ func (h *Engine) SearchAny(ctx context.Context, sp provider.SearchParams) ([]*Co
 func (h *Engine) SearchIssues(ctx context.Context, sp provider.SearchParams) ([]*Conversation, time.Time, error) {
 	sp.Filters = openByDefault(sp)
 	klog.V(1).Infof(
-		"Gathering raw data for %s/%s search %s - newer than %s",
+		"Gathering raw data for %s/%s issues %s - newer than %s",
 		sp.Repo.Organization,
 		sp.Repo.Project,
 		sp.Filters,
@@ -104,7 +104,6 @@ func (h *Engine) SearchIssues(ctx context.Context, sp provider.SearchParams) ([]
 
 	for _, i := range append(open, closed...) {
 		if len(h.debug) > 0 {
-			klog.Infof("DEBUG FILTER: %s", h.debug)
 			if h.debug[i.GetNumber()] {
 				klog.Errorf("*** Found debug issue #%d:\n%s", i.GetNumber(), formatStruct(i))
 			} else {
@@ -148,17 +147,19 @@ func (h *Engine) SearchIssues(ctx context.Context, sp provider.SearchParams) ([]
 
 		comments := []*provider.IssueComment{}
 
+		fetchComments := false
 		if needComments(i, sp.Filters) && i.GetComments() > 0 {
 			klog.V(1).Infof("#%d - %q: need comments for final filtering", i.GetNumber(), i.GetTitle())
+			fetchComments = !sp.NewerThan.IsZero()
+		}
 
-			sp.IssueNumber = i.GetNumber()
-			sp.NewerThan = h.mtime(i)
-			sp.Fetch = !sp.NewerThan.IsZero()
+		sp.IssueNumber = i.GetNumber()
+		sp.NewerThan = h.mtime(i)
+		sp.Fetch = fetchComments
 
-			comments, _, err = h.cachedIssueComments(ctx, sp)
-			if err != nil {
-				klog.Errorf("comments: %v", err)
-			}
+		comments, _, err = h.cachedIssueComments(ctx, sp)
+		if err != nil {
+			klog.Errorf("comments: %v", err)
 		}
 
 		co := h.IssueSummary(i, comments, age)
@@ -166,7 +167,7 @@ func (h *Engine) SearchIssues(ctx context.Context, sp provider.SearchParams) ([]
 
 		co.Similar = h.FindSimilar(co)
 		if len(co.Similar) > 0 {
-			co.Tags = append(co.Tags, tag.Similar)
+			co.Tags[tag.Similar] = true
 		}
 
 		if !postFetchMatch(co, sp.Filters) {
@@ -175,32 +176,32 @@ func (h *Engine) SearchIssues(ctx context.Context, sp provider.SearchParams) ([]
 		}
 		klog.V(1).Infof("#%d - %q made it past post-fetch: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
 
-		sp.UpdateAt = h.mtime(i)
+		updatedAt := h.mtime(i)
 		var timeline []*provider.Timeline
+		fetchTimeline := false
 		if needTimeline(i, sp.Filters, false, sp.Hidden) {
-
-			sp.IssueNumber = i.GetNumber()
-			sp.Fetch = !sp.NewerThan.IsZero()
-
-			timeline, err = h.cachedTimeline(ctx, sp)
-			if err != nil {
-				klog.Errorf("timeline: %v", err)
-				continue
-			}
+			fetchTimeline = !sp.NewerThan.IsZero()
 		}
 
-		sp.Fetch = !sp.NewerThan.IsZero()
+		sp.IssueNumber = i.GetNumber()
+		sp.Fetch = fetchTimeline
+		sp.UpdateAt = updatedAt
+
+		timeline, err = h.cachedTimeline(ctx, sp)
+		if err != nil {
+			klog.Errorf("timeline: %v", err)
+		}
 
 		h.addEvents(ctx, sp, co, timeline)
 
 		// Some labels are judged by linked PR state. Ensure that they are updated to the same timestamp.
+		fetchReviews := false
 		if needReviews(i, sp.Filters, sp.Hidden) && len(co.PullRequestRefs) > 0 {
-
-			sp.NewerThan = mostRecentUpdate
-			sp.Fetch = !sp.NewerThan.IsZero()
-
-			co.PullRequestRefs = h.updateLinkedPRs(ctx, sp, co)
+			fetchReviews = !sp.NewerThan.IsZero()
 		}
+		sp.NewerThan = mostRecentUpdate
+		sp.Fetch = fetchReviews
+		co.PullRequestRefs = h.updateLinkedPRs(ctx, sp, co)
 
 		if !postEventsMatch(co, sp.Filters) {
 			klog.V(1).Infof("#%d - %q did not match post-events filter: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
@@ -237,7 +238,7 @@ func NeedsClosed(fs []provider.Filter) bool {
 func (h *Engine) SearchPullRequests(ctx context.Context, sp provider.SearchParams) ([]*Conversation, time.Time, error) {
 	sp.Filters = openByDefault(sp)
 
-	klog.V(1).Infof("Searching %s/%s for PR's matching: %s - newer than %s",
+	klog.V(1).Infof("Gathering raw data for %s/%s PR's matching: %s - newer than %s",
 		sp.Repo.Organization, sp.Repo.Project, sp.Filters, logu.STime(sp.NewerThan))
 	filtered := []*Conversation{}
 
@@ -321,42 +322,47 @@ func (h *Engine) SearchPullRequests(ctx context.Context, sp provider.SearchParam
 		var reviews []*provider.PullRequestReview
 		var comments []*provider.Comment
 
+		fetchComments := false
 		if needComments(pr, sp.Filters) {
-
-			sp.IssueNumber = pr.GetNumber()
-			sp.NewerThan = h.mtime(pr)
-			sp.Fetch = !sp.NewerThan.IsZero()
-
-			comments, _, err = h.prComments(ctx, sp)
-			if err != nil {
-				klog.Errorf("comments: %v", err)
-			}
+			fetchComments = !sp.NewerThan.IsZero()
 		}
 
+		sp.IssueNumber = pr.GetNumber()
+		sp.NewerThan = h.mtime(pr)
+		sp.Fetch = fetchComments
+
+		comments, _, err = h.prComments(ctx, sp)
+		if err != nil {
+			klog.Errorf("comments: %v", err)
+		}
+
+		fetchTimeline := false
 		if needTimeline(pr, sp.Filters, true, sp.Hidden) {
-
-			sp.IssueNumber = pr.GetNumber()
-			sp.NewerThan = h.mtime(pr)
-			sp.Fetch = !sp.NewerThan.IsZero()
-
-			timeline, err = h.cachedTimeline(ctx, sp)
-			if err != nil {
-				klog.Errorf("timeline: %v", err)
-				continue
-			}
+			fetchTimeline = !sp.NewerThan.IsZero()
 		}
 
+		sp.IssueNumber = pr.GetNumber()
+		sp.NewerThan = h.mtime(pr)
+		sp.Fetch = fetchTimeline
+
+		timeline, err = h.cachedTimeline(ctx, sp)
+		if err != nil {
+			klog.Errorf("timeline: %v", err)
+		}
+
+		fetchReviews := false
 		if needReviews(pr, sp.Filters, sp.Hidden) {
+			fetchReviews = !sp.NewerThan.IsZero()
+		}
 
-			sp.IssueNumber = pr.GetNumber()
-			sp.NewerThan = h.mtime(pr)
-			sp.Fetch = !sp.NewerThan.IsZero()
+		sp.IssueNumber = pr.GetNumber()
+		sp.NewerThan = h.mtime(pr)
+		sp.Fetch = fetchReviews
 
-			reviews, _, err = h.cachedReviews(ctx, sp)
-			if err != nil {
-				klog.Errorf("reviews: %v", err)
-				continue
-			}
+		reviews, _, err = h.cachedReviews(ctx, sp)
+		if err != nil {
+			klog.Errorf("reviews: %v", err)
+			continue
 		}
 
 		if h.debug[pr.GetNumber()] {
@@ -370,7 +376,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, sp provider.SearchParam
 		co.Labels = pr.Labels
 		co.Similar = h.FindSimilar(co)
 		if len(co.Similar) > 0 {
-			co.Tags = append(co.Tags, tag.Similar)
+			co.Tags[tag.Similar] = true
 		}
 
 		if !postFetchMatch(co, sp.Filters) {
@@ -394,19 +400,19 @@ func needComments(i provider.IItem, fs []provider.Filter) bool {
 		if f.TagRegex() != nil {
 			if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
 				if t.NeedsComments {
-					klog.V(1).Infof("#%d - need comments due to tag %s (negate=%v)", i.GetNumber(), f.TagRegex(), f.TagNegate())
+					klog.Infof("#%d - need comments due to tag %s (negate=%v)", i.GetNumber(), f.TagRegex(), f.TagNegate())
 					return true
 				}
 			}
 		}
 
 		if f.ClosedCommenters != "" || f.ClosedComments != "" {
-			klog.V(1).Infof("#%d - need comments due to closed comments", i.GetNumber())
+			klog.Infof("#%d - need comments due to closed comments", i.GetNumber())
 			return true
 		}
 
 		if f.Responded != "" || f.Commenters != "" {
-			klog.V(1).Infof("#%d - need comments due to responded/commenters filter", i.GetNumber())
+			klog.Infof("#%d - need comments due to responded/commenters filter", i.GetNumber())
 			return true
 		}
 	}
