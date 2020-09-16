@@ -16,11 +16,11 @@ package triage
 
 import (
 	"fmt"
+	"github.com/google/triage-party/pkg/provider"
 	"io"
 	"io/ioutil"
 	"time"
 
-	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/persist"
 	"gopkg.in/yaml.v2"
@@ -28,9 +28,8 @@ import (
 )
 
 type Config struct {
-	Client *github.Client
-	Cache  persist.Cacher
-	Repos  []string
+	Cache persist.Cacher
+	Repos []string
 	// DebugNumber is useful when you want to debug why a single issue is or is-not appearing
 	DebugNumbers []int
 }
@@ -40,7 +39,6 @@ type Party struct {
 	settings      Settings
 	collections   []Collection
 	cache         persist.Cacher
-	client        *github.Client
 	rules         map[string]Rule
 	reposOverride []string
 	debug         map[int]bool
@@ -51,7 +49,6 @@ func New(cfg Config) *Party {
 	p := &Party{
 		cache:         cfg.Cache,
 		reposOverride: cfg.Repos,
-		client:        cfg.Client,
 		debug:         map[int]bool{},
 	}
 
@@ -101,7 +98,6 @@ func (p *Party) newEngine() *hubbub.Engine {
 	}
 
 	hc := hubbub.Config{
-		Client:             p.client,
 		Cache:              p.cache,
 		Repos:              p.reposOverride,
 		DebugNumbers:       p.debug,
@@ -156,7 +152,7 @@ func (p *Party) Load(r io.Reader) error {
 }
 
 // closedAge returns how old we need to look back for a set of filters
-func closedAge(fs []hubbub.Filter) time.Duration {
+func closedAge(fs []provider.Filter) time.Duration {
 	oldest := time.Duration(0)
 	if !hubbub.NeedsClosed(fs) {
 		return oldest
@@ -253,7 +249,7 @@ func processRules(raw map[string]Rule) (map[string]Rule, error) {
 
 	for id, t := range raw {
 		rules[id] = t
-		newfs := []hubbub.Filter{}
+		newfs := []provider.Filter{}
 
 		for _, f := range raw[id].Filters {
 			if f.RawLabel != "" {

@@ -15,10 +15,13 @@
 package triage
 
 import (
-	"context"
 	"fmt"
+	"github.com/google/triage-party/pkg/provider"
+	"net/url"
+	"strings"
 	"time"
 
+	"context"
 	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/logu"
 	"k8s.io/klog/v2"
@@ -27,11 +30,11 @@ import (
 // Rule is a logical triage group
 type Rule struct {
 	ID         string
-	Resolution string          `yaml:"resolution,omitempty"`
-	Name       string          `yaml:"name,omitempty"`
-	Repos      []string        `yaml:"repos,omitempty"`
-	Type       string          `yaml:"type,omitempty"`
-	Filters    []hubbub.Filter `yaml:"filters"`
+	Resolution string            `yaml:"resolution,omitempty"`
+	Name       string            `yaml:"name,omitempty"`
+	Repos      []string          `yaml:"repos,omitempty"`
+	Type       string            `yaml:"type,omitempty"`
+	Filters    []provider.Filter `yaml:"filters"`
 }
 
 type RuleResult struct {
@@ -107,28 +110,32 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 }
 
 // ExecuteRule executes a rule. seen is optional.
-func (p *Party) ExecuteRule(ctx context.Context, t Rule, seen map[string]*Rule, newerThan time.Time, hidden bool) (*RuleResult, error) {
-	klog.V(1).Infof("executing rule %q for results newer than %s", t.ID, logu.STime(newerThan))
+func (p *Party) ExecuteRule(ctx context.Context, sp provider.SearchParams, t Rule, seen map[string]*Rule) (*RuleResult, error) {
+	klog.V(1).Infof("executing rule %q for results newer than %s", t.ID, logu.STime(sp.NewerThan))
 	rcs := []*hubbub.Conversation{}
 	oldest := time.Now()
 
-	for _, repo := range t.Repos {
-		org, project, err := parseRepo(repo)
+	for _, repoUrl := range t.Repos {
+		r, err := parseRepo(repoUrl)
 		if err != nil {
 			return nil, err
 		}
 
-		klog.V(2).Infof("%s -> org=%s project=%s", repo, org, project)
+		klog.V(2).Infof("%s -> org=%s project=%s", repoUrl, r.Organization, r.Project)
 
 		var ts time.Time
 		var cs []*hubbub.Conversation
+
+		sp.Repo = r
+		sp.Filters = t.Filters
+
 		switch t.Type {
 		case hubbub.Issue:
-			cs, ts, err = p.engine.SearchIssues(ctx, org, project, t.Filters, newerThan, hidden)
+			cs, ts, err = p.engine.SearchIssues(ctx, sp)
 		case hubbub.PullRequest:
-			cs, ts, err = p.engine.SearchPullRequests(ctx, org, project, t.Filters, newerThan, hidden)
+			cs, ts, err = p.engine.SearchPullRequests(ctx, sp)
 		default:
-			cs, ts, err = p.engine.SearchAny(ctx, org, project, t.Filters, newerThan, hidden)
+			cs, ts, err = p.engine.SearchAny(ctx, sp)
 		}
 
 		if err != nil {
@@ -175,4 +182,41 @@ func (p *Party) ListRules() ([]Rule, error) {
 		ts = append(ts, s)
 	}
 	return ts, nil
+}
+
+// parseRepo returns provider, organization and project for a URL
+// rawURL should be a valid url with host like https://github.com/org/repo
+// or https://gitlab.com/org/repo
+// or https://gitlab.com/org/group/repo
+func parseRepo(rawURL string) (r provider.Repo, err error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return
+	}
+	if u.Host == "" {
+		err = fmt.Errorf("Provided string %s is not a valid URL", rawURL)
+		return
+	}
+	parts := strings.Split(u.Path, "/")
+	if len(parts) != 3 && len(parts) != 4 {
+		// gitlab may have https://gitlab.com/organization/group/repo
+		err = fmt.Errorf("expected 2/3 repository parts, got %d: %v", len(parts), parts)
+		return
+	}
+	if len(parts) == 3 {
+		r = provider.Repo{
+			Host:         u.Host,
+			Organization: parts[1],
+			Project:      parts[2],
+		}
+	} else {
+		r = provider.Repo{
+			Host:         u.Host,
+			Organization: parts[1],
+			Group:        parts[2],
+			Project:      parts[3],
+		}
+	}
+
+	return
 }

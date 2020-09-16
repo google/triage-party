@@ -16,15 +16,14 @@ package hubbub
 
 import (
 	"fmt"
+	"github.com/google/triage-party/pkg/constants"
+	"github.com/google/triage-party/pkg/provider"
+	"github.com/google/triage-party/pkg/tag"
+	"k8s.io/klog/v2"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/google/go-github/v31/github"
-	"k8s.io/klog/v2"
-
-	"github.com/google/triage-party/pkg/tag"
 )
 
 var (
@@ -42,28 +41,8 @@ var (
 	detailsRe = regexp.MustCompile(`(?s)<details>.*</details>`)
 )
 
-// GitHubItem is an interface that matches both GitHub Issues and PullRequests
-type GitHubItem interface {
-	GetAssignee() *github.User
-	GetAuthorAssociation() string
-	GetBody() string
-	GetComments() int
-	GetHTMLURL() string
-	GetCreatedAt() time.Time
-	GetID() int64
-	GetMilestone() *github.Milestone
-	GetNumber() int
-	GetClosedAt() time.Time
-	GetState() string
-	GetTitle() string
-	GetURL() string
-	GetUpdatedAt() time.Time
-	GetUser() *github.User
-	String() string
-}
-
 // createConversation creates a conversation from an issue-like
-func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) *Conversation {
+func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, age time.Time) *Conversation {
 	klog.Infof("creating conversation for #%d with %d/%d comments (age: %s)", i.GetNumber(), len(cs), i.GetComments(), age)
 
 	authorIsMember := false
@@ -227,7 +206,7 @@ func (h *Engine) createConversation(i GitHubItem, cs []*Comment, age time.Time) 
 		}
 	}
 
-	if co.State == "closed" {
+	if co.State == constants.ClosedState {
 		co.Tags[tag.Closed] = true
 	}
 

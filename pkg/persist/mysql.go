@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"github.com/google/triage-party/pkg/provider"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -114,7 +115,7 @@ func (m *MySQL) loadItems() error {
 }
 
 // Set stores a thing
-func (m *MySQL) Set(key string, th *Thing) error {
+func (m *MySQL) Set(key string, th *provider.Thing) error {
 	setMem(m.cache, key, th)
 
 	go func() {
@@ -134,12 +135,12 @@ func (m *MySQL) DeleteOlderThan(key string, t time.Time) error {
 }
 
 // GetNewerThan returns a Item older than a timestamp
-func (m *MySQL) GetNewerThan(key string, t time.Time) *Thing {
+func (m *MySQL) GetNewerThan(key string, t time.Time) *provider.Thing {
 	return newerThanMem(m.cache, key, t)
 }
 
 // persist writes an thing to MySQL
-func (m *MySQL) persist(key string, th *Thing) error {
+func (m *MySQL) persist(key string, th *provider.Thing) error {
 	b := new(bytes.Buffer)
 	ge := gob.NewEncoder(b)
 

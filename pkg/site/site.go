@@ -17,6 +17,7 @@ package site
 
 import (
 	"fmt"
+	"github.com/google/triage-party/pkg/provider"
 	"html/template"
 	"image/color"
 	"math"
@@ -33,7 +34,6 @@ import (
 	"github.com/google/triage-party/pkg/updater"
 
 	"github.com/dustin/go-humanize"
-	"github.com/google/go-github/v31/github"
 	"gopkg.in/yaml.v2"
 
 	"k8s.io/klog/v2"
@@ -145,7 +145,7 @@ type Page struct {
 	CollectionResult     *triage.CollectionResult
 	SelectorVar          string
 	SelectorOptions      []Choice
-	Milestone            *github.Milestone
+	Milestone            *provider.Milestone
 	CompletionETA        time.Time
 	MilestoneETA         time.Time
 	MilestoneCountOffset int
@@ -306,7 +306,7 @@ func roughTime(t time.Time) string {
 	return ds
 }
 
-func avatar(u *github.User) template.HTML {
+func avatar(u *provider.User) template.HTML {
 	return template.HTML(fmt.Sprintf(`<a href="%s" title="%s"><img src="%s" width="20" height="20"></a>`, u.GetHTMLURL(), u.GetLogin(), u.GetAvatarURL()))
 }
 

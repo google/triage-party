@@ -15,36 +15,37 @@
 package hubbub
 
 import (
-	"context"
 	"fmt"
+	"github.com/google/triage-party/pkg/constants"
+	"github.com/google/triage-party/pkg/provider"
 	"strings"
 	"time"
 
+	"context"
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/logu"
-	"github.com/google/triage-party/pkg/persist"
 	"gopkg.in/yaml.v2"
 	"k8s.io/klog/v2"
 )
 
 // cachedIssues returns issues, cached if possible
-func (h *Engine) cachedIssues(ctx context.Context, org string, project string, state string, updateAge time.Duration, newerThan time.Time) ([]*github.Issue, time.Time, error) {
-	key := issueSearchKey(org, project, state, updateAge)
+func (h *Engine) cachedIssues(ctx context.Context, sp provider.SearchParams) ([]*provider.Issue, time.Time, error) {
+	sp.SearchKey = issueSearchKey(sp)
 
-	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
 		// Normally the similarity tables are only updated when fresh data is encountered.
-		if newerThan.IsZero() {
-			go h.updateSimilarIssues(key, x.Issues)
+		if sp.NewerThan.IsZero() {
+			go h.updateSimilarIssues(sp.SearchKey, x.Issues)
 		}
 
 		return x.Issues, x.Created, nil
 	}
 
-	klog.V(1).Infof("cache miss for %s newer than %s", key, logu.STime(newerThan))
-	issues, created, err := h.updateIssues(ctx, org, project, state, updateAge, key)
+	klog.V(1).Infof("cache miss for %s newer than %s", sp.SearchKey, logu.STime(sp.NewerThan))
+	issues, created, err := h.updateIssues(ctx, sp)
 	if err != nil {
-		klog.Warningf("Retrieving stale results for %s due to error: %v", key, err)
-		x := h.cache.GetNewerThan(key, time.Time{})
+		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
+		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
 		if x != nil {
 			return x.Issues, x.Created, nil
 		}
@@ -53,28 +54,36 @@ func (h *Engine) cachedIssues(ctx context.Context, org string, project string, s
 }
 
 // updateIssues updates the issues in cache
-func (h *Engine) updateIssues(ctx context.Context, org string, project string, state string, updateAge time.Duration, key string) ([]*github.Issue, time.Time, error) {
+func (h *Engine) updateIssues(ctx context.Context, sp provider.SearchParams) ([]*provider.Issue, time.Time, error) {
 	start := time.Now()
 
-	opt := &github.IssueListByRepoOptions{
-		ListOptions: github.ListOptions{PerPage: 100},
-		State:       state,
+	sp.IssueListByRepoOptions = provider.IssueListByRepoOptions{
+		ListOptions: provider.ListOptions{PerPage: 100},
+		State:       sp.State,
 	}
 
-	if updateAge != 0 {
-		opt.Since = time.Now().Add(-1 * updateAge)
+	if sp.UpdateAge != 0 {
+		sp.IssueListByRepoOptions.Since = time.Now().Add(-1 * sp.UpdateAge)
 	}
 
-	var allIssues []*github.Issue
+	var allIssues []*provider.Issue
 
 	for {
-		if updateAge == 0 {
-			klog.Infof("Downloading %s issues for %s/%s (page %d)...", state, org, project, opt.Page)
+		if sp.UpdateAge == 0 {
+			klog.Infof("Downloading %s issues for %s/%s (page %d)...",
+				sp.State, sp.Repo.Organization, sp.Repo.Project, sp.IssueListByRepoOptions.Page)
 		} else {
-			klog.Infof("Downloading %s issues for %s/%s updated within %s (page %d)...", state, org, project, updateAge, opt.Page)
+			klog.Infof(
+				"Downloading %s issues for %s/%s updated within %s (page %d)...",
+				sp.State,
+				sp.Repo.Organization,
+				sp.Repo.Project,
+				sp.UpdateAge,
+				sp.IssueListByRepoOptions.Page,
+			)
 		}
-
-		is, resp, err := h.client.Issues.ListByRepo(ctx, org, project, opt)
+		pr := provider.ResolveProviderByHost(sp.Repo.Host)
+		is, resp, err := pr.IssuesListByRepo(ctx, sp)
 
 		if _, ok := err.(*github.RateLimitError); ok {
 			klog.Errorf("oh snap! I reached the GitHub search API limit: %v", err)
@@ -95,39 +104,39 @@ func (h *Engine) updateIssues(ctx context.Context, org string, project string, s
 			allIssues = append(allIssues, i)
 		}
 
-		go h.updateSimilarIssues(key, is)
+		go h.updateSimilarIssues(sp.SearchKey, is)
 
 		if resp.NextPage == 0 {
 			break
 		}
-		opt.Page = resp.NextPage
+		sp.IssueListByRepoOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(key, &persist.Thing{Issues: allIssues}); err != nil {
-		klog.Errorf("set %q failed: %v", key, err)
+	if err := h.cache.Set(sp.SearchKey, &provider.Thing{Issues: allIssues}); err != nil {
+		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
-	klog.V(1).Infof("updateIssues %s returning %d issues", key, len(allIssues))
+	klog.V(1).Infof("updateIssues %s returning %d issues", sp.SearchKey, len(allIssues))
 	return allIssues, start, nil
 }
 
-func (h *Engine) cachedIssueComments(ctx context.Context, org string, project string, num int, newerThan time.Time, fetch bool) ([]*github.IssueComment, time.Time, error) {
-	key := fmt.Sprintf("%s-%s-%d-issue-comments", org, project, num)
+func (h *Engine) cachedIssueComments(ctx context.Context, sp provider.SearchParams) ([]*provider.IssueComment, time.Time, error) {
+	sp.SearchKey = fmt.Sprintf("%s-%s-%d-issue-comments", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 
-	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
 		return x.IssueComments, x.Created, nil
 	}
 
-	if !fetch {
+	if !sp.Fetch {
 		return nil, time.Time{}, nil
 	}
 
-	klog.V(1).Infof("cache miss for %s newer than %s", key, logu.STime(newerThan))
+	klog.V(1).Infof("cache miss for %s newer than %s", sp.SearchKey, logu.STime(sp.NewerThan))
 
-	comments, created, err := h.updateIssueComments(ctx, org, project, num, key)
+	comments, created, err := h.updateIssueComments(ctx, sp)
 	if err != nil {
-		klog.Warningf("Retrieving stale results for %s due to error: %v", key, err)
-		x := h.cache.GetNewerThan(key, time.Time{})
+		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
+		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
 		if x != nil {
 			return x.IssueComments, x.Created, nil
 		}
@@ -136,18 +145,21 @@ func (h *Engine) cachedIssueComments(ctx context.Context, org string, project st
 	return comments, created, err
 }
 
-func (h *Engine) updateIssueComments(ctx context.Context, org string, project string, num int, key string) ([]*github.IssueComment, time.Time, error) {
-	klog.V(1).Infof("Downloading issue comments for %s/%s #%d", org, project, num)
+func (h *Engine) updateIssueComments(ctx context.Context, sp provider.SearchParams) ([]*provider.IssueComment, time.Time, error) {
+	klog.V(1).Infof("Downloading issue comments for %s/%s #%d", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	start := time.Now()
 
-	opt := &github.IssueListCommentsOptions{
-		ListOptions: github.ListOptions{PerPage: 100},
+	sp.IssueListCommentsOptions = provider.IssueListCommentsOptions{
+		ListOptions: provider.ListOptions{PerPage: 100},
 	}
 
-	var allComments []*github.IssueComment
+	var allComments []*provider.IssueComment
 	for {
-		klog.Infof("Downloading comments for %s/%s #%d (page %d)...", org, project, num, opt.Page)
-		cs, resp, err := h.client.Issues.ListComments(ctx, org, project, num, opt)
+		klog.Infof("Downloading comments for %s/%s #%d (page %d)...",
+			sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, sp.IssueListCommentsOptions.Page)
+
+		pr := provider.ResolveProviderByHost(sp.Repo.Host)
+		cs, resp, err := pr.IssuesListComments(ctx, sp)
 
 		if err != nil {
 			return cs, start, err
@@ -158,11 +170,11 @@ func (h *Engine) updateIssueComments(ctx context.Context, org string, project st
 		if resp.NextPage == 0 {
 			break
 		}
-		opt.Page = resp.NextPage
+		sp.IssueListCommentsOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(key, &persist.Thing{IssueComments: allComments}); err != nil {
-		klog.Errorf("set %q failed: %v", key, err)
+	if err := h.cache.Set(sp.SearchKey, &provider.Thing{IssueComments: allComments}); err != nil {
+		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
 	return allComments, start, nil
@@ -176,23 +188,29 @@ func toYAML(v interface{}) string {
 	return strings.Replace(strings.TrimSpace(string(s)), "\n", "; ", -1)
 }
 
-func openByDefault(fs []Filter) []Filter {
+func openByDefault(sp provider.SearchParams) []provider.Filter {
 	found := false
-	for _, f := range fs {
+	for _, f := range sp.Filters {
 		if f.State != "" {
 			found = true
 		}
 	}
 	if !found {
-		fs = append(fs, Filter{State: "open"})
+		var state string
+		if sp.Repo.Host == constants.GitlabProviderHost {
+			state = constants.OpenedState
+		} else {
+			state = constants.OpenState
+		}
+		sp.Filters = append(sp.Filters, provider.Filter{State: state})
 	}
-	return fs
+	return sp.Filters
 }
 
-func (h *Engine) createIssueSummary(i *github.Issue, cs []*github.IssueComment, age time.Time) *Conversation {
-	cl := []*Comment{}
+func (h *Engine) createIssueSummary(i *provider.Issue, cs []*provider.IssueComment, age time.Time) *Conversation {
+	cl := []*provider.Comment{}
 	for _, c := range cs {
-		cl = append(cl, NewComment(c))
+		cl = append(cl, provider.NewComment(c))
 	}
 
 	co := h.createConversation(i, cl, age)
@@ -207,7 +225,7 @@ func (h *Engine) createIssueSummary(i *github.Issue, cs []*github.IssueComment, 
 }
 
 // IssueSummary returns a cached conversation for an issue
-func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment, age time.Time) *Conversation {
+func (h *Engine) IssueSummary(i *provider.Issue, cs []*provider.IssueComment, age time.Time) *Conversation {
 	key := i.GetHTMLURL()
 	cached, ok := h.seen[key]
 	if ok {
@@ -226,7 +244,7 @@ func (h *Engine) IssueSummary(i *github.Issue, cs []*github.IssueComment, age ti
 	return h.seen[key]
 }
 
-func isBot(u *github.User) bool {
+func isBot(u *provider.User) bool {
 	if u.GetType() == "bot" {
 		klog.V(3).Infof("%s type=bot", u.GetLogin())
 		return true

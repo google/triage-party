@@ -17,64 +17,65 @@ package hubbub
 import (
 	"context"
 	"fmt"
+	"github.com/google/triage-party/pkg/provider"
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v31/github"
-	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
 )
 
-func (h *Engine) cachedTimeline(ctx context.Context, org string, project string, num int, newerThan time.Time, fetch bool) ([]*github.Timeline, error) {
-	key := fmt.Sprintf("%s-%s-%d-timeline", org, project, num)
-	klog.V(1).Infof("Need timeline for %s as of %s", key, newerThan)
+func (h *Engine) cachedTimeline(ctx context.Context, sp provider.SearchParams) ([]*provider.Timeline, error) {
+	sp.SearchKey = fmt.Sprintf("%s-%s-%d-timeline", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
+	klog.V(1).Infof("Need timeline for %s as of %s", sp.SearchKey, sp.NewerThan)
 
-	if x := h.cache.GetNewerThan(key, newerThan); x != nil {
+	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
 		return x.Timeline, nil
 	}
 
-	klog.Infof("cache miss for %s newer than %s (fetch=%v)", key, newerThan, fetch)
-	if !fetch {
+	klog.Infof("cache miss for %s newer than %s (fetch=%v)", sp.SearchKey, sp.NewerThan, sp.Fetch)
+	if !sp.Fetch {
 		return nil, nil
 	}
-	return h.updateTimeline(ctx, org, project, num, key)
+	return h.updateTimeline(ctx, sp)
 }
 
-func (h *Engine) updateTimeline(ctx context.Context, org string, project string, num int, key string) ([]*github.Timeline, error) {
+func (h *Engine) updateTimeline(ctx context.Context, sp provider.SearchParams) ([]*provider.Timeline, error) {
 	//	klog.Infof("Downloading event timeline for %s/%s #%d", org, project, num)
 
-	opt := &github.ListOptions{
+	sp.ListOptions = provider.ListOptions{
 		PerPage: 100,
 	}
-	var allEvents []*github.Timeline
+	var allEvents []*provider.Timeline
 	for {
-		evs, resp, err := h.client.Issues.ListIssueTimeline(ctx, org, project, num, opt)
+
+		pr := provider.ResolveProviderByHost(sp.Repo.Host)
+		evs, resp, err := pr.IssuesListIssueTimeline(ctx, sp)
 		if err != nil {
 			return nil, err
 		}
 		h.logRate(resp.Rate)
 
 		for _, ev := range evs {
-			h.updateMtimeLong(org, project, num, ev.GetCreatedAt())
+			h.updateMtimeLong(sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, ev.GetCreatedAt())
 		}
 
 		allEvents = append(allEvents, evs...)
 		if resp.NextPage == 0 {
 			break
 		}
-		opt.Page = resp.NextPage
+		sp.ListOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(key, &persist.Thing{Timeline: allEvents}); err != nil {
-		klog.Errorf("set %q failed: %v", key, err)
+	if err := h.cache.Set(sp.SearchKey, &provider.Thing{Timeline: allEvents}); err != nil {
+		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
 	return allEvents, nil
 }
 
 // Add events to the conversation summary if useful
-func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*github.Timeline, fetch bool) {
+func (h *Engine) addEvents(ctx context.Context, sp provider.SearchParams, co *Conversation, timeline []*provider.Timeline) {
 	priority := ""
 	for _, l := range co.Labels {
 		if strings.HasPrefix(l.GetName(), "priority") {
@@ -125,7 +126,10 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 				}
 
 				klog.V(1).Infof("Found cross-referenced PR: #%d, updating PR ref", ri.GetNumber())
-				ref := h.prRef(ctx, ri, h.mtimeCo(co), fetch)
+
+				sp.Age = h.mtimeCo(co)
+
+				ref := h.prRef(ctx, sp, ri)
 				co.UpdatePullRequestRefs(ref)
 				refTag := reviewStateTag(ref.ReviewState)
 				refTag.ID = fmt.Sprintf("pr-%s", refTag.ID)
@@ -138,39 +142,43 @@ func (h *Engine) addEvents(ctx context.Context, co *Conversation, timeline []*gi
 	}
 }
 
-func (h *Engine) prRef(ctx context.Context, pr GitHubItem, age time.Time, fetch bool) *RelatedConversation {
+func (h *Engine) prRef(ctx context.Context, sp provider.SearchParams, pr provider.IItem) *RelatedConversation {
 	if pr == nil {
 		klog.Errorf("PR is nil")
 		return nil
 	}
 
-	newerThan := age
-	if h.mtime(pr).After(newerThan) {
-		newerThan = h.mtime(pr)
+	sp.NewerThan = sp.Age
+	if h.mtime(pr).After(sp.NewerThan) {
+		sp.NewerThan = h.mtime(pr)
 	}
 
 	if !pr.GetClosedAt().IsZero() {
-		newerThan = pr.GetClosedAt()
+		sp.NewerThan = pr.GetClosedAt()
 	}
 
 	klog.V(1).Infof("Creating PR reference for #%d, updated at %s(state=%s)", pr.GetNumber(), pr.GetUpdatedAt(), pr.GetState())
 
-	co := h.createConversation(pr, nil, age)
+	co := h.createConversation(pr, nil, sp.Age)
 	rel := makeRelated(co)
 
-	timeline, err := h.cachedTimeline(ctx, co.Organization, co.Project, pr.GetNumber(), newerThan, fetch)
+	sp.Repo.Organization = co.Organization
+	sp.Repo.Project = co.Project
+	sp.IssueNumber = pr.GetNumber()
+
+	timeline, err := h.cachedTimeline(ctx, sp)
 	if err != nil {
 		klog.Errorf("timeline: %v", err)
 	}
 
 	// mtime may have been updated by fetching tthe timeline
-	if h.mtime(pr).After(newerThan) {
-		newerThan = h.mtime(pr)
+	if h.mtime(pr).After(sp.NewerThan) {
+		sp.NewerThan = h.mtime(pr)
 	}
 
-	var reviews []*github.PullRequestReview
+	var reviews []*provider.PullRequestReview
 	if pr.GetState() != "closed" {
-		reviews, _, err = h.cachedReviews(ctx, co.Organization, co.Project, pr.GetNumber(), newerThan, fetch)
+		reviews, _, err = h.cachedReviews(ctx, sp)
 		if err != nil {
 			klog.Errorf("reviews: %v", err)
 		}
@@ -183,23 +191,29 @@ func (h *Engine) prRef(ctx context.Context, pr GitHubItem, age time.Time, fetch 
 	return rel
 }
 
-func (h *Engine) updateLinkedPRs(ctx context.Context, parent *Conversation, newerThan time.Time, fetch bool) []*RelatedConversation {
+func (h *Engine) updateLinkedPRs(ctx context.Context, sp provider.SearchParams, parent *Conversation) []*RelatedConversation {
 	newRefs := []*RelatedConversation{}
 
 	for _, ref := range parent.PullRequestRefs {
-		if h.mtimeRef(ref).After(newerThan) {
-			newerThan = h.mtimeRef(ref)
+		if h.mtimeRef(ref).After(sp.NewerThan) {
+			sp.NewerThan = h.mtimeRef(ref)
 		}
 	}
 
 	for _, ref := range parent.PullRequestRefs {
-		if newerThan.Before(ref.Seen) || newerThan == ref.Seen {
+		if sp.NewerThan.Before(ref.Seen) || sp.NewerThan == ref.Seen {
 			newRefs = append(newRefs, ref)
 			continue
 		}
 
-		klog.V(1).Infof("updating PR ref: %s/%s #%d from %s to %s", ref.Organization, ref.Project, ref.ID, ref.Seen, newerThan)
-		pr, age, err := h.cachedPR(ctx, ref.Organization, ref.Project, ref.ID, newerThan, fetch)
+		klog.V(1).Infof("updating PR ref: %s/%s #%d from %s to %s",
+			ref.Organization, ref.Project, ref.ID, ref.Seen, sp.NewerThan)
+
+		sp.Repo.Organization = ref.Organization
+		sp.Repo.Project = ref.Project
+		sp.IssueNumber = ref.ID
+
+		pr, age, err := h.cachedPR(ctx, sp)
 		if err != nil {
 			klog.Errorf("error updating cached PR: %v", err)
 			newRefs = append(newRefs, ref)
@@ -212,13 +226,15 @@ func (h *Engine) updateLinkedPRs(ctx context.Context, parent *Conversation, newe
 			continue
 		}
 
-		newRefs = append(newRefs, h.prRef(ctx, pr, age, fetch))
+		sp.Age = age
+
+		newRefs = append(newRefs, h.prRef(ctx, sp, pr))
 	}
 
 	return newRefs
 }
 
-func (h *Engine) issueRef(i *github.Issue, age time.Time) *RelatedConversation {
+func (h *Engine) issueRef(i *provider.Issue, age time.Time) *RelatedConversation {
 	co := h.createConversation(i, nil, age)
 	return makeRelated(co)
 }

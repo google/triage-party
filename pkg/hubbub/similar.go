@@ -1,10 +1,10 @@
 package hubbub
 
 import (
+	"github.com/google/triage-party/pkg/provider"
 	"regexp"
 	"strings"
 
-	"github.com/google/go-github/v31/github"
 	"github.com/imjasonmiller/godice"
 	"k8s.io/klog/v2"
 )
@@ -69,7 +69,7 @@ func normalizeTitle(t string) string {
 }
 
 // updateSimilarIssues updates similarity tables, meant for background use
-func (h *Engine) updateSimilarIssues(key string, is []*github.Issue) {
+func (h *Engine) updateSimilarIssues(key string, is []*provider.Issue) {
 	klog.V(1).Infof("Updating similarity table from issue cache %q (%d items)", key, len(is))
 	for _, i := range is {
 		h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())
@@ -77,7 +77,7 @@ func (h *Engine) updateSimilarIssues(key string, is []*github.Issue) {
 }
 
 // updateSimilarPullRequests updates similarity tables, meant for background use
-func (h *Engine) updateSimilarPullRequests(key string, prs []*github.PullRequest) {
+func (h *Engine) updateSimilarPullRequests(key string, prs []*provider.PullRequest) {
 	klog.V(1).Infof("Updating similarity table from PR cache %q (%d items)", key, len(prs))
 	for _, i := range prs {
 		h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())

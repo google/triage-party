@@ -16,6 +16,7 @@
 package persist
 
 import (
+	"github.com/google/triage-party/pkg/provider"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -41,7 +42,7 @@ func (m *Memory) Initialize() error {
 }
 
 // Set stores a thing into memory
-func (m *Memory) Set(key string, t *Thing) error {
+func (m *Memory) Set(key string, t *provider.Thing) error {
 	setMem(m.cache, key, t)
 	return nil
 }
@@ -53,7 +54,7 @@ func (m *Memory) DeleteOlderThan(key string, t time.Time) error {
 }
 
 // GetNewerThan returns a thing older than a timestamp
-func (m *Memory) GetNewerThan(key string, t time.Time) *Thing {
+func (m *Memory) GetNewerThan(key string, t time.Time) *provider.Thing {
 	return newerThanMem(m.cache, key, t)
 }
 
