@@ -61,7 +61,7 @@ func (h *Engine) updateTimeline(ctx context.Context, sp provider.SearchParams) (
 		}
 
 		allEvents = append(allEvents, evs...)
-		if resp.NextPage == 0 {
+		if resp.NextPage == 0 || sp.ListOptions.Page == resp.NextPage {
 			break
 		}
 		sp.ListOptions.Page = resp.NextPage
