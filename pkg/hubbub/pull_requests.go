@@ -110,7 +110,7 @@ func (h *Engine) updatePRs(ctx context.Context, sp provider.SearchParams) ([]*pr
 
 		go h.updateSimilarPullRequests(sp.SearchKey, prs)
 
-		if resp.NextPage == 0 || foundOldest {
+		if resp.NextPage == 0 || resp.NextPage == sp.PullRequestListOptions.Page || foundOldest {
 			break
 		}
 		sp.PullRequestListOptions.Page = resp.NextPage
