@@ -57,8 +57,25 @@ go run cmd/server/main.go \
 If you do not have [Go](https://golang.org/) installed, you can run Triage Party using Docker:
 
 ```shell
+export GITHUB_TOKEN="$(cat $HOME/.github-token)"
 docker build --tag=tp .
-docker run -e GITHUB_TOKEN=$(cat $HOME/.github-token) -p 8080:8080 tp
+docker run \
+  --rm \
+  -e GITHUB_TOKEN \
+  -v "$PWD/config/examples/kubernetes.yaml:/app/config/config.yaml" \
+  -p 8080:8080 tp
+```
+
+You can also use Personal Access Token from [the Github CLI](https://github.com/cli/cli) to run the application:
+```shell
+export GITHUB_TOKEN=$(grep oauth_token ~/.config/gh/config.yml| cut -d ":" -f 2 | sed "s/ //g")
+docker build --tag=tp .
+docker run \
+  --rm \
+  -e GITHUB_TOKEN \
+  -v "$PWD/config/examples/kubernetes.yaml:/app/config/config.yaml" \
+  -p 8080:8080 \
+  tp
 ```
 
 You'll see logs emitted as Triage Party pulls content from GitHub. The first time a new repository is used, it will require some time (~45s in this case) to download the necessary data before minikube will render pages. Your new Triage Party site is now available at [http://localhost:8080/](http://localhost:8080/), but will initially block page loads until the required content has been downloaded. After the first run, pages are rendered from memory within ~5ms.
