@@ -268,11 +268,11 @@ rules:
   # SLO violations
   issue-needs-priority-slo:
     name: "Unprioritized issues older than 5 days"
-    resolution: "Add a priority/ or triage/ label"
+    resolution: "Add a priority/ or kind/support label"
     type: issue
     filters:
       - label: "!priority/.*"
-      - label: "!triage/.*"
+      - label: "!kind/support"
       - created: +5d
 
   issue-needs-comment-slo:
@@ -317,11 +317,11 @@ rules:
   # Issues missing initial feedback
   issue-needs-kind:
     name: "Unkinded Issues"
-    resolution: "Add a kind/ or triage/support label"
+    resolution: "Add a kind/ label"
     type: issue
     filters:
       - label: "!kind/.*"
-      - label: "!triage/support"
+      - label: "!kind/support"
 
   issue-needs-priority:
     name: "Unprioritized Issues within SLO"
@@ -458,7 +458,7 @@ rules:
     resolution: "Close, or add to triage/long-term-support"
     type: issue
     filters:
-      - label: triage/support
+      - label: kind/support
       - label: "!long-term-support"
       - updated: +29d
 
@@ -539,7 +539,7 @@ rules:
       - responded: +30d
       - label: "!kind/feature"
       - label: "!kind/bug"
-      - label: "!triage/support"
+      - label: "!kind/support"
 
   features-old:
     name: "Features that have not been commented on within 90 days"
@@ -569,7 +569,7 @@ rules:
       - created: +60d
       - label: "!kind/feature"
       - label: "!kind/bug"
-      - label: "!triage/support"
+      - label: "!kind/support"
       - label: "!priority/awaiting-evidence"
 
   lifecycle-stale:

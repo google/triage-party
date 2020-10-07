@@ -209,11 +209,11 @@ rules:
   # Issues missing initial feedback
   issue-needs-kind:
     name: "Unkinded Issues"
-    resolution: "Add a kind/ or triage/support label"
+    resolution: "Add a kind/ label"
     type: issue
     filters:
       - label: "!kind/.*"
-      - label: "!triage/support"
+      - label: "!kind/support"
 
   issue-needs-priority:
     name: "Unprioritized Recent Issues"
@@ -338,7 +338,7 @@ rules:
     resolution: "Close, or add to triage/long-term-support"
     type: issue
     filters:
-      - label: triage/support
+      - label: kind/support
       - label: "!long-term-support"
       - updated: +29d
 
@@ -460,7 +460,7 @@ rules:
       - responded: +60d
       - label: "!kind/feature"
       - label: "!kind/bug"
-      - label: "!triage/support"
+      - label: "!kind/support"
 
   features-old:
     name: "Features that have not been commented on within 90 days"
@@ -490,7 +490,7 @@ rules:
       - created: +90d
       - label: "!kind/feature"
       - label: "!kind/bug"
-      - label: "!triage/support"
+      - label: "!kind/support"
       - label: "!priority/awaiting-evidence"
 
   lifecycle-stale:
