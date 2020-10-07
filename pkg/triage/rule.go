@@ -16,12 +16,14 @@ package triage
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/provider"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/google/triage-party/pkg/provider"
+
 	"context"
+
 	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/logu"
 	"k8s.io/klog/v2"
@@ -75,7 +77,8 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 			if dupeRule != nil {
 				// Find a nefarious bug
 				if t.ID == dupeRule.ID {
-					panic(fmt.Sprintf("this can't happen: %s is a double-dupe of %s", c.URL, dupeRule.ID))
+					klog.Errorf("LOGIC FAILURE: %s was previously seen by rule %q, which is the same as the current rule: %q", c.URL, dupeRule.ID, t.ID)
+					continue
 				}
 
 				klog.V(2).Infof("dupe: %s (now: %q, previous: %q)", c.URL, t.ID, dupeRule.ID)
