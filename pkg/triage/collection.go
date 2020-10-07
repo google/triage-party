@@ -17,8 +17,9 @@ package triage
 import (
 	"context"
 	"fmt"
-	"github.com/google/triage-party/pkg/provider"
 	"time"
+
+	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/google/triage-party/pkg/hubbub"
 	"k8s.io/klog/v2"

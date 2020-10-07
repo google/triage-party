@@ -251,7 +251,6 @@ func parseHexColor(s string) (c color.RGBA, err error) {
 
 // pick an appropriate text color given a background color
 func textColor(s string) template.CSS {
-
 	color, err := parseHexColor(fmt.Sprintf("#%s", strings.TrimPrefix(s, "#")))
 	if err != nil {
 		klog.Errorf("parse hex color failed: %v", err)

@@ -15,12 +15,13 @@
 package hubbub
 
 import (
+	"context"
 	"fmt"
-	"github.com/google/triage-party/pkg/provider"
 	"strings"
 	"time"
 
-	"context"
+	"github.com/google/triage-party/pkg/provider"
+
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
 )
@@ -52,7 +53,6 @@ func (h *Engine) updateReviews(ctx context.Context, sp provider.SearchParams) ([
 
 		p := provider.ResolveProviderByHost(sp.Repo.Host)
 		cs, resp, err := p.PullRequestsListReviews(ctx, sp)
-
 		if err != nil {
 			return cs, start, err
 		}

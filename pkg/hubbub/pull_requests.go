@@ -15,13 +15,14 @@
 package hubbub
 
 import (
+	"context"
 	"fmt"
-	"github.com/google/triage-party/pkg/constants"
-	"github.com/google/triage-party/pkg/provider"
 	"sort"
 	"time"
 
-	"context"
+	"github.com/google/triage-party/pkg/constants"
+	"github.com/google/triage-party/pkg/provider"
+
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
@@ -85,7 +86,6 @@ func (h *Engine) updatePRs(ctx context.Context, sp provider.SearchParams) ([]*pr
 
 		pr := provider.ResolveProviderByHost(sp.Repo.Host)
 		prs, resp, err := pr.PullRequestsList(ctx, sp)
-
 		if err != nil {
 			if _, ok := err.(*github.RateLimitError); ok {
 				klog.Errorf("oh snap! We reached the GitHub search API limit: %v", err)
@@ -138,7 +138,6 @@ func (h *Engine) cachedPR(ctx context.Context, sp provider.SearchParams) (*provi
 	}
 
 	pr, created, err := h.updatePR(ctx, sp)
-
 	if err != nil {
 		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
 		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
@@ -156,7 +155,6 @@ func (h *Engine) updatePR(ctx context.Context, sp provider.SearchParams) (*provi
 
 	p := provider.ResolveProviderByHost(sp.Repo.Host)
 	pr, resp, err := p.PullRequestsGet(ctx, sp)
-
 	if err != nil {
 		return pr, start, err
 	}
@@ -242,7 +240,6 @@ func (h *Engine) updateReviewComments(ctx context.Context, sp provider.SearchPar
 
 		p := provider.ResolveProviderByHost(sp.Repo.Host)
 		cs, resp, err := p.PullRequestsListComments(ctx, sp)
-
 		if err != nil {
 			return cs, start, err
 		}

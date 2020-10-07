@@ -16,10 +16,11 @@ package triage
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/provider"
 	"io"
 	"io/ioutil"
 	"time"
+
+	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/persist"
@@ -45,7 +46,6 @@ type Party struct {
 }
 
 func New(cfg Config) *Party {
-
 	p := &Party{
 		cache:         cfg.Cache,
 		reposOverride: cfg.Repos,
@@ -113,7 +113,6 @@ func (p *Party) newEngine() *hubbub.Engine {
 
 // Load loads a YAML config from a reader
 func (p *Party) Load(r io.Reader) error {
-
 	bs, err := ioutil.ReadAll(r)
 	if err != nil {
 		return fmt.Errorf("readall: %w", err)

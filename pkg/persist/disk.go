@@ -20,13 +20,14 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"github.com/google/triage-party/pkg/provider"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/patrickmn/go-cache"
 	"k8s.io/klog/v2"
@@ -110,11 +111,11 @@ func (d *Disk) Cleanup() error {
 		return fmt.Errorf("encode: %w", err)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(d.path), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(d.path), 0o700); err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(d.path, b.Bytes(), 0644)
+	return ioutil.WriteFile(d.path, b.Bytes(), 0o644)
 }
 
 func findCacheRoot() string {
@@ -141,7 +142,6 @@ func findCacheRoot() string {
 }
 
 func DefaultDiskPath(configPath string, override string) string {
-
 	name := filepath.Base(configPath)
 	if override != "" {
 		name = name + "_" + strings.Replace(override, "/", "_", -1)

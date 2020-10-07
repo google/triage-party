@@ -18,12 +18,14 @@ import (
 	"github.com/google/triage-party/pkg/provider"
 )
 
-const reactThumbsUp = "thumbs_up"
-const reactThumbsDown = "thumbs_down"
-const reactLaugh = "laugh"
-const reactConfused = "confused"
-const reactHeart = "heart"
-const reactHooray = "hooray"
+const (
+	reactThumbsUp   = "thumbs_up"
+	reactThumbsDown = "thumbs_down"
+	reactLaugh      = "laugh"
+	reactConfused   = "confused"
+	reactHeart      = "heart"
+	reactHooray     = "hooray"
+)
 
 func reactions(r *provider.Reactions) map[string]int {
 	return map[string]int{

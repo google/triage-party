@@ -19,8 +19,9 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"github.com/google/triage-party/pkg/provider"
 	"time"
+
+	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -158,7 +159,6 @@ func (m *Postgres) Cleanup() error {
 	maxAge := start.Add(-1 * MaxSaveAge)
 
 	res, err := m.db.Exec(`DELETE FROM persist WHERE saved < $1`, maxAge)
-
 	if err != nil {
 		return fmt.Errorf("delete exec: %w", err)
 	}

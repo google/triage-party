@@ -16,8 +16,6 @@ package site
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/constants"
-	"github.com/google/triage-party/pkg/provider"
 	"html/template"
 	"math"
 	"net/http"
@@ -25,6 +23,9 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/google/triage-party/pkg/constants"
+	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/dustin/go-humanize"
 	"github.com/google/triage-party/pkg/hubbub"

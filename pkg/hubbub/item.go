@@ -16,14 +16,15 @@ package hubbub
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/constants"
-	"github.com/google/triage-party/pkg/provider"
-	"github.com/google/triage-party/pkg/tag"
-	"k8s.io/klog/v2"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/triage-party/pkg/constants"
+	"github.com/google/triage-party/pkg/provider"
+	"github.com/google/triage-party/pkg/tag"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -279,7 +280,6 @@ func (co *Conversation) UpdatePullRequestRefs(rc *RelatedConversation) {
 
 // parse any references and update mention time
 func (h *Engine) parseRefs(text string, co *Conversation, t time.Time) {
-
 	// remove code samples which mention unrelated issues
 	text = codeRe.ReplaceAllString(text, "<code></code>")
 	text = detailsRe.ReplaceAllString(text, "<details></details>")

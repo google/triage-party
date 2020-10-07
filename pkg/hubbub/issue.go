@@ -15,13 +15,14 @@
 package hubbub
 
 import (
+	"context"
 	"fmt"
-	"github.com/google/triage-party/pkg/constants"
-	"github.com/google/triage-party/pkg/provider"
 	"strings"
 	"time"
 
-	"context"
+	"github.com/google/triage-party/pkg/constants"
+	"github.com/google/triage-party/pkg/provider"
+
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/logu"
 	"gopkg.in/yaml.v2"
@@ -160,7 +161,6 @@ func (h *Engine) updateIssueComments(ctx context.Context, sp provider.SearchPara
 
 		pr := provider.ResolveProviderByHost(sp.Repo.Host)
 		cs, resp, err := pr.IssuesListComments(ctx, sp)
-
 		if err != nil {
 			return cs, start, err
 		}
