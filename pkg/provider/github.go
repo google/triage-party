@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
+
 	"github.com/google/go-github/v31/github"
 	"github.com/google/triage-party/pkg/constants"
 	"golang.org/x/oauth2"
 	"k8s.io/klog/v2"
-	"net/http"
-	"os"
 )
 
 type GithubProvider struct {

@@ -3,10 +3,11 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/google/triage-party/pkg/constants"
 	"io/ioutil"
-	"k8s.io/klog/v2"
 	"strings"
+
+	"github.com/google/triage-party/pkg/constants"
+	"k8s.io/klog/v2"
 )
 
 type Provider interface {

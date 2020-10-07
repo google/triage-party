@@ -2,11 +2,12 @@ package hubbub
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/provider"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"

@@ -17,7 +17,6 @@ package site
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/provider"
 	"html/template"
 	"image/color"
 	"math"
@@ -28,6 +27,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/triage"
@@ -250,7 +251,6 @@ func parseHexColor(s string) (c color.RGBA, err error) {
 
 // pick an appropriate text color given a background color
 func textColor(s string) template.CSS {
-
 	color, err := parseHexColor(fmt.Sprintf("#%s", strings.TrimPrefix(s, "#")))
 	if err != nil {
 		klog.Errorf("parse hex color failed: %v", err)

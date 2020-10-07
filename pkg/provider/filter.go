@@ -6,9 +6,7 @@ import (
 	"strings"
 )
 
-var (
-	rawString = regexp.MustCompile(`^[\w-/]+$`)
-)
+var rawString = regexp.MustCompile(`^[\w-/]+$`)
 
 // Filter lets you do less.
 type Filter struct {

@@ -15,13 +15,14 @@
 package triage
 
 import (
+	"context"
 	"fmt"
-	"github.com/google/triage-party/pkg/provider"
 	"net/url"
 	"strings"
 	"time"
 
-	"context"
+	"github.com/google/triage-party/pkg/provider"
+
 	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/logu"
 	"k8s.io/klog/v2"
@@ -61,7 +62,6 @@ type RuleResult struct {
 
 // SummarizeRuleResult adds together statistics about a pool of conversations
 func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rule) *RuleResult {
-
 	r := &RuleResult{
 		Rule:       t,
 		Duplicates: map[string]bool{},

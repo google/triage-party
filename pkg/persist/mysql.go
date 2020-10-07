@@ -19,8 +19,9 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"github.com/google/triage-party/pkg/provider"
 	"time"
+
+	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/patrickmn/go-cache"
@@ -162,7 +163,6 @@ func (m *MySQL) Cleanup() error {
 	maxAge := start.Add(-1 * MaxSaveAge)
 
 	res, err := m.db.Exec(`DELETE FROM persist WHERE saved < ?`, maxAge)
-
 	if err != nil {
 		return fmt.Errorf("delete exec: %w", err)
 	}

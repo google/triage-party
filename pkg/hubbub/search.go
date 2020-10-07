@@ -1,16 +1,17 @@
 package hubbub
 
 import (
-	"github.com/google/triage-party/pkg/constants"
-	"github.com/google/triage-party/pkg/provider"
+	"context"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/google/triage-party/pkg/constants"
+	"github.com/google/triage-party/pkg/provider"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hokaccha/go-prettyjson"
 
-	"context"
 	"github.com/google/triage-party/pkg/logu"
 	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"

@@ -3,12 +3,13 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/google/triage-party/pkg/constants"
-	"github.com/xanzy/go-gitlab"
 	"log"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/google/triage-party/pkg/constants"
+	"github.com/xanzy/go-gitlab"
 )
 
 type GitlabProvider struct {

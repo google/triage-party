@@ -15,16 +15,15 @@
 package persist
 
 import (
-	"github.com/google/triage-party/pkg/provider"
 	"time"
+
+	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/patrickmn/go-cache"
 	"k8s.io/klog/v2"
 )
 
-var (
-	memCleanupInterval = 15 * time.Minute
-)
+var memCleanupInterval = 15 * time.Minute
 
 func createMem() *cache.Cache {
 	return cache.New(MaxLoadAge, memCleanupInterval)

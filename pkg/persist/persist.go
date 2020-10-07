@@ -18,9 +18,10 @@ package persist
 import (
 	"encoding/gob"
 	"fmt"
-	"github.com/google/triage-party/pkg/provider"
 	"os"
 	"time"
+
+	"github.com/google/triage-party/pkg/provider"
 )
 
 var (

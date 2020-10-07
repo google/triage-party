@@ -16,10 +16,11 @@ package hubbub
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/provider"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/google/triage-party/pkg/provider"
 
 	"k8s.io/klog/v2"
 )

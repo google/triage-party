@@ -16,8 +16,9 @@
 package persist
 
 import (
-	"github.com/google/triage-party/pkg/provider"
 	"time"
+
+	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/patrickmn/go-cache"
 	"k8s.io/klog/v2"

@@ -1,53 +1,56 @@
 package hubbub
 
 import (
-	"github.com/google/triage-party/pkg/provider"
 	"regexp"
 	"strings"
+
+	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/imjasonmiller/godice"
 	"k8s.io/klog/v2"
 )
 
-var nonLetter = regexp.MustCompile(`[^a-zA-Z]`)
-var removeWords = map[string]bool{
-	"a":       true,
-	"an":      true,
-	"and":     true,
-	"are":     true,
-	"as":      true,
-	"be":      true,
-	"by":      true,
-	"can":     true,
-	"does":    true,
-	"has":     true,
-	"have":    true,
-	"how":     true,
-	"if":      true,
-	"in":      true,
-	"is":      true,
-	"of":      true,
-	"on":      true,
-	"or":      true,
-	"the":     true,
-	"that":    true,
-	"to":      true,
-	"use":     true,
-	"very":    true,
-	"via":     true,
-	"too":     true,
-	"why":     true,
-	"add":     true,
-	"feature": true,
-	"fix":     true,
-	"bug":     true,
-	"fr":      true,
-	"it":      true,
-	"you":     true,
-	"with":    true,
-	"do":      true,
-	"we":      true,
-}
+var (
+	nonLetter   = regexp.MustCompile(`[^a-zA-Z]`)
+	removeWords = map[string]bool{
+		"a":       true,
+		"an":      true,
+		"and":     true,
+		"are":     true,
+		"as":      true,
+		"be":      true,
+		"by":      true,
+		"can":     true,
+		"does":    true,
+		"has":     true,
+		"have":    true,
+		"how":     true,
+		"if":      true,
+		"in":      true,
+		"is":      true,
+		"of":      true,
+		"on":      true,
+		"or":      true,
+		"the":     true,
+		"that":    true,
+		"to":      true,
+		"use":     true,
+		"very":    true,
+		"via":     true,
+		"too":     true,
+		"why":     true,
+		"add":     true,
+		"feature": true,
+		"fix":     true,
+		"bug":     true,
+		"fr":      true,
+		"it":      true,
+		"you":     true,
+		"with":    true,
+		"do":      true,
+		"we":      true,
+	}
+)
 
 // normalize titles for a higher hit-rate
 func normalizeTitle(t string) string {

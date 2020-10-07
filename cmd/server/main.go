@@ -29,7 +29,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/google/triage-party/pkg/constants"
 	"net/http"
 	"os"
 	"os/signal"
@@ -38,6 +37,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/google/triage-party/pkg/constants"
 
 	"k8s.io/klog/v2"
 

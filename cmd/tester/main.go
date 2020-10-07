@@ -19,12 +19,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/google/triage-party/pkg/models"
-	"github.com/google/triage-party/pkg/provider"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/triage-party/pkg/models"
+	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/triage"
