@@ -24,7 +24,7 @@
 # using "base.Dockerfile"
 
 # Stage 1: Build Triage Party (identical to base.Dockerfile)
-FROM golang AS builder
+FROM golang:1.15.2-buster AS builder
 WORKDIR /app
 ENV SRC_DIR=/src/tparty
 ENV GO111MODULE=on
@@ -37,14 +37,15 @@ RUN go mod download
 RUN go build cmd/server/main.go
 
 # Stage 2: Copy local persistent cache into temp container containing "mv"
-FROM alpine AS temp
+FROM alpine:3.12.0 AS temp
 ARG CFG=config/config.yaml
 COPY pcache /pc
 RUN echo "Pre-populating cache if found (failure is perfectly OK)"
-RUN mv /pc/$(basename $CFG).pc /config.yaml.pc || touch /config.yaml.pc
+RUN mv "/pc/$(basename "${CFG}").pc" /config.yaml.pc || touch /config.yaml.pc
 
 # Stage 3: Build the configured application container
-FROM gcr.io/distroless/base AS triage-party
+# hadolint ignore=DL3007
+FROM gcr.io/distroless/base:latest AS triage-party
 ARG CFG=config/config.yaml
 COPY --from=builder /src/tparty/main /app/
 COPY --from=temp /config.yaml.pc /app/pcache/config.yaml.pc
@@ -53,13 +54,13 @@ COPY third_party /app/third_party/
 COPY $CFG /app/config/config.yaml
 
 # Useful environment variables:
-# 
+#
 # * GITHUB_TOKEN: Sets GitHub API token
 # * CONFIG_PATH: Sets configuration path (defaults to "/app/config/config.yaml")
 # * PORT: Sets HTTP listening port (defaults to 8080)
 # * PERSIST_BACKEND: Set the cache persistence backend
 # * PERSIST_PATH: Set the cache persistence path
-# 
+#
 # For other environment variables, see:
 # https://github.com/google/triage-party/blob/master/docs/deploy.md
 CMD ["/app/main", "--min-refresh=30s", "--max-refresh=8m", "--site=/app/site", "--3p=/app/third_party"]

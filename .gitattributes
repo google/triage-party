@@ -1,0 +1,4 @@
+# Diff operations cannot be performed on these files
+
+*.min.js binary
+*.min.css binary

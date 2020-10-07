@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* 
+/*
 Vivid and Sharp: https://visme.co/blog/website-color-schemes/
 
 #D83F87 - pink
@@ -90,12 +90,12 @@ h3 {
 }
 
 h4.subtitle {
-  color: #fff;  
+  color: #fff;
   font-size: small;
-  margin-bottom: 0 !important;  
+  margin-bottom: 0 !important;
 }
 h5.stats {
-  color: #fff;  
+  color: #fff;
   font-size: small;
 }
 
@@ -182,7 +182,7 @@ td:last-child { padding-right: 0.2em !important; }
 .gh-label {
   border-radius: 2px;
   box-shadow: inset 0 -1px 0 rgba(27,31,35,.12);
-  font-size: 0.75rem; 
+  font-size: 0.75rem;
   font-weight: 600;
   padding: 0px 4px;
   display: inline-block;
@@ -193,7 +193,7 @@ td:last-child { padding-right: 0.2em !important; }
   box-shadow: inset 0 -1px 0 rgba(27,31,35,.12);
   background-color: #e0e0e0;
   font-weight: 600;
-  font-size: 0.75rem; 
+  font-size: 0.75rem;
   padding: 0px 4px;
   display: inline-block;
   color: #000;
@@ -219,7 +219,7 @@ td:last-child { padding-right: 0.2em !important; }
   color: #FFF !important;
   font-weight: bold;
   font-style: italic;
- 
+
 }
 
 .tag-pr-unreviewed a {
@@ -227,7 +227,7 @@ td:last-child { padding-right: 0.2em !important; }
 }
 
 .tag-pr-new-commits,.tag-new-commits {
-  background-color: #F80 !important;    
+  background-color: #F80 !important;
   color: #FFF !important;
   font-weight: bold;
   font-style: italic;
@@ -247,7 +247,7 @@ td:last-child { padding-right: 0.2em !important; }
 }
 
 .tag-pr-approved a {
-  color: #FFF !important;  
+  color: #FFF !important;
 }
 
 .tag-pr-merged,.tag-merged {
@@ -261,7 +261,7 @@ td:last-child { padding-right: 0.2em !important; }
 
 .tag-pr-closed,.tag-closed {
   background-color: #CA2339 !important;
-  color: #000 !important;  
+  color: #000 !important;
   text-decoration: line-through;
 }
 
@@ -288,7 +288,7 @@ td:last-child { padding-right: 0.2em !important; }
 
 .sorting_desc::after {
   content: "" !important;
-} 
+}
 
 .sorting::after {
   content: "" !important;
@@ -418,12 +418,12 @@ td:last-child { padding-right: 0.2em !important; }
 .alt-view {
   margin-left: 0.8em;
   padding-left: 0.8em;
-  border-left: 1px dashed #5A35FF;  
+  border-left: 1px dashed #5A35FF;
 }
 
 .alt-view a {
   color: #fff;
-  text-decoration: underline;  
+  text-decoration: underline;
 }
 
 .pull-requests {

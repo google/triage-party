@@ -1,5 +1,31 @@
 # Triage Party: Configuration Guide
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [Examples](#examples)
+- [Settings](#settings)
+- [Collections](#collections)
+  - [Settings](#settings-1)
+- [Rules](#rules)
+- [Filter language](#filter-language)
+- [Tags](#tags)
+- [Display configuration](#display-configuration)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+- [Examples](#examples)
+- [Settings](#settings)
+- [Collections](#collections)
+  - [Settings](#settings-1)
+- [Rules](#rules)
+- [Filter language](#filter-language)
+- [Tags](#tags)
+- [Display configuration](#display-configuration)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Examples
 
 Triage Party includes with two example configurations that are useful to get started:
@@ -149,4 +175,3 @@ To determine review state, we support the following tags:
 The afforementioned PR review tags are also added to linked issues, though with a `pr-` prefix. For instance, `pr-approved`.
 
 ## Display configuration
-

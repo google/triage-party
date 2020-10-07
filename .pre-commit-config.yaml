@@ -1,0 +1,101 @@
+# Copyright 2020 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+default_stages: [commit, push]
+minimum_pre_commit_version: "1.20.0"
+repos:
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.1.9
+    hooks:
+      - id: insert-license
+        name: Add license for all shell files
+        exclude: ^third_party
+        files: \.sh$|\.sh.tmpl$|\.bash$
+        args:
+          - --comment-style
+          - "|#|"
+          - --license-filepath
+          - license-templates/LICENSE.txt
+          - --fuzzy-match-generates-todo
+      - id: insert-license
+        name: Add license for all yaml files
+        exclude: ^third_party
+        files: \.yaml$|\.yml$
+        args:
+          - --comment-style
+          - "|#|"
+          - --license-filepath
+          - license-templates/LICENSE.txt
+          - --fuzzy-match-generates-todo
+      - id: insert-license
+        name: Add license for all go files
+        exclude: ^third_party
+        files: \.go$
+        args:
+          - --comment-style
+          - "|//|"
+          - --license-filepath
+          - license-templates/LICENSE.txt
+          - --fuzzy-match-generates-todo
+  - repo: git://github.com/dnephin/pre-commit-golang
+    rev: master
+    hooks:
+      - id: go-fmt
+        name: Run go fmt
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+      - id: trailing-whitespace
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+  - repo: https://github.com/thlorenz/doctoc.git
+    rev: v1.4.0
+    hooks:
+      - id: doctoc
+        name: Add TOC for md files
+        files: \.md$
+        args:
+          - "--maxlevel"
+          - "3"
+          - "--title"
+          - "**Table of Contents**"
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.23.0
+    hooks:
+      - id: yamllint
+        name: Check yaml files with yamllint
+        entry: yamllint -c yamllint-config.yml
+        types: [yaml]
+  - repo: local
+    hooks:
+      - id: language-matters
+        language: pygrep
+        name: Check for language that we do not accept as community
+        description: Please use "deny_list" or "allow_list" instead.
+        entry: "(?i)(black|white)[_-]?(list|List)"
+        pass_filenames: true
+      - id: hadolint
+        name: Hadolint
+        description: Haskell-based Docker image linter
+        language: docker_image
+        files: Dockerfile.*
+        entry: --entrypoint /bin/hadolint hadolint/hadolint:latest -
+      - id: shellcheck
+        name: Check Shell scripts syntax correctness
+        language: docker_image
+        entry: koalaman/shellcheck:stable -x -a
+        files: .*\.sh
+        exclude: ^third_party

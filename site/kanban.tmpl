@@ -17,7 +17,7 @@
     <div class="navbar-center">
           <div class="right-item">
           <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
-          <span title="Data as of {{ .ResultAge | HumanDuration}} ago">{{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }}, 
+          <span title="Data as of {{ .ResultAge | HumanDuration}} ago">{{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }},
           Avg age: {{ .CollectionResult.AvgAge | toDays }}
           {{ if .VelocityStats }}, Historical closure rate: <a href="/s/{{.VelocityStats.Collection.ID }}">{{ printf "%.1f" $.ClosedPerDay }} issue(s) per day</a>{{ end }}
           </span>
@@ -36,7 +36,7 @@
       <div class="navbar-form">
           {{ if .SelectorOptions }}
             <div class="buttons">
-                Milestone: 
+                Milestone:
                 <form style="display: inline-block;" action="/k/{{ .ID }}" method="get">
                     <select onchange="this.form.submit();" name="{{ .SelectorVar }}">
                       {{ range .SelectorOptions }}
@@ -135,8 +135,8 @@
                     {{ if gt $count 1 }}
                       <div class="reaction-{{ $value }} sticky-reaction"></div>
                     {{ end }}
-                  {{ end }}     
-                </div>            
+                  {{ end }}
+                </div>
 
 
                 <ul class="refs">
@@ -148,12 +148,12 @@
             {{ end }}
           {{ end }}
         </td>
-        {{ end}}        
+        {{ end}}
       </tr>
       {{ end }}
       </table>
   {{ end }}
-{{ end }} 
+{{ end }}
 
 {{ define "js" }}
 <script src="/third_party/jquery/jquery-3.3.1.min.js"></script>

@@ -17,7 +17,7 @@
 #
 # Party on!
 
-FROM golang AS builder
+FROM golang:1.15.2-buster AS builder
 WORKDIR /app
 
 # Build the binary
@@ -32,20 +32,21 @@ RUN go mod download
 RUN go build cmd/server/main.go
 
 # Setup the site data
-FROM gcr.io/distroless/base
+# hadolint ignore=DL3007
+FROM gcr.io/distroless/base:latest
 COPY --from=builder /src/tparty/main /app/
 COPY site /app/site/
 COPY third_party /app/third_party/
 COPY config/config.yaml /app/config/config.yaml
 
 # Useful environment variables:
-# 
+#
 # * GITHUB_TOKEN: Sets GitHub API token
 # * CONFIG_PATH: Sets configuration path (defaults to "/app/config/config.yaml")
 # * PORT: Sets HTTP listening port (defaults to 8080)
 # * PERSIST_BACKEND: Set the cache persistence backend
 # * PERSIST_PATH: Set the cache persistence path
-# 
+#
 # For other environment variables, see:
 # https://github.com/google/triage-party/blob/master/docs/deploy.md
 CMD ["/app/main", "--min-refresh=30s", "--max-refresh=8m", "--site=/app/site", "--3p=/app/third_party"]
