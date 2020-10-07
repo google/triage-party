@@ -17,7 +17,6 @@ package site
 
 import (
 	"fmt"
-	"github.com/google/triage-party/pkg/provider"
 	"html/template"
 	"image/color"
 	"math"
@@ -28,6 +27,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/triage"
@@ -40,7 +41,7 @@ import (
 )
 
 // VERSION is what version of Triage Party we advertise as.
-const VERSION = "v1.3.0"
+const VERSION = "v1.4.0-DEV (master)"
 
 var (
 	nonWordRe = regexp.MustCompile(`\W`)
