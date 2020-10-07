@@ -26,18 +26,6 @@ Triage Party is configured via YAML, and designed for projects to self-host on a
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-- [Novel Features](#novel-features)
-- [Triage Party in production](#triage-party-in-production)
-- [Requirements](#requirements)
-- [Try it](#try-it)
-- [Usage Tips](#usage-tips)
-- [Multi-player mode](#multi-player-mode)
-- [Kanban mode (NEW)](#kanban-mode-new)
-- [Data freshness](#data-freshness)
-- [Documentation](#documentation)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ## Novel Features
 
 * Multiplayer mode: Up to 20 simultaneous players in group triage

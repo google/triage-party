@@ -23,16 +23,6 @@ only ocassionally. To configure persistence, use:
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-- [Disk](#disk)
-- [Google CloudSQL](#google-cloudsql)
-- [MySQL or MariaDB](#mysql-or-mariadb)
-- [PostgreSQL](#postgresql)
-- [CockroachDB](#cockroachdb)
-- [TiKV](#tikv)
-- [Memory](#memory)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ## Disk
 
 Triage Party uses a disk backend by default. It's battle-tested, and ideal for development and smaller deployments. It is not a good match for environments like Google Cloud Run, which do not have persistent storage available.

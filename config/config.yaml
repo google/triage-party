@@ -25,6 +25,7 @@ settings:
   # See: https://developer.github.com/v4/enum/commentauthorassociation/
   # Default is "collaborator, owner, member", unless "members" is set
   #
+  # member-roles:
   #  - collaborator
   #  - owner
   #  - member

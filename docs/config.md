@@ -15,17 +15,6 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-- [Examples](#examples)
-- [Settings](#settings)
-- [Collections](#collections)
-  - [Settings](#settings-1)
-- [Rules](#rules)
-- [Filter language](#filter-language)
-- [Tags](#tags)
-- [Display configuration](#display-configuration)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 ## Examples
 
 Triage Party includes with two example configurations that are useful to get started:
