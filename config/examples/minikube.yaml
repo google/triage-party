@@ -73,20 +73,20 @@ collections:
        * Raising the priority for hot issues
     rules:
       - discuss
-      # PR's needing closure
-      - pr-reviewable-older
-      - pr-approved-stale
-      - pr-unapproved-stale
-      # SLO
-      - issue-near-important-slo
-      - issue-near-longterm-slo
-      # People with questions
-      - issue-has-question
-      - issue-updated-support
       # Issues needing closure
       - issue-stale-needs-info
       - issue-stale-support
       - lifecycle-rotten
+      # People with questions
+      - issue-has-question
+      - issue-updated-support
+      # SLO
+      - issue-near-important-slo
+      - issue-near-longterm-slo
+      # PR's needing closure
+      - pr-reviewable-older
+      - pr-approved-stale
+      - pr-unapproved-stale
       # Issues needing reprioritization
       - many-reactions
       - many-commenters
