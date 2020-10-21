@@ -73,23 +73,24 @@ collections:
        * Raising the priority for hot issues
     rules:
       - discuss
-      # SLO
-      - issue-near-important-slo
-      - issue-near-longterm-slo
-      # Issues needing reprioritization
-      - many-reactions
-      - many-commenters
-      - issue-zombies
       # Issues needing closure
       - issue-stale-needs-info
       - issue-stale-support
       - lifecycle-rotten
-      # PR's needing closure
-      - pr-approved-stale
-      - pr-unapproved-stale
       # People with questions
       - issue-has-question
       - issue-updated-support
+      # SLO
+      - issue-near-important-slo
+      - issue-near-longterm-slo
+      # PR's needing closure
+      - pr-reviewable-older
+      - pr-approved-stale
+      - pr-unapproved-stale
+      # Issues needing reprioritization
+      - many-reactions
+      - many-commenters
+      - issue-zombies
 
   - id: scrub
     name: Bi-Monthly Scrub
@@ -314,6 +315,18 @@ rules:
       # Temporarily workaround inability to track PR eligibility
       - updated: +1d
 
+  pr-reviewable-older:
+    name: "Pull Requests: Review Ready"
+    resolution: "Review requests or mark them as do-not-merge/work-in-progress"
+    type: pull_request
+    filters:
+      - label: "!do-not-merge.*"
+      - label: "!needs-rebase"
+      - label: "!cncf-cla: no"
+      - tag: "!changes-requested"
+      - tag: "!send"
+      - updated: +2d
+
   # Issues missing initial feedback
   issue-needs-kind:
     name: "Unkinded Issues"
@@ -325,11 +338,11 @@ rules:
 
   issue-needs-priority:
     name: "Unprioritized Issues within SLO"
-    resolution: "Add a priority/ or triage/ label"
+    resolution: "Add a priority/ or kind/support label"
     type: issue
     filters:
       - label: "!priority/.*"
-      - label: "!triage/.*"
+      - label: "!kind/support"
       # avoid duplicating unkinded issues
       - label: "triage|kind"
       - created: -5d
