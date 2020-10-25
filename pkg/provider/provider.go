@@ -52,6 +52,12 @@ func ResolveProviderByHost(providerHost string) Provider {
 		}
 		return gitlabProvider
 	}
+	// support own host with GitHub Enterprise
+	if githubProvider != nil {
+		if providerHost == githubProvider.client.BaseURL.Host {
+			return githubProvider
+		}
+	}
 	fmt.Println("not existing provider")
 	return nil
 }
