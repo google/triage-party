@@ -1,4 +1,3 @@
-
 /**
  * Copyright 2020 Google LLC
  *
@@ -15,9 +14,9 @@
  * limitations under the License.
  */
 
- th {
+/* th {
   color: #fff !important;
-}
+} */
 
 .sticky {
   background-color: #ffc;
@@ -25,7 +24,7 @@
 
   padding: 0.6em;
   margin: 0.4em;
-  
+
   clear: right;
   float: left;
   width: 10em;
@@ -60,22 +59,20 @@
   display: inline !important;
 }
 
-
 /* sticky colors based on GitHub labels! */
 .kind-process {
-  background-color: #A5FF8F;
-  border: 1px solid #85DF6F;
+  background-color: #a5ff8f;
+  border: 1px solid #85df6f;
 }
 
 .kind-bug {
-  background-color: #FDBABC;
-  border: 1px solid #DD9A9C;
+  background-color: #fdbabc;
+  border: 1px solid #dd9a9c;
 }
 
-
 .kind-documentation {
-  background-color: #A0F2FF;
-  border: 1px solid #80D2DF;
+  background-color: #a0f2ff;
+  border: 1px solid #80d2df;
 }
 
 .prority-urgent {
@@ -84,7 +81,7 @@
 
 .sticky-overflow {
   background-color: #999;
-  border: 1px solid #99F;
+  border: 1px solid #99f;
   font-style: italic;
   font-size: 90%;
   color: #333;
@@ -116,16 +113,16 @@
 }
 
 .unassigned-lane .sticky {
- box-shadow: 2px 2px 8px #333;
-}  
+  box-shadow: 2px 2px 8px #333;
+}
 
 .late-eta {
-  color: #FF0 !important;
+  color: #ff0 !important;
   font-weight: bold !important;
 }
 
 .very-late-eta {
-  color: #FB54A3 !important;
+  color: #fb54a3 !important;
   font-weight: bold !important;
   font-size: 90% !important;
 }
@@ -140,12 +137,11 @@
 }
 
 .refs li {
-  border: 1px solid rgba(0, 0, 0, .2);
+  border: 1px solid rgba(0, 0, 0, 0.2);
   padding-left: 0.3em;
   padding-right: 0.3em;
   display: inline-block;
   word-wrap: break-word;
   font-size: smaller;
-  background-color: #FFF;
+  background-color: #fff;
 }
-

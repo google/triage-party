@@ -25,35 +25,17 @@ Vivid and Sharp: https://visme.co/blog/website-color-schemes/
 #A4B3B6 - greyish
 */
 
-body {
-  background-color: #E4F3F6;
+a {
+  color: #44318d;
 }
 
-.box {
-  padding: 0;
-  border: 1px solid #d9b8ee;
-  border-radius: 0;
+.title {
+  font-weight: 300;
 }
 
 .navbar-item img {
   max-height: 1.25rem;
   margin-left: 0.25rem;
-}
-
-.box-header {
-  background-color: #44318D;
-  color: #FFF;
-  font-weight: bold;
-  padding-left: 0.7rem;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-}
-
-.dataTables_filter label {
-  display: inline-block;
-  color: #A4B386;
-  padding-top: 0.5rem;
-  padding-right: 1rem;
 }
 
 .columns {
@@ -72,43 +54,19 @@ body {
   margin-top: -3.25rem !important;
 }
 
-.dataTable {
-  width: 100% !important;
-}
-
 .column {
   padding: 0;
 }
-
-h1.title {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-h3 {
-  font-weight: bold;
-}
-
-h4.subtitle {
-  color: #fff;  
-  font-size: small;
-  margin-bottom: 0 !important;  
-}
-h5.stats {
-  color: #fff;  
-  font-size: small;
-}
-
 
 a.navbar-item {
   color: #fff;
 }
 
 .play-fast-back {
-  color: #A4B3B6;
+  color: #a4b3b6;
 }
 .play-fast-forward {
-  color: #A4B3B6;
+  color: #a4b3b6;
 }
 
 nav {
@@ -118,11 +76,10 @@ nav {
 nav.secondary {
   height: 2rem;
   min-height: 2rem;
-  max-height:2rem;
+  max-height: 2rem;
   padding: 0.2rem;
   padding-right: 0.8em;
 }
-
 
 .navbar-center {
   margin-left: auto;
@@ -143,139 +100,102 @@ nav.secondary {
   padding-right: 0.5rem;
 }
 
-table.is-size-6 {
-  font-size: 0.9rem !important;
-  width: 100%;
-}
-
-thead {
-  color: #fff;
- }
-
 .navbar {
-  color: #F0F0F0;
-  background-color: #C82F77;
+  color: #f0f0f0;
+  background-color: #c82f77;
 }
 
 .secondary {
-  background-color: #2A1B3D;
-  color: #FFF;
+  background-color: #2a1b3d;
+  color: #fff;
 }
 
-thead {
-  background-color: #7D68A3;
-}
-
-.hd {
-  border-right: 1px dashed #5D4883;
-  padding-left: 0.5em !important;
-}
-
-.hd:last-child {
-  border-right: none;
-}
-
-td { padding: 0.2rem !important; }
-td:first-child { padding-left: 0.4em !important; }
-td:last-child { padding-right: 0.2em !important; }
-
-.gh-label {
-  border-radius: 2px;
-  box-shadow: inset 0 -1px 0 rgba(27,31,35,.12);
-  font-size: 0.75rem; 
-  font-weight: 600;
-  padding: 0px 4px;
-  display: inline-block;
-}
-
-.gh-tag {
-  border-radius: 2px;
-  box-shadow: inset 0 -1px 0 rgba(27,31,35,.12);
-  background-color: #e0e0e0;
-  font-weight: 600;
-  font-size: 0.75rem; 
-  padding: 0px 4px;
-  display: inline-block;
-  color: #000;
-}
-
-.tag-default {
+.outcome .tag-default {
   background-color: #e0e0e0;
 }
 
-.tag-send {
+.outcome .tag-send {
   background-color: #0f0;
 }
-.tag-recv {
-  background-color: #F83F87;
+.outcome .tag-recv {
+  background-color: #f83f87;
 }
-.tag-a-has-q {
-  background-color: #E98074;
-}
-
-
-.tag-pr-unreviewed, .tag-unreviewed {
-  background-color: #F08 !important;
-  color: #FFF !important;
-  font-weight: bold;
-  font-style: italic;
- 
+.outcome .tag-a-has-q {
+  background-color: #e98074;
 }
 
-.tag-pr-unreviewed a {
-  color: #FFF !important;
-}
-
-.tag-pr-new-commits,.tag-new-commits {
-  background-color: #F80 !important;    
-  color: #FFF !important;
+.outcome .tag-pr-unreviewed,
+.outcome .tag-unreviewed {
+  background-color: #f08 !important;
+  color: #fff !important;
   font-weight: bold;
   font-style: italic;
 }
 
-.tag-pr-new-commits a {
-  color: #FFF !important;
+.outcome .tag-pr-unreviewed a {
+  color: #fff !important;
 }
 
-.tag-pr-approved,.tag-approved {
-  background-color: #00A125 !important;
-  color: #FFF !important;
-}
-.tag-pr-pushed-after-approval,.tag-pushed-after-approval {
-  background-color: #80A125 !important;
-  color: #FFF !important;
-}
-
-.tag-pr-approved a {
-  color: #FFF !important;  
+.outcome .tag-pr-new-commits,
+.outcome .tag-new-commits {
+  background-color: #f80 !important;
+  color: #fff !important;
+  font-weight: bold;
+  font-style: italic;
 }
 
-.tag-pr-merged,.tag-merged {
-  background-color: #6418BD !important;
-  color: #FFF !important;
+.outcome .tag-pr-new-commits a {
+  color: #fff !important;
 }
 
-.tag-pr-merged a {
-  color: #FFF !important;
+.outcome .tag-pr-approved,
+.outcome .tag-approved {
+  background-color: #00a125 !important;
+  color: #fff !important;
+}
+.outcome .tag-pr-pushed-after-approval,
+.outcome .tag-pushed-after-approval {
+  background-color: #80a125 !important;
+  color: #fff !important;
 }
 
-.tag-pr-closed,.tag-closed {
-  background-color: #CA2339 !important;
-  color: #000 !important;  
+.outcome .tag-pr-approved a {
+  color: #fff !important;
+}
+
+.outcome .tag-pr-merged,
+.outcome .tag-merged {
+  background-color: #6418bd !important;
+  color: #fff !important;
+}
+
+.outcome .tag-pr-merged a {
+  color: #fff !important;
+}
+
+.outcome .tag-pr-closed,
+.outcome .tag-closed {
+  background-color: #ca2339 !important;
+  color: #000 !important;
   text-decoration: line-through;
 }
 
-.tag-pr-closed a {
+.outcome .tag-pr-closed a {
   color: #000 !important;
 }
 
-.tag-pr-changes-requested, .tag-changes-requested {
-  background-color: #FF0 !important;
+.outcome .tag-pr-changes-requested,
+.outcome .tag-changes-requested {
+  background-color: #ff0 !important;
+}
+
+.tags .tag {
+  margin-bottom: 0.25rem;
 }
 
 /* Fix bulma datatables funkiness */
 .sorting_asc {
-  background-color: #6D5893;
+  font-weight: bold;
 }
 
 .sorting_asc::after {
@@ -283,12 +203,12 @@ td:last-child { padding-right: 0.2em !important; }
 }
 
 .sorting_desc {
-  background-color: #8D78B3;
+  font-weight: bold;
 }
 
 .sorting_desc::after {
   content: "" !important;
-} 
+}
 
 .sorting::after {
   content: "" !important;
@@ -326,17 +246,32 @@ td:last-child { padding-right: 0.2em !important; }
 .cell-author {
   width: 2.3em;
 }
+
+.cell-author img,
+.cell-assignee img,
+.cell-comments img {
+  opacity: 0.75;
+  border-radius: 2px;
+}
+
+tr:hover .cell-author img,
+tr:hover .cell-assignee img,
+tr:hover .cell-comments img {
+  opacity: 1;
+}
+
 .cell-id {
   width: 3em;
+  font-size: small;
 }
 
 .similar {
-  background-color: #FFFDE9;
+  background-color: #fffde9;
   font-size: small;
   color: #000;
   margin: 0.3rem;
   padding: 0.3rem;
-  border: 1px dashed #C9CAAB;
+  border: 1px dashed #c9caab;
 }
 
 .dupes {
@@ -344,7 +279,7 @@ td:last-child { padding-right: 0.2em !important; }
 }
 
 .similar a {
-  color: #3F1D09;
+  color: #3f1d09;
 }
 
 .section {
@@ -358,12 +293,8 @@ td:last-child { padding-right: 0.2em !important; }
 
 .is-active {
   font-weight: bold;
-  color: #FFF !important;
-  background-color: #D83F87 !important;
-}
-
-.even {
-  background-color: #F7F7F7 !important;
+  color: #fff !important;
+  background-color: #d83f87 !important;
 }
 
 .reaction-heart:before {
@@ -403,7 +334,7 @@ td:last-child { padding-right: 0.2em !important; }
 }
 
 .no-matches {
-  background-color: #CEE0E3;
+  border-left: 0.5rem solid #cee0e3;
   margin-bottom: 1em;
   padding: 0.5em;
   max-width: 50%;
@@ -418,12 +349,12 @@ td:last-child { padding-right: 0.2em !important; }
 .alt-view {
   margin-left: 0.8em;
   padding-left: 0.8em;
-  border-left: 1px dashed #5A35FF;  
+  border-left: 1px dashed #5a35ff;
 }
 
 .alt-view a {
   color: #fff;
-  text-decoration: underline;  
+  text-decoration: underline;
 }
 
 .pull-requests {
@@ -434,4 +365,8 @@ td:last-child { padding-right: 0.2em !important; }
 
 .description pre {
   padding: 0.8rem;
+}
+
+.outcome {
+  border-left: 0.5rem solid #44318d;
 }

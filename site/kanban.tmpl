@@ -3,7 +3,6 @@
 {{ end }}
 
 {{ define "style" }}
-  <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
   <link rel="stylesheet" href="/third_party/datatables-bulma/dataTables.bulma.css" />
   <link rel="stylesheet" href="/static/css/kanban.css?{{.Version}}">
 {{ end }}
@@ -55,19 +54,20 @@
   {{ if .CollectionResult.RuleResults }}
 
     {{ if ne .Description "" }}
-      <div class="box description">
+      <div class="panel description">
       <pre>{{ .Description }}</pre>
       </div>
     {{ end }}
 
-    <div class="box outcome kanban">
-        <div class="box-header collapsible">
+    <div class="panel outcome kanban">
+        <div class="panel-heading collapsible">
           <div class="box-head-left">
             {{ if .Milestone }}
-              <h3>{{ .Title }}: {{ .Milestone.Title }}</h3>
-              <h4 class="subtitle">Due: {{ if .Milestone.DueOn }}{{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | RoughTime }}){{ else }}Never{{ end }}</h4>
+              <h3 class="title">{{ .Title }}: {{ .Milestone.Title }}</h3>
+              <div class="subtitle is-size-6">
+                <div>Due: {{ if .Milestone.DueOn }}{{ .Milestone.DueOn.Format "2006-01-02" }} ({{.Milestone.DueOn | RoughTime }}){{ else }}Never{{ end }}</div>
                 {{ if not .MilestoneETA.IsZero }}
-                  <h4 class="subtitle {{ if .MilestoneVeryLate}}very-late-eta{{ else if gt .MilestoneCountOffset 0}}late-eta{{ else if lt .MilestoneCountOffset 0}}early-eta{{ end }}">Completion ETA:
+                  <div class="{{ if .MilestoneVeryLate}}very-late-eta{{ else if gt .MilestoneCountOffset 0}}late-eta{{ else if lt .MilestoneCountOffset 0}}early-eta{{ end }}">Completion ETA:
                       <span class="eta">
                           {{ .MilestoneETA.Format "~2006-01-02" }}
                           {{ if .Milestone.DueOn }}
@@ -77,27 +77,31 @@
                             {{ end }}
                           {{ end }}
                       </span>
-                  </h4>
+                  </div>
                 {{ end }}
-                <h5 class="stats">{{ .Milestone.GetOpenIssues}} open issues, {{ .Milestone.GetClosedIssues }} closed issues</h5>
+                <div>{{ .Milestone.GetOpenIssues}} open issues, {{ .Milestone.GetClosedIssues }} closed issues</div>
+              </div>
             {{ else }}
               <h3>{{ .Title }}</h3>
-              <h5 class="stats">{{ .Total }} unique items</h5>
-              {{ if not .CompletionETA.IsZero }}
-                <h4 class="subtitle">Completion ETA:
-                    <span class="eta">
-                        {{ .CompletionETA.Format "~2006-01-02" }}
-                    </span>
-                </h4>
-              {{ end }}
+              <div class="subtitle is-size-6">
+                <div>{{ .Total }} unique items</div>
+                {{ if not .CompletionETA.IsZero }}
+                  <div>Completion ETA:
+                      <span class="eta">
+                          {{ .CompletionETA.Format "~2006-01-02" }}
+                      </span>
+                  </div>
+                {{ end }}
+              </div>
             {{ end }}
           </div>
           <div class="box-head-right">
           <!--  just save the space -->
           </div>
         </div>
+        <div class="panel-block">
         <table id="kanban-table" class="compact is-size-6">
-      <thead>
+        <thead class="is-size-7">
         <tr>
           <th class="hd" id="assignee-col">Assi</th>
           {{- range .CollectionResult.RuleResults }}
@@ -141,7 +145,7 @@
 
                 <ul class="refs">
                     {{ range .PullRequestRefs }}
-                      <li class="tag-default tag-pr-{{.ReviewState | Class }}"><a href="{{ .URL }}" title='"{{ .Title }}" by @{{.Author.GetLogin}} ({{.ReviewState}})'>{{ .ID }}</li>
+                      <li class="tag tag-default tag-pr-{{.ReviewState | Class }}"><a href="{{ .URL }}" title='"{{ .Title }}" by @{{.Author.GetLogin}} ({{.ReviewState}})'>{{ .ID }}</li>
                     {{ end }}
                 </ul>
               </div>
@@ -152,6 +156,7 @@
       </tr>
       {{ end }}
       </table>
+      </div>
   {{ end }}
 {{ end }} 
 

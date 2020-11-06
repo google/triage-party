@@ -3,7 +3,6 @@
 {{ end }}
 
 {{ define "style" }}
-  <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
   <link rel="stylesheet" href="/third_party/datatables-bulma/dataTables.bulma.css" />
 {{ end }}
 
@@ -62,14 +61,14 @@
 
   {{ if .CollectionResult.RuleResults }}
     {{ if ne .Description "" }}
-      <div class="box description">
+      <div class="panel description">
       <pre>{{ .Description }}</pre>
       </div>
     {{ end }}
 
     {{ range .CollectionResult.RuleResults }}
       {{ if eq (len .Items) 0 }}
-        <div class="no-matches" title="{{ .Rule | toYAML }}"><strong>{{ .Rule.Name }}</strong>: No matching items</div>
+        <div class="panel no-matches" title="{{ .Rule | toYAML }}"><strong>{{ .Rule.Name }}</strong>: No matching items</div>
       {{ else }}
         <script>
         function {{ .Rule.ID | toJSfunc }}tabs() {
@@ -77,19 +76,22 @@
             {{ end }}
         }
         </script>
-        <div class="box outcome">
-        <div class="box-header collapsible">
+        <div class="panel outcome">
+        <div class="panel-heading collapsible">
           <div class="box-head-left">
-            <h3 title="{{ .Rule | toYAML }}">{{ .Rule.Name }} ({{ len .Items }})<div class="tab-link"><a href="#" title="open in new tabs" onclick="{{ .Rule.ID | toJSfunc }}tabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div></h3>
-            <h4 class="subtitle">Resolution: {{ .Rule.Resolution }}</h4>
-            <h5 class="stats">Average age: {{ .AvgAge | toDays }}, Avg wait: {{ .AvgCurrentHold | toDays }}</h5>
+            <h3 class="title" title="{{ .Rule | toYAML }}">{{ .Rule.Name }} ({{ len .Items }})<div class="tab-link"><a href="#" title="open in new tabs" onclick="{{ .Rule.ID | toJSfunc }}tabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div></h3>
+            <div class="subtitle is-size-6">
+              <div>Resolution: {{ .Rule.Resolution }}</div>
+              <div>Average age: {{ .AvgAge | toDays }}, Avg wait: {{ .AvgCurrentHold | toDays }}</div>
+            </div>
           </div>
           <div class="box-head-right">
           <!--  just save the space -->
           </div>
         </div>
-        <table id="{{ .Rule.ID | toJSfunc  }}" class="compact is-size-6">
-        <thead>
+        <div class="panel-block">
+        <table id="{{ .Rule.ID | toJSfunc  }}" class="table is-hoverable">
+        <thead class="is-size-7">
           <tr>
             <td class="hd col-id">ID</td>
             <td class="hd col-author" title="Author">Au</td>
@@ -114,7 +116,7 @@
               <td class="cell-id"><a href="{{ .URL }}">{{ .ID }}</a></td>
               <td class="cell-author" data-order="{{ .Author.GetLogin }}">{{ .Author | Avatar }}</td>
               <td class="cell-desc">
-                <a href="{{ .URL }}" title="@{{ .LastCommentAuthor.GetLogin}}: {{ .LastCommentBody }}"><strong>{{ .Title }}</strong></a>
+                <a href="{{ .URL }}" title="@{{ .LastCommentAuthor.GetLogin}}: {{ .LastCommentBody }}">{{ .Title }}</a>
 
                 {{ if .PullRequestRefs }}
                   <ul class="pull-requests">
@@ -155,12 +157,16 @@
               <td class="cell-response" data-order="{{ .LatestMemberResponse | UnixNano }}">{{ .LatestMemberResponse | RoughTime }}</td>
               <td class="cell-comments" data-order="{{ .CommentersTotal }}">{{ range .Commenters }}{{ . |  Avatar}}{{ end }}</td>
               <td class="cell-labels">
+                <div class="tags">
                 {{ range .Labels }}
-                  <div class="gh-label" style="background-color: #{{ .Color }}; color: #{{ .Color | TextColor }};">{{ .Name }}</div>
+                  <div class="tag" style="background-color: #{{ .Color }}; color: #{{ .Color | TextColor }};">{{ .Name }}</div>
                 {{ end }}
+                </div>
               </td>
               <td class="cell-tags">
-                {{ range $k, $_ := .Tags }}<div class="gh-tag tag-{{ $k.ID }}" title="{{ $k.Desc }}">{{ $k.ID }}</div> {{ end }}
+                <div class="tags">
+                {{ range $k, $_ := .Tags }}<div class="tag tag-{{ $k.ID }}" title="{{ $k.Desc }}">{{ $k.ID }}</div> {{ end }}
+                </div>
               </td>
             </tr>
             {{ end }}
@@ -178,6 +184,7 @@
           {{ end }}
         </tbody>
         </table>
+        </div>
         </div>
       {{ end }}
     {{ end }}
