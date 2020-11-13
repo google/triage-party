@@ -218,6 +218,22 @@ func (p *Party) validateLoadedConfig() error {
 		return fmt.Errorf("No 'filters' found in the configuration")
 	}
 
+	// validate that requested repos map to known providers
+	repos := p.settings.Repos
+	if len(p.reposOverride) > 0 {
+		repos = p.reposOverride
+	}
+
+	for _, repo := range repos {
+		r, err := parseRepo(repo)
+		if err != nil {
+			return fmt.Errorf("invalid repo URL %q", repo)
+		}
+		if provider.ResolveProviderByHost(r.Host) == nil {
+			return fmt.Errorf("unknown provider host %q", r.Host)
+		}
+	}
+
 	klog.Infof("configuration defines %d filters - looking good!", filters)
 	return nil
 }
