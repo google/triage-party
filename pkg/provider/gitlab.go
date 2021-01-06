@@ -121,6 +121,9 @@ func (p *GitlabProvider) getRate(i *gitlab.Response) Rate {
 }
 
 func (p *GitlabProvider) getResponse(i *gitlab.Response) *Response {
+	if i == nil {
+		return nil
+	}
 	r := Response{
 		NextPage: i.NextPage,
 		Rate:     p.getRate(i),
@@ -252,6 +255,9 @@ func (p *GitlabProvider) getMilestone(i *gitlab.Milestone) *Milestone {
 }
 
 func (p *GitlabProvider) getPullRequest(v *gitlab.MergeRequest) *PullRequest {
+	if v == nil {
+		return nil
+	}
 	id := int64(v.ID)
 	m := &PullRequest{
 		Assignee:  p.getUserFromBasicUser(v.Assignee, true),
@@ -323,6 +329,9 @@ func (p *GitlabProvider) PullRequestsListComments(ctx context.Context, sp Search
 }
 
 func (p *GitlabProvider) getPullRequestReviews(i *gitlab.MergeRequestApprovals) []*PullRequestReview {
+	if i == nil {
+		return nil
+	}
 	r := make([]*PullRequestReview, len(i.ApprovedBy))
 	state := "APPROVED"
 	for k, v := range i.ApprovedBy {
