@@ -24,17 +24,17 @@ const (
 	CreatedAtSortOption = "created_at"
 	DescDirectionOption = "desc"
 
-	GithubTokenEnvVar = "GITHUB_TOKEN"
-	GitlabTokenEnvVar = "GITLAB_TOKEN"
+	GitHubTokenEnvVar = "GITHUB_TOKEN"
+	GitLabTokenEnvVar = "GITLAB_TOKEN"
 
-	GithubProviderName = "github"
-	GitlabProviderName = "gitlab"
+	GitHubProviderName = "github"
+	GitLabProviderName = "gitlab"
 
 	// https://docs.gitlab.com/ee/user/gitlab_com/index.html#gitlabcom-specific-rate-limits
-	GitlabRateLimitHeader          = "RateLimit-Limit"
-	GitlabRateLimitRemainingHeader = "RateLimit-Remaining"
-	GitlabRateLimitResetHeader     = "RateLimit-Reset"
+	GitLabRateLimitHeader          = "RateLimit-Limit"
+	GitLabRateLimitRemainingHeader = "RateLimit-Remaining"
+	GitLabRateLimitResetHeader     = "RateLimit-Reset"
 
-	GithubProviderHost = "github.com"
-	GitlabProviderHost = "gitlab.com"
+	GitHubProviderHost = "github.com"
+	GitLabProviderHost = "gitlab.com"
 )

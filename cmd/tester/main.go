@@ -24,10 +24,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/triage-party/pkg/models"
-	"github.com/google/triage-party/pkg/provider"
-
+	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/persist"
+	"github.com/google/triage-party/pkg/provider"
 	"github.com/google/triage-party/pkg/triage"
 
 	"k8s.io/klog/v2"
@@ -35,14 +34,15 @@ import (
 
 var (
 	// custom GitHub API URLs
-	githubAPIRawURL = flag.String("github-api-url", "", "base URL for GitHub API.  Please set this when you use GitHub Enterprise. This often is your GitHub Enterprise hostname. If the base URL does not have the suffix \"/api/v3/\", it will be added automatically.")
+	gitHubAPIURL = flag.String("github-api-url", "", "base URL for GitHub API.  Please set this when you use GitHub Enterprise. This often is your GitHub Enterprise hostname. If the base URL does not have the suffix \"/api/v3/\", it will be added automatically.")
 
 	// shared with server
 	configPath      = flag.String("config", "", "configuration path")
 	persistBackend  = flag.String("persist-backend", "", "Cache persistence backend (disk, mysql, cloudsql)")
 	persistPath     = flag.String("persist-path", "", "Where to persist cache to (automatic)")
 	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
-	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via GITHUB_TOKEN")
+	gitHubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via "+constants.GitHubTokenEnvVar)
+	gitLabTokenFile = flag.String("gitlab-token-file", "", "github token secret file, also settable via "+constants.GitLabTokenEnvVar)
 	numbers         = flag.String("nums", "", "only display results for these comma-delimited issue/PR numbers (debug)")
 
 	// tester specific
@@ -86,11 +86,12 @@ func main() {
 		}
 	}
 
-	initProviderClients(ctx)
-
 	cfg := triage.Config{
 		Cache:        c,
 		DebugNumbers: debugNums,
+		GitHubAPIURL: *gitHubAPIURL,
+		GitHubToken:  provider.ReadToken(*gitHubTokenFile, "GITHUB_TOKEN"),
+		GitLabToken:  provider.ReadToken(*gitLabTokenFile, "GITLAB_TOKEN"),
 	}
 
 	if *reposOverride != "" {
@@ -98,7 +99,11 @@ func main() {
 	}
 
 	klog.Infof("tester runtime config: %+v", cfg)
-	tp := triage.New(cfg)
+	tp, err := triage.New(cfg)
+	if err != nil {
+		klog.Exitf("new: %v", err)
+	}
+
 	if err := tp.Load(f); err != nil {
 		klog.Exitf("load %s: %v", *configPath, err)
 	}
@@ -108,15 +113,6 @@ func main() {
 	} else {
 		executeRule(ctx, tp)
 	}
-}
-
-// Init providers (Github/Gitlab) HTTP clients
-func initProviderClients(ctx context.Context) {
-	cfg := provider.Config{
-		GithubAPIRawURL: githubAPIRawURL,
-		GithubTokenFile: githubTokenFile,
-	}
-	provider.InitProviders(ctx, cfg)
 }
 
 func executeCollection(ctx context.Context, tp *triage.Party) {
@@ -155,7 +151,7 @@ func executeRule(ctx context.Context, tp *triage.Party) {
 		klog.Exitf("rule: %v", err)
 	}
 
-	sp := models.SearchParams{
+	sp := provider.SearchParams{
 		NewerThan: time.Now(),
 		Hidden:    false,
 	}

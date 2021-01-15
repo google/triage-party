@@ -4,37 +4,37 @@ import (
 	"testing"
 )
 
-func TestGitlab_GetResponse(t *testing.T) {
-	p := GitlabProvider{}
+func TestGitLab_GetResponse(t *testing.T) {
+	p := GitLabProvider{}
 	p.getResponse(nil)
 }
 
-func TestGitlab_GetIssues(t *testing.T) {
-	p := GitlabProvider{}
+func TestGitLab_GetIssues(t *testing.T) {
+	p := GitLabProvider{}
 	p.getIssues(nil)
 }
 
-func TestGitlab_GetIssueComments(t *testing.T) {
-	p := GitlabProvider{}
+func TestGitLab_GetIssueComments(t *testing.T) {
+	p := GitLabProvider{}
 	p.getIssueComments(nil)
 }
 
-func TestGitlab_GetPullRequests(t *testing.T) {
-	p := GitlabProvider{}
+func TestGitLab_GetPullRequests(t *testing.T) {
+	p := GitLabProvider{}
 	p.getPullRequests(nil)
 }
 
-func TestGitlab_GetPullRequest(t *testing.T) {
-	p := GitlabProvider{}
+func TestGitLab_GetPullRequest(t *testing.T) {
+	p := GitLabProvider{}
 	p.getPullRequest(nil)
 }
 
-func TestGitlab_GetPullRequestComments(t *testing.T) {
-	p := GitlabProvider{}
+func TestGitLab_GetPullRequestComments(t *testing.T) {
+	p := GitLabProvider{}
 	p.getPullRequestComments(nil)
 }
 
-func TestGitlab_GetPullRequestReviews(t *testing.T) {
-	p := GitlabProvider{}
+func TestGitLab_GetPullRequestReviews(t *testing.T) {
+	p := GitLabProvider{}
 	p.getPullRequestReviews(nil)
 }

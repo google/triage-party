@@ -50,7 +50,7 @@ func (h *Engine) updateTimeline(ctx context.Context, sp provider.SearchParams) (
 	var allEvents []*provider.Timeline
 	for {
 
-		pr := provider.ResolveProviderByHost(sp.Repo.Host)
+		pr := h.provider(sp.Repo.Host)
 		evs, resp, err := pr.IssuesListIssueTimeline(ctx, sp)
 		if err != nil {
 			return nil, err
