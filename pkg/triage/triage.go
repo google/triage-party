@@ -15,6 +15,7 @@
 package triage
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -33,6 +34,10 @@ type Config struct {
 	Repos []string
 	// DebugNumber is useful when you want to debug why a single issue is or is-not appearing
 	DebugNumbers []int
+
+	GitHubAPIURL string
+	GitHubToken  string
+	GitLabToken  string
 }
 
 type Party struct {
@@ -43,13 +48,35 @@ type Party struct {
 	rules         map[string]Rule
 	reposOverride []string
 	debug         map[int]bool
+
+	github provider.Provider
+	gitlab provider.Provider
 }
 
-func New(cfg Config) *Party {
+func New(cfg Config) (*Party, error) {
 	p := &Party{
 		cache:         cfg.Cache,
 		reposOverride: cfg.Repos,
 		debug:         map[int]bool{},
+	}
+
+	var err error
+	if cfg.GitLabToken != "" {
+		p.gitlab, err = provider.NewGitLab(cfg.GitLabToken)
+		if err != nil {
+			return p, fmt.Errorf("gitlab: %v", err)
+		}
+	}
+
+	if cfg.GitHubToken != "" {
+		p.github, err = provider.NewGitHub(context.Background(), cfg.GitHubToken, cfg.GitHubAPIURL)
+		if err != nil {
+			return p, fmt.Errorf("github: %v", err)
+		}
+	}
+
+	if p.gitlab == nil && p.github == nil {
+		return nil, fmt.Errorf("You need to pass a token for GitHub or GitLab")
 	}
 
 	for _, n := range cfg.DebugNumbers {
@@ -58,7 +85,7 @@ func New(cfg Config) *Party {
 	}
 
 	// p.engine is unset until Load() is called
-	return p
+	return p, nil
 }
 
 type Settings struct {
@@ -105,6 +132,9 @@ func (p *Party) newEngine() *hubbub.Engine {
 		MinSimilarity:      p.settings.MinSimilarity,
 		MemberRoles:        roles,
 		Members:            p.settings.Members,
+
+		GitLab: p.gitlab,
+		GitHub: p.github,
 	}
 
 	klog.Infof("New hubbub with config: %+v", hc)
@@ -225,12 +255,9 @@ func (p *Party) validateLoadedConfig() error {
 	}
 
 	for _, repo := range repos {
-		r, err := parseRepo(repo)
+		_, err := parseRepo(repo)
 		if err != nil {
 			return fmt.Errorf("invalid repo URL %q", repo)
-		}
-		if provider.ResolveProviderByHost(r.Host) == nil {
-			return fmt.Errorf("unknown provider host %q", r.Host)
 		}
 	}
 

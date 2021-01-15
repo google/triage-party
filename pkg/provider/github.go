@@ -18,27 +18,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"os"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/google/triage-party/pkg/constants"
 	"golang.org/x/oauth2"
-	"k8s.io/klog/v2"
 )
 
-type GithubProvider struct {
+type GitHubProvider struct {
 	client *github.Client
 }
 
-func (p *GithubProvider) getListOptions(m ListOptions) github.ListOptions {
+func (p *GitHubProvider) getListOptions(m ListOptions) github.ListOptions {
 	return github.ListOptions{
 		Page:    m.Page,
 		PerPage: m.PerPage,
 	}
 }
 
-func (p *GithubProvider) getIssues(i []*github.Issue) []*Issue {
+func (p *GitHubProvider) getIssues(i []*github.Issue) []*Issue {
 	r := make([]*Issue, len(i))
 	for k, v := range i {
 		m := Issue{}
@@ -55,7 +51,7 @@ func (p *GithubProvider) getIssues(i []*github.Issue) []*Issue {
 	return r
 }
 
-func (p *GithubProvider) getRate(i *github.Rate) Rate {
+func (p *GitHubProvider) getRate(i *github.Rate) Rate {
 	r := Rate{}
 	b, err := json.Marshal(i)
 	if err != nil {
@@ -68,7 +64,7 @@ func (p *GithubProvider) getRate(i *github.Rate) Rate {
 	return r
 }
 
-func (p *GithubProvider) getResponse(i *github.Response) *Response {
+func (p *GitHubProvider) getResponse(i *github.Response) *Response {
 	if i == nil {
 		return nil
 	}
@@ -83,7 +79,7 @@ func (p *GithubProvider) getResponse(i *github.Response) *Response {
 	return &r
 }
 
-func (p *GithubProvider) getIssueListByRepoOptions(sp SearchParams) *github.IssueListByRepoOptions {
+func (p *GitHubProvider) getIssueListByRepoOptions(sp SearchParams) *github.IssueListByRepoOptions {
 	return &github.IssueListByRepoOptions{
 		ListOptions: p.getListOptions(sp.IssueListByRepoOptions.ListOptions),
 		State:       sp.IssueListByRepoOptions.State,
@@ -91,7 +87,7 @@ func (p *GithubProvider) getIssueListByRepoOptions(sp SearchParams) *github.Issu
 	}
 }
 
-func (p *GithubProvider) IssuesListByRepo(ctx context.Context, sp SearchParams) (i []*Issue, r *Response, err error) {
+func (p *GitHubProvider) IssuesListByRepo(ctx context.Context, sp SearchParams) (i []*Issue, r *Response, err error) {
 	opt := p.getIssueListByRepoOptions(sp)
 	gi, gr, err := p.client.Issues.ListByRepo(ctx, sp.Repo.Organization, sp.Repo.Project, opt)
 	i = p.getIssues(gi)
@@ -99,13 +95,13 @@ func (p *GithubProvider) IssuesListByRepo(ctx context.Context, sp SearchParams) 
 	return
 }
 
-func (p *GithubProvider) getIssuesListCommentsOptions(sp SearchParams) *github.IssueListCommentsOptions {
+func (p *GitHubProvider) getIssuesListCommentsOptions(sp SearchParams) *github.IssueListCommentsOptions {
 	return &github.IssueListCommentsOptions{
 		ListOptions: p.getListOptions(sp.IssueListCommentsOptions.ListOptions),
 	}
 }
 
-func (p *GithubProvider) getIssueComments(i []*github.IssueComment) []*IssueComment {
+func (p *GitHubProvider) getIssueComments(i []*github.IssueComment) []*IssueComment {
 	r := make([]*IssueComment, len(i))
 	for k, v := range i {
 		m := IssueComment{}
@@ -122,7 +118,7 @@ func (p *GithubProvider) getIssueComments(i []*github.IssueComment) []*IssueComm
 	return r
 }
 
-func (p *GithubProvider) IssuesListComments(ctx context.Context, sp SearchParams) (i []*IssueComment, r *Response, err error) {
+func (p *GitHubProvider) IssuesListComments(ctx context.Context, sp SearchParams) (i []*IssueComment, r *Response, err error) {
 	opt := p.getIssuesListCommentsOptions(sp)
 	gc, gr, err := p.client.Issues.ListComments(ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, opt)
 	i = p.getIssueComments(gc)
@@ -130,13 +126,13 @@ func (p *GithubProvider) IssuesListComments(ctx context.Context, sp SearchParams
 	return
 }
 
-func (p *GithubProvider) getIssuesListIssueTimelineOptions(sp SearchParams) *github.ListOptions {
+func (p *GitHubProvider) getIssuesListIssueTimelineOptions(sp SearchParams) *github.ListOptions {
 	return &github.ListOptions{
 		PerPage: sp.ListOptions.PerPage,
 	}
 }
 
-func (p *GithubProvider) getIssueTimeline(i []*github.Timeline) []*Timeline {
+func (p *GitHubProvider) getIssueTimeline(i []*github.Timeline) []*Timeline {
 	r := make([]*Timeline, len(i))
 	for k, v := range i {
 		m := Timeline{}
@@ -153,7 +149,7 @@ func (p *GithubProvider) getIssueTimeline(i []*github.Timeline) []*Timeline {
 	return r
 }
 
-func (p *GithubProvider) IssuesListIssueTimeline(ctx context.Context, sp SearchParams) (i []*Timeline, r *Response, err error) {
+func (p *GitHubProvider) IssuesListIssueTimeline(ctx context.Context, sp SearchParams) (i []*Timeline, r *Response, err error) {
 	opt := p.getIssuesListIssueTimelineOptions(sp)
 	it, ir, err := p.client.Issues.ListIssueTimeline(ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, opt)
 	i = p.getIssueTimeline(it)
@@ -161,7 +157,7 @@ func (p *GithubProvider) IssuesListIssueTimeline(ctx context.Context, sp SearchP
 	return
 }
 
-func (p *GithubProvider) getPullRequestsListOptions(sp SearchParams) *github.PullRequestListOptions {
+func (p *GitHubProvider) getPullRequestsListOptions(sp SearchParams) *github.PullRequestListOptions {
 	return &github.PullRequestListOptions{
 		ListOptions: p.getListOptions(sp.IssueListCommentsOptions.ListOptions),
 		State:       sp.PullRequestListOptions.State,
@@ -170,7 +166,7 @@ func (p *GithubProvider) getPullRequestsListOptions(sp SearchParams) *github.Pul
 	}
 }
 
-func (p *GithubProvider) getPullRequestsList(i []*github.PullRequest) []*PullRequest {
+func (p *GitHubProvider) getPullRequestsList(i []*github.PullRequest) []*PullRequest {
 	r := make([]*PullRequest, len(i))
 	for k, v := range i {
 		m := PullRequest{}
@@ -187,7 +183,7 @@ func (p *GithubProvider) getPullRequestsList(i []*github.PullRequest) []*PullReq
 	return r
 }
 
-func (p *GithubProvider) PullRequestsList(ctx context.Context, sp SearchParams) (i []*PullRequest, r *Response, err error) {
+func (p *GitHubProvider) PullRequestsList(ctx context.Context, sp SearchParams) (i []*PullRequest, r *Response, err error) {
 	opt := p.getPullRequestsListOptions(sp)
 	gpr, gr, err := p.client.PullRequests.List(ctx, sp.Repo.Organization, sp.Repo.Project, opt)
 	i = p.getPullRequestsList(gpr)
@@ -195,7 +191,7 @@ func (p *GithubProvider) PullRequestsList(ctx context.Context, sp SearchParams) 
 	return
 }
 
-func (p *GithubProvider) getPullRequest(i *github.PullRequest) *PullRequest {
+func (p *GitHubProvider) getPullRequest(i *github.PullRequest) *PullRequest {
 	r := PullRequest{}
 	b, err := json.Marshal(i)
 	if err != nil {
@@ -208,14 +204,14 @@ func (p *GithubProvider) getPullRequest(i *github.PullRequest) *PullRequest {
 	return &r
 }
 
-func (p *GithubProvider) PullRequestsGet(ctx context.Context, sp SearchParams) (i *PullRequest, r *Response, err error) {
+func (p *GitHubProvider) PullRequestsGet(ctx context.Context, sp SearchParams) (i *PullRequest, r *Response, err error) {
 	pr, gr, err := p.client.PullRequests.Get(ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	i = p.getPullRequest(pr)
 	r = p.getResponse(gr)
 	return
 }
 
-func (p *GithubProvider) getPullRequestListComments(i []*github.PullRequestComment) []*PullRequestComment {
+func (p *GitHubProvider) getPullRequestListComments(i []*github.PullRequestComment) []*PullRequestComment {
 	r := make([]*PullRequestComment, len(i))
 	for k, v := range i {
 		m := PullRequestComment{}
@@ -232,13 +228,13 @@ func (p *GithubProvider) getPullRequestListComments(i []*github.PullRequestComme
 	return r
 }
 
-func (p *GithubProvider) getPullRequestsListCommentsOptions(sp SearchParams) *github.PullRequestListCommentsOptions {
+func (p *GitHubProvider) getPullRequestsListCommentsOptions(sp SearchParams) *github.PullRequestListCommentsOptions {
 	return &github.PullRequestListCommentsOptions{
 		ListOptions: p.getListOptions(sp.ListOptions),
 	}
 }
 
-func (p *GithubProvider) PullRequestsListComments(ctx context.Context, sp SearchParams) (i []*PullRequestComment, r *Response, err error) {
+func (p *GitHubProvider) PullRequestsListComments(ctx context.Context, sp SearchParams) (i []*PullRequestComment, r *Response, err error) {
 	opt := p.getPullRequestsListCommentsOptions(sp)
 	pr, gr, err := p.client.PullRequests.ListComments(ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, opt)
 	i = p.getPullRequestListComments(pr)
@@ -246,7 +242,7 @@ func (p *GithubProvider) PullRequestsListComments(ctx context.Context, sp Search
 	return
 }
 
-func (p *GithubProvider) getPullRequestsListReviews(i []*github.PullRequestReview) []*PullRequestReview {
+func (p *GitHubProvider) getPullRequestsListReviews(i []*github.PullRequestReview) []*PullRequestReview {
 	r := make([]*PullRequestReview, len(i))
 	for k, v := range i {
 		m := PullRequestReview{}
@@ -263,7 +259,7 @@ func (p *GithubProvider) getPullRequestsListReviews(i []*github.PullRequestRevie
 	return r
 }
 
-func (p *GithubProvider) PullRequestsListReviews(ctx context.Context, sp SearchParams) (i []*PullRequestReview, r *Response, err error) {
+func (p *GitHubProvider) PullRequestsListReviews(ctx context.Context, sp SearchParams) (i []*PullRequestReview, r *Response, err error) {
 	opt := p.getListOptions(sp.ListOptions)
 	pr, gr, err := p.client.PullRequests.ListReviews(ctx, sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, &opt)
 	i = p.getPullRequestsListReviews(pr)
@@ -271,27 +267,17 @@ func (p *GithubProvider) PullRequestsListReviews(ctx context.Context, sp SearchP
 	return
 }
 
-func MustCreateGithubClient(githubAPIRawURL string, httpClient *http.Client) *github.Client {
-	if githubAPIRawURL != "" {
-		client, err := github.NewEnterpriseClient(githubAPIRawURL, githubAPIRawURL, httpClient)
-		if err != nil {
-			klog.Exitf("unable to create GitHub client: %v", err)
-		}
-		return client
-	}
-	return github.NewClient(httpClient)
-}
+func NewGitHub(ctx context.Context, token string, url string) (Provider, error) {
+	o := oauth2.NewClient(ctx, oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	))
 
-func initGithub(ctx context.Context, c Config) {
-	token := os.Getenv(constants.GithubTokenEnvVar)
-	path := *c.GithubTokenFile
-	if (token == "") && (path == "") {
-		return
+	if url != "" {
+		client, err := github.NewEnterpriseClient(url, url, o)
+		if err != nil {
+			return nil, fmt.Errorf("NewEnterpriseClient: %v", err)
+		}
+		return &GitHubProvider{client: client}, nil
 	}
-	cl := MustCreateGithubClient(*c.GithubAPIRawURL, oauth2.NewClient(ctx, oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: mustReadToken(path, token, constants.GithubTokenEnvVar, constants.GithubProviderName)},
-	)))
-	githubProvider = &GithubProvider{
-		client: cl,
-	}
+	return &GitHubProvider{client: github.NewClient(o)}, nil
 }

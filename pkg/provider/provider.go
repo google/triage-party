@@ -16,11 +16,10 @@ package provider
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 
-	"github.com/google/triage-party/pkg/constants"
 	"k8s.io/klog/v2"
 )
 
@@ -34,63 +33,29 @@ type Provider interface {
 	PullRequestsListReviews(ctx context.Context, sp SearchParams) ([]*PullRequestReview, *Response, error)
 }
 
-var (
-	githubProvider *GithubProvider
-	gitlabProvider *GitlabProvider
-)
-
 type Config struct {
-	GithubAPIRawURL *string
-	GithubTokenFile *string
-	GitlabTokenFile *string
+	GitHubAPIURL    string
+	GitHubTokenPath string
+
+	GitLabTokenPath string
 }
 
-func InitProviders(ctx context.Context, c Config) {
-	initGithub(ctx, c)
-	initGitlab(c)
-	if (githubProvider == nil) && (gitlabProvider == nil) {
-		klog.Exitf("You should use at least 1 provider: gitlab/github")
-	}
-}
-
-func ResolveProviderByHost(providerHost string) Provider {
-	switch providerHost {
-	case constants.GithubProviderHost:
-		if githubProvider == nil {
-			klog.Exitf("You need initialize github provider")
-		}
-		return githubProvider
-	case constants.GitlabProviderHost:
-		if gitlabProvider == nil {
-			klog.Exitf("You need initialize gitlab provider")
-		}
-		return gitlabProvider
-	}
-	// support own host with GitHub Enterprise
-	if githubProvider != nil {
-		if providerHost == githubProvider.client.BaseURL.Host {
-			return githubProvider
-		}
-	}
-	fmt.Println("not existing provider")
-	return nil
-}
-
-func mustReadToken(path string, token, env, providerName string) string {
+func ReadToken(path string, envVar string) string {
 	if path != "" {
 		t, err := ioutil.ReadFile(path)
 		if err != nil {
 			klog.Exitf("unable to read token file: %v", err)
 		}
-		token = string(t)
-		klog.Infof("loaded %d byte %s token from %s", len(token), providerName, path)
-	} else {
-		klog.Infof("loaded %d byte %s token from %s", len(token), providerName, env)
+		token := strings.TrimSpace(string(t))
+		klog.Infof("loaded %d byte %s token from %s", len(token), path)
+		return token
 	}
 
-	token = strings.TrimSpace(token)
-	if len(token) < 8 {
-		klog.Exitf("%s token impossibly small: %q", providerName, token)
+	token := strings.TrimSpace(os.Getenv(envVar))
+	if token == "" {
+		klog.Warningf("No token found in environment variable %s (empty)", envVar)
+	} else {
+		klog.Infof("loaded %d byte %s token from %s", len(token), envVar)
 	}
 	return token
 }

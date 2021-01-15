@@ -19,7 +19,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/persist"
+	"github.com/google/triage-party/pkg/provider"
 	"k8s.io/klog/v2"
 )
 
@@ -43,6 +45,10 @@ type Config struct {
 
 	// Members are which specific users to consider as members
 	Members []string
+
+	// Providers
+	GitHub provider.Provider
+	GitLab provider.Provider
 }
 
 // Engine is the search engine interface for hubbub
@@ -63,6 +69,10 @@ type Engine struct {
 	memberRoles map[string]bool
 	members     map[string]bool
 
+	// Data source providers
+	github provider.Provider
+	gitlab provider.Provider
+
 	// Workaround because GitHub doesn't update issues if cross-references occur
 	updatedAt map[string]time.Time
 
@@ -73,6 +83,13 @@ type Engine struct {
 // ConversationsTotal returns the number of conversations we've seen so far
 func (e *Engine) ConversationsTotal() int {
 	return len(e.seen)
+}
+
+func (e *Engine) provider(hostname string) provider.Provider {
+	if hostname == constants.GitLabProviderHost {
+		return e.gitlab
+	}
+	return e.github
 }
 
 func New(cfg Config) *Engine {
@@ -87,6 +104,9 @@ func New(cfg Config) *Engine {
 		updatedAt:   map[string]time.Time{},
 		memberRoles: map[string]bool{},
 		members:     map[string]bool{},
+
+		github: cfg.GitHub,
+		gitlab: cfg.GitLab,
 	}
 
 	klog.Infof("considering users as members: %v", cfg.Members)

@@ -17,8 +17,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
 	"strconv"
 	"time"
 
@@ -26,26 +24,19 @@ import (
 	"github.com/xanzy/go-gitlab"
 )
 
-type GitlabProvider struct {
+type GitLabProvider struct {
 	client *gitlab.Client
 }
 
-func initGitlab(c Config) {
-	token := os.Getenv(constants.GitlabTokenEnvVar)
-	path := *c.GitlabTokenFile
-	if (token == "") && (path == "") {
-		return
-	}
-	cl, err := gitlab.NewClient(mustReadToken(path, token, constants.GitlabTokenEnvVar, constants.GitlabProviderName))
+func NewGitLab(token string) (Provider, error) {
+	cl, err := gitlab.NewClient(token)
 	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
+		return nil, fmt.Errorf("client: %v", err)
 	}
-	gitlabProvider = &GitlabProvider{
-		client: cl,
-	}
+	return &GitLabProvider{client: cl}, nil
 }
 
-func (p *GitlabProvider) getListProjectIssuesOptions(sp SearchParams) *gitlab.ListProjectIssuesOptions {
+func (p *GitLabProvider) getListProjectIssuesOptions(sp SearchParams) *gitlab.ListProjectIssuesOptions {
 	var state *string
 	if sp.IssueListByRepoOptions.State == constants.OpenState {
 		s := constants.OpenedState
@@ -58,14 +49,14 @@ func (p *GitlabProvider) getListProjectIssuesOptions(sp SearchParams) *gitlab.Li
 	}
 }
 
-func (p *GitlabProvider) getListOptions(m ListOptions) gitlab.ListOptions {
+func (p *GitLabProvider) getListOptions(m ListOptions) gitlab.ListOptions {
 	return gitlab.ListOptions{
 		Page:    m.Page,
 		PerPage: m.PerPage,
 	}
 }
 
-func (p *GitlabProvider) getUserFromIssueAssignee(i *gitlab.IssueAssignee) *User {
+func (p *GitLabProvider) getUserFromIssueAssignee(i *gitlab.IssueAssignee) *User {
 	if i == nil {
 		return nil
 	}
@@ -79,7 +70,7 @@ func (p *GitlabProvider) getUserFromIssueAssignee(i *gitlab.IssueAssignee) *User
 	}
 }
 
-func (p *GitlabProvider) getUserFromIssueAuthor(i *gitlab.IssueAuthor) *User {
+func (p *GitLabProvider) getUserFromIssueAuthor(i *gitlab.IssueAuthor) *User {
 	id := int64(i.ID)
 	return &User{
 		ID:        &id,
@@ -90,7 +81,7 @@ func (p *GitlabProvider) getUserFromIssueAuthor(i *gitlab.IssueAuthor) *User {
 	}
 }
 
-func (p *GitlabProvider) getIssues(i []*gitlab.Issue) []*Issue {
+func (p *GitLabProvider) getIssues(i []*gitlab.Issue) []*Issue {
 	r := make([]*Issue, len(i))
 	for k, v := range i {
 		id := int64(v.ID)
@@ -113,16 +104,16 @@ func (p *GitlabProvider) getIssues(i []*gitlab.Issue) []*Issue {
 	return r
 }
 
-func (p *GitlabProvider) getRate(i *gitlab.Response) Rate {
-	l, err := strconv.Atoi(i.Header.Get(constants.GitlabRateLimitHeader))
+func (p *GitLabProvider) getRate(i *gitlab.Response) Rate {
+	l, err := strconv.Atoi(i.Header.Get(constants.GitLabRateLimitHeader))
 	if err != nil {
 		fmt.Println(err)
 	}
-	r, err := strconv.Atoi(i.Header.Get(constants.GitlabRateLimitRemainingHeader))
+	r, err := strconv.Atoi(i.Header.Get(constants.GitLabRateLimitRemainingHeader))
 	if err != nil {
 		fmt.Println(err)
 	}
-	rs, err := strconv.Atoi(i.Header.Get(constants.GitlabRateLimitResetHeader))
+	rs, err := strconv.Atoi(i.Header.Get(constants.GitLabRateLimitResetHeader))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -134,7 +125,7 @@ func (p *GitlabProvider) getRate(i *gitlab.Response) Rate {
 	}
 }
 
-func (p *GitlabProvider) getResponse(i *gitlab.Response) *Response {
+func (p *GitLabProvider) getResponse(i *gitlab.Response) *Response {
 	if i == nil {
 		return nil
 	}
@@ -146,7 +137,7 @@ func (p *GitlabProvider) getResponse(i *gitlab.Response) *Response {
 }
 
 // https://docs.gitlab.com/ee/api/issues.html#list-project-issues
-func (p *GitlabProvider) IssuesListByRepo(ctx context.Context, sp SearchParams) (i []*Issue, r *Response, err error) {
+func (p *GitLabProvider) IssuesListByRepo(ctx context.Context, sp SearchParams) (i []*Issue, r *Response, err error) {
 	opt := p.getListProjectIssuesOptions(sp)
 	is, gr, err := p.client.Issues.ListProjectIssues(p.getProjectId(sp.Repo), opt)
 	i = p.getIssues(is)
@@ -154,13 +145,13 @@ func (p *GitlabProvider) IssuesListByRepo(ctx context.Context, sp SearchParams) 
 	return
 }
 
-func (p *GitlabProvider) getListIssueNotesOptions(sp SearchParams) *gitlab.ListIssueNotesOptions {
+func (p *GitLabProvider) getListIssueNotesOptions(sp SearchParams) *gitlab.ListIssueNotesOptions {
 	return &gitlab.ListIssueNotesOptions{
 		ListOptions: p.getListOptions(sp.IssueListCommentsOptions.ListOptions),
 	}
 }
 
-func (p *GitlabProvider) getUserFromNote(i *gitlab.Note) *User {
+func (p *GitLabProvider) getUserFromNote(i *gitlab.Note) *User {
 	id := int64(i.ID)
 	return &User{
 		ID:        &id,
@@ -172,7 +163,7 @@ func (p *GitlabProvider) getUserFromNote(i *gitlab.Note) *User {
 	}
 }
 
-func (p *GitlabProvider) getIssueComments(i []*gitlab.Note) []*IssueComment {
+func (p *GitLabProvider) getIssueComments(i []*gitlab.Note) []*IssueComment {
 	r := make([]*IssueComment, len(i))
 	for k, v := range i {
 		m := &IssueComment{
@@ -187,7 +178,7 @@ func (p *GitlabProvider) getIssueComments(i []*gitlab.Note) []*IssueComment {
 }
 
 // https://docs.gitlab.com/ce/api/notes.html#list-project-issue-notes
-func (p *GitlabProvider) IssuesListComments(ctx context.Context, sp SearchParams) (i []*IssueComment, r *Response, err error) {
+func (p *GitLabProvider) IssuesListComments(ctx context.Context, sp SearchParams) (i []*IssueComment, r *Response, err error) {
 	opt := p.getListIssueNotesOptions(sp)
 	in, gr, err := p.client.Notes.ListIssueNotes(p.getProjectId(sp.Repo), sp.IssueNumber, opt)
 	i = p.getIssueComments(in)
@@ -195,7 +186,7 @@ func (p *GitlabProvider) IssuesListComments(ctx context.Context, sp SearchParams
 	return
 }
 
-func (p *GitlabProvider) IssuesListIssueTimeline(ctx context.Context, sp SearchParams) (i []*Timeline, r *Response, err error) {
+func (p *GitLabProvider) IssuesListIssueTimeline(ctx context.Context, sp SearchParams) (i []*Timeline, r *Response, err error) {
 	// TODO need discuss - gitlab dont provide events by issue number (Issues, Merge Requests)
 	i = make([]*Timeline, 0)
 	r = &Response{}
@@ -204,7 +195,7 @@ func (p *GitlabProvider) IssuesListIssueTimeline(ctx context.Context, sp SearchP
 	return
 }
 
-func (p *GitlabProvider) getListProjectMergeRequestsOptions(sp SearchParams) *gitlab.ListProjectMergeRequestsOptions {
+func (p *GitLabProvider) getListProjectMergeRequestsOptions(sp SearchParams) *gitlab.ListProjectMergeRequestsOptions {
 	var orderBy string
 	if sp.PullRequestListOptions.Sort == constants.UpdatedSortOption {
 		orderBy = constants.UpdatedAtSortOption
@@ -219,7 +210,7 @@ func (p *GitlabProvider) getListProjectMergeRequestsOptions(sp SearchParams) *gi
 	}
 }
 
-func (p *GitlabProvider) getUserFromBasicUser(i *gitlab.BasicUser, allowNil bool) *User {
+func (p *GitLabProvider) getUserFromBasicUser(i *gitlab.BasicUser, allowNil bool) *User {
 	if allowNil {
 		if i == nil {
 			return nil
@@ -240,7 +231,7 @@ func (p *GitlabProvider) getUserFromBasicUser(i *gitlab.BasicUser, allowNil bool
 	}
 }
 
-func (p *GitlabProvider) getMilestone(i *gitlab.Milestone) *Milestone {
+func (p *GitLabProvider) getMilestone(i *gitlab.Milestone) *Milestone {
 	if i == nil {
 		return nil
 	}
@@ -268,7 +259,7 @@ func (p *GitlabProvider) getMilestone(i *gitlab.Milestone) *Milestone {
 	}
 }
 
-func (p *GitlabProvider) getPullRequest(v *gitlab.MergeRequest) *PullRequest {
+func (p *GitLabProvider) getPullRequest(v *gitlab.MergeRequest) *PullRequest {
 	if v == nil {
 		return nil
 	}
@@ -291,7 +282,7 @@ func (p *GitlabProvider) getPullRequest(v *gitlab.MergeRequest) *PullRequest {
 	return m
 }
 
-func (p *GitlabProvider) getPullRequests(i []*gitlab.MergeRequest) []*PullRequest {
+func (p *GitLabProvider) getPullRequests(i []*gitlab.MergeRequest) []*PullRequest {
 	r := make([]*PullRequest, len(i))
 	for k, v := range i {
 		m := p.getPullRequest(v)
@@ -300,7 +291,7 @@ func (p *GitlabProvider) getPullRequests(i []*gitlab.MergeRequest) []*PullReques
 	return r
 }
 
-func (p *GitlabProvider) PullRequestsList(ctx context.Context, sp SearchParams) (i []*PullRequest, r *Response, err error) {
+func (p *GitLabProvider) PullRequestsList(ctx context.Context, sp SearchParams) (i []*PullRequest, r *Response, err error) {
 	opt := p.getListProjectMergeRequestsOptions(sp)
 	in, gr, err := p.client.MergeRequests.ListProjectMergeRequests(p.getProjectId(sp.Repo), opt)
 	i = p.getPullRequests(in)
@@ -308,7 +299,7 @@ func (p *GitlabProvider) PullRequestsList(ctx context.Context, sp SearchParams) 
 	return
 }
 
-func (p *GitlabProvider) PullRequestsGet(ctx context.Context, sp SearchParams) (i *PullRequest, r *Response, err error) {
+func (p *GitLabProvider) PullRequestsGet(ctx context.Context, sp SearchParams) (i *PullRequest, r *Response, err error) {
 	opt := &gitlab.GetMergeRequestsOptions{}
 	in, gr, err := p.client.MergeRequests.GetMergeRequest(p.getProjectId(sp.Repo), sp.IssueNumber, opt)
 	i = p.getPullRequest(in)
@@ -316,7 +307,7 @@ func (p *GitlabProvider) PullRequestsGet(ctx context.Context, sp SearchParams) (
 	return
 }
 
-func (p *GitlabProvider) getPullRequestComments(i []*gitlab.Note) []*PullRequestComment {
+func (p *GitLabProvider) getPullRequestComments(i []*gitlab.Note) []*PullRequestComment {
 	r := make([]*PullRequestComment, len(i))
 	for k, v := range i {
 		id := int64(v.ID)
@@ -332,7 +323,7 @@ func (p *GitlabProvider) getPullRequestComments(i []*gitlab.Note) []*PullRequest
 	return r
 }
 
-func (p *GitlabProvider) PullRequestsListComments(ctx context.Context, sp SearchParams) (i []*PullRequestComment, r *Response, err error) {
+func (p *GitLabProvider) PullRequestsListComments(ctx context.Context, sp SearchParams) (i []*PullRequestComment, r *Response, err error) {
 	opt := &gitlab.ListMergeRequestNotesOptions{
 		ListOptions: p.getListOptions(sp.ListOptions),
 	}
@@ -342,7 +333,7 @@ func (p *GitlabProvider) PullRequestsListComments(ctx context.Context, sp Search
 	return
 }
 
-func (p *GitlabProvider) getPullRequestReviews(i *gitlab.MergeRequestApprovals) []*PullRequestReview {
+func (p *GitLabProvider) getPullRequestReviews(i *gitlab.MergeRequestApprovals) []*PullRequestReview {
 	if i == nil {
 		return nil
 	}
@@ -358,7 +349,7 @@ func (p *GitlabProvider) getPullRequestReviews(i *gitlab.MergeRequestApprovals) 
 	return r
 }
 
-func (p *GitlabProvider) PullRequestsListReviews(ctx context.Context, sp SearchParams) (i []*PullRequestReview, r *Response, err error) {
+func (p *GitLabProvider) PullRequestsListReviews(ctx context.Context, sp SearchParams) (i []*PullRequestReview, r *Response, err error) {
 	// TODO need to clarify
 	in, gr, err := p.client.MergeRequests.GetMergeRequestApprovals(p.getProjectId(sp.Repo), sp.IssueNumber)
 	i = p.getPullRequestReviews(in)
@@ -367,7 +358,7 @@ func (p *GitlabProvider) PullRequestsListReviews(ctx context.Context, sp SearchP
 }
 
 // https://gitlab.com/gitlab-org/gitlab-foss/-/issues/28342#note_23852124
-func (p *GitlabProvider) getProjectId(repo Repo) string {
+func (p *GitLabProvider) getProjectId(repo Repo) string {
 	var u string
 	if repo.Group != "" {
 		u = repo.Organization + "/" + repo.Group + "/" + repo.Project
