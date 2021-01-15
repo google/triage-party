@@ -55,6 +55,9 @@ func (p *GithubProvider) getRate(i *github.Rate) Rate {
 }
 
 func (p *GithubProvider) getResponse(i *github.Response) *Response {
+	if i == nil {
+		return nil
+	}
 	r := Response{
 		NextPage:      i.NextPage,
 		PrevPage:      i.PrevPage,
