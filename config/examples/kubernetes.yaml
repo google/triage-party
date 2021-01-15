@@ -1,17 +1,17 @@
-# Copyright 2020 Google LLC
+# Copyright 2020 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+---
 settings:
   name: generic-kubernetes
   min_similarity: 0.8
@@ -403,7 +403,15 @@ rules:
     filters:
       - tag: open-milestone
       - tag: "assignee-updated"
-      - tag: "!(pr-changes-requested|pr-reviewer-comment|pr-unreviewed|pr-new-commits|pr-approved|pr-changes-requested)"
+      - tag: >-
+         !(
+         pr-changes-requested|
+         pr-reviewer-comment|
+         pr-unreviewed|
+         pr-new-commits|
+         pr-approved|
+         pr-changes-requested
+         )
   milestone-pr-needs-work:
     name: "PR needs work"
     type: issue
@@ -550,7 +558,16 @@ rules:
     filters:
       - label: "priority/important-soon|priority/critical-urgent"
       - tag: open-milestone
-      - tag: "!(pr-changes-requested|pr-reviewer-comment|pr-unreviewed|pr-new-commits|pr-approved|pr-changes-requested|assignee-updated)"
+      - tag: >-
+         !(
+          pr-changes-requested|
+          pr-reviewer-comment|
+          pr-unreviewed|
+          pr-new-commits|
+          pr-approved|
+          pr-changes-requested|
+          assignee-updated
+          )
   important-assignee-updated:
     name: "In Progress"
     type: issue

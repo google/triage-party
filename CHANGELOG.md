@@ -1,4 +1,26 @@
+
 # Release Notes
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [Version 1.3.0 - 2020-08-24](#version-130---2020-08-24)
+- [Version 1.2.1 - 2020-07-17](#version-121---2020-07-17)
+- [Version 1.2.0 - 2020-07-14](#version-120---2020-07-14)
+- [Version 1.2.0-beta.3 - 2020-06-19](#version-120-beta3---2020-06-19)
+- [Version 1.2.0-beta.2 - 2020-06-17](#version-120-beta2---2020-06-17)
+- [Version 1.2.0-beta.1 - 2020-06-10](#version-120-beta1---2020-06-10)
+- [Version 1.1.0 - 2020-05-19](#version-110---2020-05-19)
+- [Version 1.0.0 - 2020-05-13](#version-100---2020-05-13)
+- [Version 1.0.0-beta.4 - 2020-05-11](#version-100-beta4---2020-05-11)
+- [Version 1.0.0-beta.3 - 2020-05-06](#version-100-beta3---2020-05-06)
+- [Version 1.0.0-beta.2 - 2020-05-05](#version-100-beta2---2020-05-05)
+- [Version 1.0.0-beta.1 - 2020-04-27](#version-100-beta1---2020-04-27)
+- [Version v2020-04-22.1 - 2020-04-22](#version-v2020-04-221---2020-04-22)
+- [Version v2020-04-22.0 - 2020-04-22](#version-v2020-04-220---2020-04-22)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Version 1.3.0 - 2020-08-24
 

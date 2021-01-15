@@ -25,7 +25,7 @@
 
   padding: 0.6em;
   margin: 0.4em;
-  
+
   clear: right;
   float: left;
   width: 10em;
@@ -117,7 +117,7 @@
 
 .unassigned-lane .sticky {
  box-shadow: 2px 2px 8px #333;
-}  
+}
 
 .late-eta {
   color: #FF0 !important;
@@ -148,4 +148,3 @@
   font-size: smaller;
   background-color: #FFF;
 }
-

@@ -1,5 +1,16 @@
 # Debugging Triage Party
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [Server](#server)
+- [Tester](#tester)
+- [Disabling persistent cache](#disabling-persistent-cache)
+- [Making RAW JSON requests](#making-raw-json-requests)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Server
 
 For basic debugging, add `-v=<level>` to the server arguments. The verbosity goes up as you increase the number:

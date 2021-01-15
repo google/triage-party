@@ -12,21 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: skaffold/v1
-kind: Config
-metadata:
-  name: teaparty
-build:
-  artifacts:
-    - image: gcr.io/tstromberg-test/tparty
-  tagPolicy:
-    sha256: {}
-  local:
-    useBuildkit: false
-    useDockerCLI: false
-deploy:
-  kubectl:
-    manifests:
-      - kubernetes-manifests/deployment.yaml
-      - kubernetes-manifests/service.yaml
-      - ''
+---
+extends: default
+
+rules:
+  line-length:
+    max: 120

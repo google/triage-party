@@ -10,6 +10,22 @@ Triage Party focuses on reducing response latency for incoming GitHub issues and
 
 Triage Party is configured via YAML, and designed for projects to self-host on anything from a Raspberry Pi, Google Cloud Run, or Kubernetes.
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [Novel Features](#novel-features)
+- [Triage Party in production](#triage-party-in-production)
+- [Requirements](#requirements)
+- [Try it](#try-it)
+- [Usage Tips](#usage-tips)
+- [Multi-player mode](#multi-player-mode)
+- [Kanban mode (NEW)](#kanban-mode-new)
+- [Data freshness](#data-freshness)
+- [Documentation](#documentation)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Novel Features
 
 * Multiplayer mode: Up to 20 simultaneous players in group triage

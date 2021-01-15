@@ -1,5 +1,18 @@
 # Triage Party: Deployment Guide
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**
+
+- [Environment variables](#environment-variables)
+- [Integration](#integration)
+  - [Docker](#docker)
+  - [Kubernetes](#kubernetes)
+  - [Google Cloud Run](#google-cloud-run)
+  - [Google Cloud Build](#google-cloud-build)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Environment variables
 
 While Triage Party primarily uses flags for deployment configuration, several settings are available as environment variables to make it easier to deploy.

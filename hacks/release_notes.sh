@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018 The Kubernetes Authors All rights reserved.
+# Copyright 2020 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ fi
 git pull git@github.com:google/triage-party master --tags
 recent=$(git describe --abbrev=0)
 
-"${DIR}/release-notes" google triage-party --since $recent
+"${DIR}/release-notes" google triage-party --since "$recent"
 
 echo "Huge thank you for this release towards our contributors: "
 git log "$recent".. --format="%aN" --reverse | sort | uniq | awk '{printf "- %s\n", $0 }'
