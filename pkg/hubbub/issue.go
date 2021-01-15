@@ -83,7 +83,7 @@ func (h *Engine) updateIssues(ctx context.Context, sp provider.SearchParams) ([]
 				sp.IssueListByRepoOptions.Page,
 			)
 		}
-		pr := provider.ResolveProviderByHost(sp.Repo.Host)
+		pr := h.provider(sp.Repo.Host)
 		is, resp, err := pr.IssuesListByRepo(ctx, sp)
 
 		if _, ok := err.(*github.RateLimitError); ok {
@@ -159,7 +159,7 @@ func (h *Engine) updateIssueComments(ctx context.Context, sp provider.SearchPara
 		klog.Infof("Downloading comments for %s/%s #%d (page %d)...",
 			sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, sp.IssueListCommentsOptions.Page)
 
-		pr := provider.ResolveProviderByHost(sp.Repo.Host)
+		pr := h.provider(sp.Repo.Host)
 		cs, resp, err := pr.IssuesListComments(ctx, sp)
 		if err != nil {
 			return cs, start, err
@@ -197,7 +197,7 @@ func openByDefault(sp provider.SearchParams) []provider.Filter {
 	}
 	if !found {
 		var state string
-		if sp.Repo.Host == constants.GitlabProviderHost {
+		if sp.Repo.Host == constants.GitLabProviderHost {
 			state = constants.OpenedState
 		} else {
 			state = constants.OpenState

@@ -4,42 +4,42 @@ import (
 	"testing"
 )
 
-func TestGithub_GetResponse(t *testing.T) {
-	p := GithubProvider{}
+func TestGitHub_GetResponse(t *testing.T) {
+	p := GitHubProvider{}
 	p.getResponse(nil)
 }
 
-func TestGithub_GetIssues(t *testing.T) {
-	p := GithubProvider{}
+func TestGitHub_GetIssues(t *testing.T) {
+	p := GitHubProvider{}
 	p.getIssues(nil)
 }
 
-func TestGithub_GetIssueComments(t *testing.T) {
-	p := GithubProvider{}
+func TestGitHub_GetIssueComments(t *testing.T) {
+	p := GitHubProvider{}
 	p.getIssueComments(nil)
 }
 
-func TestGithub_GetIssueTimeline(t *testing.T) {
-	p := GithubProvider{}
+func TestGitHub_GetIssueTimeline(t *testing.T) {
+	p := GitHubProvider{}
 	p.getIssueTimeline(nil)
 }
 
-func TestGithub_GetPullRequestsList(t *testing.T) {
-	p := GithubProvider{}
+func TestGitHub_GetPullRequestsList(t *testing.T) {
+	p := GitHubProvider{}
 	p.getPullRequestsList(nil)
 }
 
-func TestGithub_GetPullRequest(t *testing.T) {
-	p := GithubProvider{}
+func TestGitHub_GetPullRequest(t *testing.T) {
+	p := GitHubProvider{}
 	p.getPullRequest(nil)
 }
 
-func TestGithub_GetPullRequestListComments(t *testing.T) {
-	p := GithubProvider{}
+func TestGitHub_GetPullRequestListComments(t *testing.T) {
+	p := GitHubProvider{}
 	p.getPullRequestListComments(nil)
 }
 
-func TestGithub_GetPullRequestsListReviews(t *testing.T) {
-	p := GithubProvider{}
+func TestGitHub_GetPullRequestsListReviews(t *testing.T) {
+	p := GitHubProvider{}
 	p.getPullRequestsListReviews(nil)
 }

@@ -73,7 +73,7 @@ func (h *Engine) SearchIssues(ctx context.Context, sp provider.SearchParams) ([]
 		defer wg.Done()
 
 		sp.State = constants.OpenState
-		if sp.Repo.Host == constants.GitlabProviderHost {
+		if sp.Repo.Host == constants.GitLabProviderHost {
 			sp.State = constants.OpenedState
 		}
 
@@ -269,7 +269,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, sp provider.SearchParam
 		defer wg.Done()
 
 		sp.State = constants.OpenState
-		if sp.Repo.Host == constants.GitlabProviderHost {
+		if sp.Repo.Host == constants.GitLabProviderHost {
 			sp.State = constants.OpenedState
 		}
 		sp.UpdateAge = 0

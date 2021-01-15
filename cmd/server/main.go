@@ -39,11 +39,11 @@ import (
 	"time"
 
 	"github.com/google/triage-party/pkg/constants"
+	"github.com/google/triage-party/pkg/provider"
 
 	"k8s.io/klog/v2"
 
 	"github.com/google/triage-party/pkg/persist"
-	"github.com/google/triage-party/pkg/provider"
 	"github.com/google/triage-party/pkg/site"
 	"github.com/google/triage-party/pkg/triage"
 	"github.com/google/triage-party/pkg/updater"
@@ -51,7 +51,7 @@ import (
 
 var (
 	// custom GitHub API URLs
-	githubAPIRawURL = flag.String("github-api-url", "", "GitHub API url to connect.  Please set this when you use GitHub Enterprise. This often is your GitHub Enterprise hostname. If the URL does not have the suffix \"/api/v3/\", it will be added automatically.")
+	gitHubAPIURL = flag.String("github-api-url", "", "GitHub API url to connect.  Please set this when you use GitHub Enterprise. This often is your GitHub Enterprise hostname. If the URL does not have the suffix \"/api/v3/\", it will be added automatically.")
 
 	// shared with tester
 	configPath     = flag.String("config", "", "configuration path (defaults to searching for config.yaml)")
@@ -59,8 +59,8 @@ var (
 	persistPath    = flag.String("persist-path", "", "Where to persist cache to (automatic)")
 
 	reposOverride   = flag.String("repos", "", "Override configured repos with this repository (comma separated)")
-	githubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via "+constants.GithubTokenEnvVar)
-	gitlabTokenFile = flag.String("gitlab-token-file", "", "github token secret file, also settable via "+constants.GitlabTokenEnvVar)
+	gitHubTokenFile = flag.String("github-token-file", "", "github token secret file, also settable via "+constants.GitHubTokenEnvVar)
+	gitLabTokenFile = flag.String("gitlab-token-file", "", "github token secret file, also settable via "+constants.GitLabTokenEnvVar)
 
 	// server specific
 	siteDir       = flag.String("site", "site/", "path to site files")
@@ -112,11 +112,12 @@ func main() {
 		}
 	}
 
-	initProviderClients(ctx)
-
 	cfg := triage.Config{
 		Cache:        c,
 		DebugNumbers: debugNums,
+		GitHubAPIURL: *gitHubAPIURL,
+		GitHubToken:  provider.ReadToken(*gitHubTokenFile, "GITHUB_TOKEN"),
+		GitLabToken:  provider.ReadToken(*gitLabTokenFile, "GITLAB_TOKEN"),
 	}
 
 	if *reposOverride != "" {
@@ -124,7 +125,11 @@ func main() {
 	}
 
 	klog.Infof("triage runtime config: %+v", cfg)
-	tp := triage.New(cfg)
+	tp, err := triage.New(cfg)
+	if err != nil {
+		klog.Exitf("new config: %v", err)
+	}
+
 	if err := tp.Load(f); err != nil {
 		klog.Exitf("load from %s: %v", cp, err)
 	}
@@ -203,16 +208,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-// Init providers (Github/Gitlab) HTTP clients
-func initProviderClients(ctx context.Context) {
-	cfg := provider.Config{
-		GithubAPIRawURL: githubAPIRawURL,
-		GithubTokenFile: githubTokenFile,
-		GitlabTokenFile: gitlabTokenFile,
-	}
-	provider.InitProviders(ctx, cfg)
 }
 
 // calculates a user-friendly site name based on repositories

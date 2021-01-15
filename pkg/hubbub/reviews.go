@@ -51,7 +51,7 @@ func (h *Engine) updateReviews(ctx context.Context, sp provider.SearchParams) ([
 		klog.V(2).Infof("Downloading reviews for %s/%s #%d (page %d)...",
 			sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, sp.ListOptions.Page)
 
-		p := provider.ResolveProviderByHost(sp.Repo.Host)
+		p := h.provider(sp.Repo.Host)
 		cs, resp, err := p.PullRequestsListReviews(ctx, sp)
 		if err != nil {
 			return cs, start, err

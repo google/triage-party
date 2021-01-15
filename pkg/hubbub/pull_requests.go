@@ -84,7 +84,7 @@ func (h *Engine) updatePRs(ctx context.Context, sp provider.SearchParams) ([]*pr
 				sp.State, sp.Repo.Organization, sp.Repo.Project, sp.UpdateAge, sp.PullRequestListOptions.Page)
 		}
 
-		pr := provider.ResolveProviderByHost(sp.Repo.Host)
+		pr := h.provider(sp.Repo.Host)
 		prs, resp, err := pr.PullRequestsList(ctx, sp)
 		if err != nil {
 			if _, ok := err.(*github.RateLimitError); ok {
@@ -153,7 +153,7 @@ func (h *Engine) updatePR(ctx context.Context, sp provider.SearchParams) (*provi
 	klog.V(1).Infof("Downloading single PR %s/%s #%d", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	start := time.Now()
 
-	p := provider.ResolveProviderByHost(sp.Repo.Host)
+	p := h.provider(sp.Repo.Host)
 	pr, resp, err := p.PullRequestsGet(ctx, sp)
 	if err != nil {
 		return pr, start, err
@@ -238,7 +238,7 @@ func (h *Engine) updateReviewComments(ctx context.Context, sp provider.SearchPar
 		klog.V(2).Infof("Downloading review comments for %s/%s #%d (page %d)...",
 			sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber, sp.ListOptions.Page)
 
-		p := provider.ResolveProviderByHost(sp.Repo.Host)
+		p := h.provider(sp.Repo.Host)
 		cs, resp, err := p.PullRequestsListComments(ctx, sp)
 		if err != nil {
 			return cs, start, err
