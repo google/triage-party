@@ -140,9 +140,14 @@ func main() {
 	}
 
 	klog.Infof("Loaded %d rules", len(ts))
+
+	// Establish site name based on the first available
+	// of: CLI parameter, settings file, or default from repo names.
 	sn := *siteName
 	if sn == "" {
-		sn = calculateSiteName(ts)
+		if sn = tp.Name(); sn == "" {
+			sn = calculateSiteName(ts)
+		}
 	}
 
 	u := updater.New(updater.Config{

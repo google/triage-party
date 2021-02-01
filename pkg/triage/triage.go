@@ -342,3 +342,8 @@ func processRules(raw map[string]Rule) (map[string]Rule, error) {
 func (p *Party) ConversationsTotal() int {
 	return p.engine.ConversationsTotal()
 }
+
+// Name returns the configured site name
+func (p *Party) Name() string {
+	return p.settings.Name
+}
