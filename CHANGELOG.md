@@ -1,26 +1,39 @@
 
 # Release Notes
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**
+## Version 1.4.0-beta.1 - 2021-02-22
 
-- [Version 1.3.0 - 2020-08-24](#version-130---2020-08-24)
-- [Version 1.2.1 - 2020-07-17](#version-121---2020-07-17)
-- [Version 1.2.0 - 2020-07-14](#version-120---2020-07-14)
-- [Version 1.2.0-beta.3 - 2020-06-19](#version-120-beta3---2020-06-19)
-- [Version 1.2.0-beta.2 - 2020-06-17](#version-120-beta2---2020-06-17)
-- [Version 1.2.0-beta.1 - 2020-06-10](#version-120-beta1---2020-06-10)
-- [Version 1.1.0 - 2020-05-19](#version-110---2020-05-19)
-- [Version 1.0.0 - 2020-05-13](#version-100---2020-05-13)
-- [Version 1.0.0-beta.4 - 2020-05-11](#version-100-beta4---2020-05-11)
-- [Version 1.0.0-beta.3 - 2020-05-06](#version-100-beta3---2020-05-06)
-- [Version 1.0.0-beta.2 - 2020-05-05](#version-100-beta2---2020-05-05)
-- [Version 1.0.0-beta.1 - 2020-04-27](#version-100-beta1---2020-04-27)
-- [Version v2020-04-22.1 - 2020-04-22](#version-v2020-04-221---2020-04-22)
-- [Version v2020-04-22.0 - 2020-04-22](#version-v2020-04-220---2020-04-22)
+Changes:
 
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+* Use name parameter from settings file if present [#240](https://github.com/google/triage-party/pull/240)
+* Resolve GHE host on getting git provider [#232](https://github.com/google/triage-party/pull/232)
+* GitHub workflows: Update actions/setup to v2 [#239](https://github.com/google/triage-party/pull/239)
+* Refactor provider library with Go best practices [#238](https://github.com/google/triage-party/pull/238)
+* Add static checks [#218](https://github.com/google/triage-party/pull/218)
+* Validate configured repos [#234](https://github.com/google/triage-party/pull/234)
+* Avoid panics due to Github and Gitlab API error results [#237](https://github.com/google/triage-party/pull/237)
+* Prevent endless loop of loading same page [#214](https://github.com/google/triage-party/pull/214)
+* minikube: improve daily/weekly ordering/rules [#230](https://github.com/google/triage-party/pull/230)
+* Run gofumports -w across code base [#225](https://github.com/google/triage-party/pull/225)
+* Convert dupe rule panic to error message [#224](https://github.com/google/triage-party/pull/224)
+* Update base version to v1.4.0-DEV [#223](https://github.com/google/triage-party/pull/223)
+* Improve gathering data message [#222](https://github.com/google/triage-party/pull/222)
+* Update Kubernetes support label to kind/support [#221](https://github.com/google/triage-party/pull/221)
+* Increase reload wait time to 5 seconds [#220](https://github.com/google/triage-party/pull/220)
+* Wait 4 seconds to refresh [#219](https://github.com/google/triage-party/pull/219)
+* Improve "Try it" section in README.md [#217](https://github.com/google/triage-party/pull/217)
+* Build application on CI [#216](https://github.com/google/triage-party/pull/216)
+* Add gitlab support [#193](https://github.com/google/triage-party/pull/193)
+
+Huge thank you for this release towards our contributors:
+
+- Aaron Ogle
+- Brian de Alwis
+- Jim Kalafut
+- Kamil Breguła
+- Teplov
+- Thomas Strömberg
+- disktnk
 
 ## Version 1.3.0 - 2020-08-24
 
