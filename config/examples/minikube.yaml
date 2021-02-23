@@ -45,13 +45,14 @@ collections:
        * Keeping an open dialog with our users
        * Initial prioritization (does not have to be perfect)
     rules:
+      # Don't leave code reviews hanging
+      - pr-approved-stale
+      - pr-reviewable
       # SLO violations
       - issue-needs-priority-slo
       - issue-needs-comment-slo
       - issue-important-slo
       - issue-longterm-slo
-      # Don't leave code reviews hanging
-      - pr-reviewable
       # missing initial feedback
       - issue-needs-kind
       - issue-needs-priority
