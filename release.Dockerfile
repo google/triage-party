@@ -17,7 +17,7 @@
 #
 # Party on!
 
-FROM golang:1.15.2-buster AS builder
+FROM golang:latest AS builder
 WORKDIR /app
 
 # Build the binary

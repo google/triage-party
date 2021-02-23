@@ -24,7 +24,7 @@
 # using "base.Dockerfile"
 
 # Stage 1: Build Triage Party (identical to base.Dockerfile)
-FROM golang:1.15.2-buster AS builder
+FROM golang:latest AS builder
 WORKDIR /app
 ENV SRC_DIR=/src/tparty
 ENV GO111MODULE=on
@@ -37,7 +37,7 @@ RUN go mod download
 RUN go build cmd/server/main.go
 
 # Stage 2: Copy local persistent cache into temp container containing "mv"
-FROM alpine:3.12.0 AS temp
+FROM alpine:latest AS temp
 ARG CFG=config/config.yaml
 COPY pcache /pc
 RUN echo "Pre-populating cache if found (failure is perfectly OK)"
