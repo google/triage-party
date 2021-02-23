@@ -61,17 +61,6 @@ repos:
       - id: end-of-file-fixer
       - id: check-merge-conflict
       - id: mixed-line-ending
-  - repo: https://github.com/thlorenz/doctoc.git
-    rev: v1.4.0
-    hooks:
-      - id: doctoc
-        name: Add TOC for md files
-        files: \.md$
-        args:
-          - "--maxlevel"
-          - "3"
-          - "--title"
-          - "**Table of Contents**"
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.23.0
     hooks:
