@@ -59,6 +59,14 @@ func (m *Milestone) GetOpenIssues() int {
 	return *m.OpenIssues
 }
 
+// GetClosedIssues returns the ClosedIssues field if it's non-nil, zero value otherwise.
+func (m *Milestone) GetClosedIssues() int {
+	if m == nil || m.ClosedIssues == nil {
+		return 0
+	}
+	return *m.ClosedIssues
+}
+
 // GetState returns the State field if it's non-nil, zero value otherwise.
 func (m *Milestone) GetState() string {
 	if m == nil || m.State == nil {
