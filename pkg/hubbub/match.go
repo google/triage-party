@@ -273,6 +273,11 @@ func ParseDuration(ds string) (time.Duration, bool, bool) {
 }
 
 func matchDuration(t time.Time, ds string) bool {
+	if t.IsZero() {
+		klog.Warningf("matchDuration against zero time for %s (returning false)", ds)
+		return false
+	}
+
 	d, within, over := ParseDuration(ds)
 
 	if within && time.Since(t) < d {
