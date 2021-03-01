@@ -4,7 +4,7 @@ Triage Party uses an in-memory cache with an optional persistence layer to
 significantly speed up startup, as well as decrease load on the GitHub API.
 
 The persistence layer is only read during startup, and is written to
-only ocassionally. To configure persistence, use:
+only occasionally. To configure persistence, use:
 
 * Type: `--persist-backend` flag or `PERSIST_BACKEND` environment variable
 * Path: `--persist-path` flag or `PERSIST_PATH` environment flag.
