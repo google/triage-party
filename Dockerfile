@@ -44,7 +44,6 @@ RUN echo "Pre-populating cache if found (failure is perfectly OK)"
 RUN mv "/pc/$(basename "${CFG}").pc" /config.yaml.pc || touch /config.yaml.pc
 
 # Stage 3: Build the configured application container
-# hadolint ignore=DL3007
 FROM gcr.io/distroless/base:latest AS triage-party
 ARG CFG=config/config.yaml
 COPY --from=builder /src/tparty/main /app/

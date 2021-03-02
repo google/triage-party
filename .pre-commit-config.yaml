@@ -76,12 +76,6 @@ repos:
         description: Please use "deny_list" or "allow_list" instead.
         entry: "(?i)(black|white)[_-]?(list|List)"
         pass_filenames: true
-      - id: hadolint
-        name: Hadolint
-        description: Haskell-based Docker image linter
-        language: docker_image
-        files: Dockerfile.*
-        entry: --entrypoint /bin/hadolint hadolint/hadolint:latest -
       - id: shellcheck
         name: Check Shell scripts syntax correctness
         language: docker_image
