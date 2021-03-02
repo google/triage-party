@@ -1,5 +1,17 @@
-
 # Release Notes
+
+## Version 1.4.0-beta.2 - 2021-03-02
+
+* Bump github library from v31 to v33 [#250](https://github.com/google/triage-party/pull/250)
+* Default to earliest due milestone [#245](https://github.com/google/triage-party/pull/245)
+* Return false if matchDuration is passed an empty t [#244](https://github.com/google/triage-party/pull/244)
+* Implement provider.GetClosedIssues [#243](https://github.com/google/triage-party/pull/243)
+
+Thank you for this release towards our contributors:
+
+- Thomas Strömberg
+- dw1
+- gsquared94
 
 ## Version 1.4.0-beta.1 - 2021-02-22
 
