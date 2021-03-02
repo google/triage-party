@@ -320,8 +320,8 @@ func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*provider.
 	return chosen, choices
 }
 
-func currentMilestone(milestones []*github.Milestone) *github.Milestone {
-	var curr *github.Milestone
+func currentMilestone(milestones []*provider.Milestone) *provider.Milestone {
+	var curr *provider.Milestone
 	today := time.Now()
 	for _, m := range milestones {
 		if m.GetDueOn().Before(today) {
