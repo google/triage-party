@@ -18,7 +18,7 @@ set -eux -o pipefail
 
 git remote -v | grep "google/triage-party.git (fetch)"  
 
-if [[ "$(go env GOARCH)" != "arm64" ]]; then
+if [[ "$(go env GOARCH)" != "amd64" ]]; then
   echo "Please run this on amd64 - buildx has been causing issues"
   exit 1
 fi
