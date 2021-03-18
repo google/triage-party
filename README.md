@@ -129,7 +129,7 @@ NOTE: Multi-player works best if the "Resolution" field of each rule has a clear
 
 ![kanban mode](docs/images/kanban.png)
 
-In v1.2.0, pages can now be displayed as a Kanban dashboard. The columns are based on the rule the issue was fonud in, and the rows are swim-lanes based on the assignee. To see a real-world example:
+In v1.2.0, pages can now be displayed as a Kanban dashboard. The columns are based on the rule the issue was found in, and the rows are swim-lanes based on the assignee. To see a real-world example:
 
 * [minikube kanban dashboard](http://tinyurl.com/minikube-kanban)
 * [minikube kanban config](https://github.com/google/triage-party/blob/569782c961d66468e0def2d4f8b54acd104b02f4/config/examples/minikube.yaml#L111)
