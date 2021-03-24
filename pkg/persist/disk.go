@@ -16,26 +16,22 @@
 package persist
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
-	"github.com/google/triage-party/pkg/provider"
-
 	"github.com/patrickmn/go-cache"
+	"github.com/peterbourgon/diskv"
 	"k8s.io/klog/v2"
 )
 
 type Disk struct {
-	path  string
-	cache *cache.Cache
+	path     string
+	memcache *cache.Cache
+	dv       *diskv.Diskv
 }
 
 // NewDisk returns a new disk cache
@@ -48,107 +44,74 @@ func (d *Disk) String() string {
 }
 
 func (d *Disk) Initialize() error {
-	klog.Infof("Initializing with %s ...", d.path)
-	if err := d.load(); err != nil {
-		klog.Infof("recreating cache due to load error: %v", err)
-		d.cache = createMem()
-		if err := d.Cleanup(); err != nil {
-			return fmt.Errorf("save: %w", err)
+	if d.path == "" {
+		root, err := os.UserCacheDir()
+		if err != nil {
+			return fmt.Errorf("cache dir: %w", err)
 		}
-	}
-	return nil
-}
-
-func (d *Disk) load() error {
-	f, err := os.Open(d.path)
-	if err != nil {
-		return fmt.Errorf("open: %w", err)
-	}
-	defer f.Close()
-
-	decoded := map[string]cache.Item{}
-	gd := gob.NewDecoder(bufio.NewReader(f))
-
-	err = gd.Decode(&decoded)
-	if err != nil && err != io.EOF {
-		return fmt.Errorf("decode failed: %w", err)
+		d.path = filepath.Join(root, "triage-party")
 	}
 
-	if len(decoded) == 0 {
-		return fmt.Errorf("no items on disk")
+	if err := os.MkdirAll(d.path, 0o755); err != nil {
+		return fmt.Errorf("mkdir: %w", err)
 	}
 
-	klog.Infof("%d items loaded from disk", len(decoded))
-	d.cache = loadMem(decoded)
+	klog.Infof("cache dir is %s", d.path)
+
+	d.memcache = createMem()
+	d.dv = diskv.New(diskv.Options{
+		BasePath:     d.path,
+		CacheSizeMax: 1024 * 1024 * 1024,
+	})
+
 	return nil
 }
 
 // Set stores a thing into memory
-func (d *Disk) Set(key string, t *provider.Thing) error {
-	setMem(d.cache, key, t)
-	// Implementation quirk: the disk driver does not persist until Cleanup() is called
-	return nil
-}
-
-// DeleteOlderThan deletes a thing older than a timestamp
-func (d *Disk) DeleteOlderThan(key string, t time.Time) error {
-	deleteOlderMem(d.cache, key, t)
-	return nil
-}
-
-// GetNewerThan returns a thing older than a timestamp
-func (d *Disk) GetNewerThan(key string, t time.Time) *provider.Thing {
-	return newerThanMem(d.cache, key, t)
-}
-
-func (d *Disk) Cleanup() error {
-	items := d.cache.Items()
-	klog.Infof("*** Saving %d items to disk cache at %s", len(items), d.path)
-
-	b := new(bytes.Buffer)
-	ge := gob.NewEncoder(b)
-	if err := ge.Encode(items); err != nil {
-		return fmt.Errorf("encode: %w", err)
-	}
-
-	if err := os.MkdirAll(filepath.Dir(d.path), 0o700); err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(d.path, b.Bytes(), 0o644)
-}
-
-func findCacheRoot() string {
-	if _, err := os.Stat("/app/pcache"); err == nil {
-		return "/app/pcache"
-	}
-
-	if _, err := os.Stat("pcache"); err == nil {
-		return "pcache"
-	}
-	if _, err := os.Stat("../pcache"); err == nil {
-		return "../pcache"
-	}
-	if _, err := os.Stat("../../pcache"); err == nil {
-		return "../../pcache"
-	}
-
-	cdir, err := os.UserCacheDir()
+func (d *Disk) Set(key string, bl *Blob) error {
+	setMem(d.memcache, key, bl)
+	var bs bytes.Buffer
+	enc := gob.NewEncoder(&bs)
+	err := enc.Encode(bl)
 	if err != nil {
-		return filepath.Join(os.TempDir(), "triage-party")
+		return fmt.Errorf("encode: %v", err)
 	}
 
-	return filepath.Join(cdir, "triage-party")
+	return d.dv.Write(key, bs.Bytes())
 }
 
-func DefaultDiskPath(configPath string, override string) string {
-	name := filepath.Base(configPath)
-	if override != "" {
-		name = name + "_" + strings.Replace(override, "/", "_", -1)
+// Get returns a thing older than a timestamp
+func (d *Disk) Get(key string, t time.Time) *Blob {
+	if b := getMem(d.memcache, key, t); b != nil {
+		return b
 	}
 
-	dir := findCacheRoot()
-	path := filepath.Join(dir, name+".pc")
-	klog.Infof("default disk path: %s", path)
-	return path
+	if !d.dv.Has(key) {
+		klog.Warningf("%s is a complete cache miss", key)
+		return nil
+	}
+
+	klog.Warningf("%s was not in memory, resorting to disk cache", key)
+
+	var bl Blob
+	val, err := d.dv.Read(key)
+	if err != nil {
+		klog.Errorf("disk read failed for %q: %v", key, err)
+		return nil
+	}
+
+	enc := gob.NewDecoder(bytes.NewBuffer(val))
+	err = enc.Decode(&bl)
+	if err != nil {
+		klog.Errorf("decode failed for %q: %v", key, err)
+		return nil
+	}
+
+	if bl.Created.Before(t) {
+		klog.Warningf("found %s on disk, but it was older than %s", key, t)
+		return nil
+	}
+
+	setMem(d.memcache, key, &bl)
+	return &bl
 }

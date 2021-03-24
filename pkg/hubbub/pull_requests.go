@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/google/triage-party/pkg/constants"
+	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/google/go-github/v33/github"
@@ -42,7 +43,7 @@ const (
 // cachedPRs returns a list of cached PR's if possible
 func (h *Engine) cachedPRs(ctx context.Context, sp provider.SearchParams) ([]*provider.PullRequest, time.Time, error) {
 	sp.SearchKey = prSearchKey(sp)
-	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
+	if x := h.cache.Get(sp.SearchKey, sp.NewerThan); x != nil {
 		// Normally the similarity tables are only updated when fresh data is encountered.
 		if sp.NewerThan.IsZero() {
 			go h.updateSimilarPullRequests(sp.SearchKey, x.PullRequests)
@@ -54,7 +55,7 @@ func (h *Engine) cachedPRs(ctx context.Context, sp provider.SearchParams) ([]*pr
 	prs, created, err := h.updatePRs(ctx, sp)
 	if err != nil {
 		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
-		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
+		x := h.cache.Get(sp.SearchKey, time.Time{})
 		if x != nil {
 			return x.PullRequests, x.Created, nil
 		}
@@ -116,7 +117,7 @@ func (h *Engine) updatePRs(ctx context.Context, sp provider.SearchParams) ([]*pr
 		sp.PullRequestListOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &provider.Thing{PullRequests: allPRs}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &persist.Blob{PullRequests: allPRs}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
@@ -128,7 +129,7 @@ func (h *Engine) updatePRs(ctx context.Context, sp provider.SearchParams) ([]*pr
 func (h *Engine) cachedPR(ctx context.Context, sp provider.SearchParams) (*provider.PullRequest, time.Time, error) {
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-pr", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 
-	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
+	if x := h.cache.Get(sp.SearchKey, sp.NewerThan); x != nil {
 		return x.PullRequests[0], x.Created, nil
 	}
 
@@ -140,7 +141,7 @@ func (h *Engine) cachedPR(ctx context.Context, sp provider.SearchParams) (*provi
 	pr, created, err := h.updatePR(ctx, sp)
 	if err != nil {
 		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
-		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
+		x := h.cache.Get(sp.SearchKey, time.Time{})
 		if x != nil {
 			return x.PullRequests[0], x.Created, nil
 		}
@@ -162,7 +163,7 @@ func (h *Engine) updatePR(ctx context.Context, sp provider.SearchParams) (*provi
 	h.logRate(resp.Rate)
 	h.updateMtime(pr, pr.GetUpdatedAt())
 
-	if err := h.cache.Set(sp.SearchKey, &provider.Thing{PullRequests: []*provider.PullRequest{pr}}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &persist.Blob{PullRequests: []*provider.PullRequest{pr}}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
@@ -172,7 +173,7 @@ func (h *Engine) updatePR(ctx context.Context, sp provider.SearchParams) (*provi
 func (h *Engine) cachedReviewComments(ctx context.Context, sp provider.SearchParams) ([]*provider.PullRequestComment, time.Time, error) {
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-pr-comments", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 
-	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
+	if x := h.cache.Get(sp.SearchKey, sp.NewerThan); x != nil {
 		return x.PullRequestComments, x.Created, nil
 	}
 
@@ -184,7 +185,7 @@ func (h *Engine) cachedReviewComments(ctx context.Context, sp provider.SearchPar
 	comments, created, err := h.updateReviewComments(ctx, sp)
 	if err != nil {
 		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
-		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
+		x := h.cache.Get(sp.SearchKey, time.Time{})
 		if x != nil {
 			return x.PullRequestComments, x.Created, nil
 		}
@@ -257,7 +258,7 @@ func (h *Engine) updateReviewComments(ctx context.Context, sp provider.SearchPar
 		sp.ListOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &provider.Thing{PullRequestComments: allComments}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &persist.Blob{PullRequestComments: allComments}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 

@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/google/triage-party/pkg/tag"
@@ -30,7 +31,7 @@ func (h *Engine) cachedTimeline(ctx context.Context, sp provider.SearchParams) (
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-timeline", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 	klog.V(1).Infof("Need timeline for %s as of %s", sp.SearchKey, sp.NewerThan)
 
-	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
+	if x := h.cache.Get(sp.SearchKey, sp.NewerThan); x != nil {
 		return x.Timeline, nil
 	}
 
@@ -68,7 +69,7 @@ func (h *Engine) updateTimeline(ctx context.Context, sp provider.SearchParams) (
 		sp.ListOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &provider.Thing{Timeline: allEvents}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &persist.Blob{Timeline: allEvents}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 

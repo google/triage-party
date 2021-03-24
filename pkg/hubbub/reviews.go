@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/google/triage-party/pkg/tag"
@@ -29,7 +30,7 @@ import (
 func (h *Engine) cachedReviews(ctx context.Context, sp provider.SearchParams) ([]*provider.PullRequestReview, time.Time, error) {
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-pr-reviews", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 
-	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
+	if x := h.cache.Get(sp.SearchKey, sp.NewerThan); x != nil {
 		return x.Reviews, x.Created, nil
 	}
 
@@ -66,7 +67,7 @@ func (h *Engine) updateReviews(ctx context.Context, sp provider.SearchParams) ([
 		sp.ListOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &provider.Thing{Reviews: allReviews}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &persist.Blob{Reviews: allReviews}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
