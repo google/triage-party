@@ -22,19 +22,5 @@
  ```
 
 7. Run Kubernetes example: https://github.com/google/triage-party/blob/master/docs/deploy.md#kubernetes
-8. Run:
-
-```
-export TAG=v1.1.0
-git tag -a $TAG -m "$TAG release"
-git push --tags
-```
-
-9. Run:
-
-```
-docker tag triageparty/triage-party:latest triageparty/triage-party:1.1.0
-docker push triageparty/triage-party:1.1.0
-```
-
+8. Run `./hacks/release.sh`
 10. Make GitHub release
