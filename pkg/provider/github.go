@@ -19,7 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/google/go-github/v31/github"
+	"github.com/google/go-github/v33/github"
 	"golang.org/x/oauth2"
 )
 

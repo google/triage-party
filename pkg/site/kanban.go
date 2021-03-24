@@ -284,7 +284,11 @@ func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*provider.
 	// Only auto-select a milestone if all issues are within a milestone
 	if milestoneID == -1 {
 		if len(milestones) > 0 && notInMilestone == 0 {
-			milestoneID = milestones[0].GetNumber()
+			if c := currentMilestone(milestones); c != nil {
+				milestoneID = c.GetNumber()
+			} else {
+				milestoneID = milestones[0].GetNumber()
+			}
 		} else {
 			milestoneID = 0 // all
 		}
@@ -314,4 +318,20 @@ func milestoneChoices(results []*triage.RuleResult, milestoneID int) (*provider.
 	})
 
 	return chosen, choices
+}
+
+func currentMilestone(milestones []*provider.Milestone) *provider.Milestone {
+	var curr *provider.Milestone
+	today := time.Now()
+	for _, m := range milestones {
+		if m.GetDueOn().Before(today) {
+			continue
+		}
+		if curr == nil {
+			curr = m
+		} else if m.GetDueOn().Before(curr.GetDueOn()) {
+			curr = m
+		}
+	}
+	return curr
 }

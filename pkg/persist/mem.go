@@ -18,10 +18,13 @@ package persist
 import (
 	"time"
 
-	"github.com/google/triage-party/pkg/provider"
-
 	"github.com/patrickmn/go-cache"
 	"k8s.io/klog/v2"
+)
+
+var (
+	memExpiration      = 7 * 24 * time.Hour
+	memCleanupInterval = 12 * time.Hour
 )
 
 type Memory struct {
@@ -43,23 +46,49 @@ func (m *Memory) Initialize() error {
 }
 
 // Set stores a thing into memory
-func (m *Memory) Set(key string, t *provider.Thing) error {
+func (m *Memory) Set(key string, t *Blob) error {
 	setMem(m.cache, key, t)
 	return nil
 }
 
-// DeleteOlderThan deletes a thing older than a timestamp
-func (m *Memory) DeleteOlderThan(key string, t time.Time) error {
-	deleteOlderMem(m.cache, key, t)
-	return nil
+// Get returns a thing older than a timestamp
+func (m *Memory) Get(key string, t time.Time) *Blob {
+	return getMem(m.cache, key, t)
 }
 
-// GetNewerThan returns a thing older than a timestamp
-func (m *Memory) GetNewerThan(key string, t time.Time) *provider.Thing {
-	return newerThanMem(m.cache, key, t)
+func createMem() *cache.Cache {
+	return cache.New(memExpiration, memCleanupInterval)
 }
 
-func (m *Memory) Cleanup() error {
-	klog.Warningf("Cleanup is not implemented by the memory backend")
-	return nil
+func setMem(c *cache.Cache, key string, th *Blob) {
+	if th.Created.IsZero() {
+		th.Created = time.Now()
+	}
+
+	klog.Infof("Storing %s within in-memory cache (created: %s)", key, th.Created)
+	c.Set(key, th, 0)
+}
+
+func getMem(c *cache.Cache, key string, t time.Time) *Blob {
+	x, ok := c.Get(key)
+
+	if !ok {
+		klog.V(1).Infof("%s is not within in-memory cache!", key)
+		return nil
+	}
+
+	th, ok := x.(*Blob)
+	if !ok {
+		klog.V(1).Infof("%s is not of type Thing", key)
+	}
+
+	if th.Created.After(time.Now()) {
+		klog.Errorf("%s claims to be created in the future: %s ???", key, th.Created)
+	}
+
+	if th.Created.Before(t) {
+		return nil
+	}
+
+	return th
 }

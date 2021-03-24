@@ -9,13 +9,14 @@ require (
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.2 // indirect
-	github.com/google/go-github/v31 v31.0.0
+	github.com/google/go-github/v33 v33.0.0
 	github.com/hashicorp/go-retryablehttp v0.6.6 // indirect
 	github.com/hokaccha/go-prettyjson v0.0.0-20190818114111-108c894c2c0e
 	github.com/imjasonmiller/godice v0.1.2
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.3.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/peterbourgon/diskv v2.0.1+incompatible
 	github.com/stretchr/testify v1.4.0
 	github.com/xanzy/go-gitlab v0.36.0
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
