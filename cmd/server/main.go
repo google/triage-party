@@ -151,10 +151,9 @@ func main() {
 	}
 
 	u := updater.New(updater.Config{
-		Party:       tp,
-		MinRefresh:  *minRefresh,
-		MaxRefresh:  *maxRefresh,
-		PersistFunc: c.Cleanup,
+		Party:      tp,
+		MinRefresh: *minRefresh,
+		MaxRefresh: *maxRefresh,
 	})
 
 	if *dryRun {

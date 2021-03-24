@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package persist provides a bootstrap for the in-memory cache
+// persist provides a 2-level GitHub cache: in-memory & persistent
 package persist
 
 import (
@@ -24,12 +24,7 @@ import (
 	"github.com/google/triage-party/pkg/provider"
 )
 
-var (
-	// MaxSaveAge is the oldest allowable entry to persist
-	MaxSaveAge = 2 * 24 * time.Hour
-	// MaxLoadAge is the oldest allowable entry to load
-	MaxLoadAge = 10 * 24 * time.Hour
-)
+var inMemoryAge = 7 * 24 * time.Hour
 
 // Config is cache configuration
 type Config struct {
@@ -37,20 +32,29 @@ type Config struct {
 	Path string
 }
 
+type Blob struct {
+	Created time.Time
+
+	PullRequests        []*provider.PullRequest
+	Issues              []*provider.Issue
+	PullRequestComments []*provider.PullRequestComment
+	IssueComments       []*provider.IssueComment
+	Timeline            []*provider.Timeline
+	Reviews             []*provider.PullRequestReview
+}
+
 // Cacher is the cache interface we support
 type Cacher interface {
 	String() string
 
-	Set(string, *provider.Thing) error
-	DeleteOlderThan(string, time.Time) error
-	GetNewerThan(string, time.Time) *provider.Thing
+	Set(string, *Blob) error
+	Get(string, time.Time) *Blob
 
 	Initialize() error
-	Cleanup() error
 }
 
 func New(cfg Config) (Cacher, error) {
-	gob.Register(&provider.Thing{})
+	gob.Register(&Blob{})
 	switch cfg.Type {
 	case "mysql":
 		return NewMySQL(cfg)
@@ -78,10 +82,6 @@ func FromEnv(backend string, path string, configPath string, reposOverride strin
 
 	if path == "" {
 		path = os.Getenv("PERSIST_PATH")
-	}
-
-	if backend == "disk" && path == "" {
-		path = DefaultDiskPath(configPath, reposOverride)
 	}
 
 	c, err := New(Config{

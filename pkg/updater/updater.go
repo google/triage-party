@@ -35,10 +35,9 @@ const minFlushAge = 5 * time.Second
 type PFunc = func() error
 
 type Config struct {
-	Party       *triage.Party
-	MinRefresh  time.Duration
-	MaxRefresh  time.Duration
-	PersistFunc PFunc
+	Party      *triage.Party
+	MinRefresh time.Duration
+	MaxRefresh time.Duration
 }
 
 func New(cfg Config) *Updater {
@@ -52,7 +51,6 @@ func New(cfg Config) *Updater {
 		secondLastRequest: sync.Map{},
 		loopEvery:         250 * time.Millisecond,
 		mutex:             &sync.Mutex{},
-		persistFunc:       cfg.PersistFunc,
 		startTime:         time.Time{},
 	}
 }
@@ -362,21 +360,13 @@ func (u *Updater) Loop(ctx context.Context) error {
 	ticker := time.NewTicker(u.loopEvery)
 	defer ticker.Stop()
 	for range ticker.C {
-		updated, err := u.RunOnce(ctx, false)
+		_, err := u.RunOnce(ctx, false)
 		if err != nil {
 			klog.Errorf("err: %v", err)
 		}
 
 		u.state = fmt.Sprintf("idle, waiting %s", u.loopEvery)
 		u.lastRun = time.Now()
-
-		if u.shouldPersist(updated) {
-			go func() {
-				if err := u.Persist(); err != nil {
-					klog.Errorf("persist failed: %v", err)
-				}
-			}()
-		}
 	}
 	return nil
 }

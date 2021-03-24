@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/google/triage-party/pkg/constants"
+	"github.com/google/triage-party/pkg/persist"
 	"github.com/google/triage-party/pkg/provider"
 
 	"github.com/google/go-github/v33/github"
@@ -33,7 +34,7 @@ import (
 func (h *Engine) cachedIssues(ctx context.Context, sp provider.SearchParams) ([]*provider.Issue, time.Time, error) {
 	sp.SearchKey = issueSearchKey(sp)
 
-	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
+	if x := h.cache.Get(sp.SearchKey, sp.NewerThan); x != nil {
 		// Normally the similarity tables are only updated when fresh data is encountered.
 		if sp.NewerThan.IsZero() {
 			go h.updateSimilarIssues(sp.SearchKey, x.Issues)
@@ -46,7 +47,7 @@ func (h *Engine) cachedIssues(ctx context.Context, sp provider.SearchParams) ([]
 	issues, created, err := h.updateIssues(ctx, sp)
 	if err != nil {
 		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
-		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
+		x := h.cache.Get(sp.SearchKey, time.Time{})
 		if x != nil {
 			return x.Issues, x.Created, nil
 		}
@@ -113,7 +114,7 @@ func (h *Engine) updateIssues(ctx context.Context, sp provider.SearchParams) ([]
 		sp.IssueListByRepoOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &provider.Thing{Issues: allIssues}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &persist.Blob{Issues: allIssues}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
@@ -124,7 +125,7 @@ func (h *Engine) updateIssues(ctx context.Context, sp provider.SearchParams) ([]
 func (h *Engine) cachedIssueComments(ctx context.Context, sp provider.SearchParams) ([]*provider.IssueComment, time.Time, error) {
 	sp.SearchKey = fmt.Sprintf("%s-%s-%d-issue-comments", sp.Repo.Organization, sp.Repo.Project, sp.IssueNumber)
 
-	if x := h.cache.GetNewerThan(sp.SearchKey, sp.NewerThan); x != nil {
+	if x := h.cache.Get(sp.SearchKey, sp.NewerThan); x != nil {
 		return x.IssueComments, x.Created, nil
 	}
 
@@ -137,7 +138,7 @@ func (h *Engine) cachedIssueComments(ctx context.Context, sp provider.SearchPara
 	comments, created, err := h.updateIssueComments(ctx, sp)
 	if err != nil {
 		klog.Warningf("Retrieving stale results for %s due to error: %v", sp.SearchKey, err)
-		x := h.cache.GetNewerThan(sp.SearchKey, time.Time{})
+		x := h.cache.Get(sp.SearchKey, time.Time{})
 		if x != nil {
 			return x.IssueComments, x.Created, nil
 		}
@@ -173,7 +174,7 @@ func (h *Engine) updateIssueComments(ctx context.Context, sp provider.SearchPara
 		sp.IssueListCommentsOptions.Page = resp.NextPage
 	}
 
-	if err := h.cache.Set(sp.SearchKey, &provider.Thing{IssueComments: allComments}); err != nil {
+	if err := h.cache.Set(sp.SearchKey, &persist.Blob{IssueComments: allComments}); err != nil {
 		klog.Errorf("set %q failed: %v", sp.SearchKey, err)
 	}
 
