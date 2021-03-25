@@ -97,15 +97,16 @@ func (m *Postgres) Set(key string, th *Blob) error {
 // Get returns a Item older than a timestamp
 func (m *Postgres) Get(key string, t time.Time) *Blob {
 	start := time.Now()
-	go func() {
-		klog.Infof("get(%q) took %s", key, time.Since(start))
-	}()
 
 	if b := getMem(m.memcache, key, t); b != nil {
 		return b
 	}
 
 	klog.Warningf("%s was not in memory, resorting to SQL cache", key)
+
+	go func() {
+		klog.Infof("get(%q) took %s", key, time.Since(start))
+	}()
 
 	var mi sqlItem
 	err := m.db.Get(&mi, `SELECT * FROM persist2 WHERE k = $1 LIMIT 1`, key)
