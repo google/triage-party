@@ -33,7 +33,7 @@ readonly token="$(cat "${GITHUB_TOKEN_PATH}")"
 gcloud beta run deploy "${SERVICE_NAME}" \
     --project "${PROJECT}" \
     --image "${IMAGE}" \
-    --set-env-vars="GITHUB_TOKEN=${token},PERSIST_BACKEND=cloudsql,PERSIST_PATH=host=k8s-skaffold:us-central1:triage-party user=postgres password=${DB_PASS}" \
+    --set-env-vars="GITHUB_TOKEN=${token},PERSIST_BACKEND=cloudsql,PERSIST_PATH=host=k8s-skaffold:us-central1:triage-party2 user=postgres password=${DB_PASS}" \
     --allow-unauthenticated \
     --region us-central1 \
     --memory 384Mi \

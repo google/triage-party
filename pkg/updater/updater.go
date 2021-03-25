@@ -17,9 +17,7 @@ package updater
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -63,13 +61,10 @@ type Updater struct {
 	cache             map[string]*triage.CollectionResult
 	lastRequest       sync.Map
 	secondLastRequest sync.Map
-	lastPersist       time.Time
 	lastRun           time.Time
 	startTime         time.Time
 	loopEvery         time.Duration
 	mutex             *sync.Mutex
-	persistFunc       PFunc
-	persistStart      time.Time
 	updateCycles      int
 
 	state string
@@ -86,9 +81,6 @@ func (u *Updater) recordAccess(id string) {
 
 // State returns a basic state
 func (u *Updater) Status() string {
-	if !u.persistStart.IsZero() {
-		return fmt.Sprintf("%s - persisting since %s (%d cycles, %s uptime)", u.state, u.persistStart, u.updateCycles, time.Since(u.startTime))
-	}
 	return fmt.Sprintf("%s (%d cycles, %s uptime)", u.state, u.updateCycles, time.Since(u.startTime))
 }
 
@@ -246,53 +238,6 @@ func (u *Updater) RefreshCollection(ctx context.Context, id string, newerThan ti
 	klog.Infof("reason for updating %q: %v", s.ID, err)
 	err = u.update(ctx, s, newerThan)
 	return true, err
-}
-
-// Persist saves results to the persistence layer
-func (u *Updater) Persist() error {
-	if !u.persistStart.IsZero() {
-		return errors.New("already persisting")
-	}
-
-	// advisory lock
-	u.persistStart = time.Now()
-	klog.Infof("*** Started to persist ...")
-
-	defer func() {
-		klog.Infof("*** Persist complete! Took %s", time.Since(u.persistStart))
-		u.persistStart = time.Time{}
-		u.lastPersist = time.Now()
-	}()
-
-	if err := u.persistFunc(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (u *Updater) shouldPersist(updated bool) bool {
-	// Already running
-	if !u.persistStart.IsZero() {
-		return false
-	}
-
-	// No new data to persist
-	if !updated {
-		return false
-	}
-
-	// Avoid write contention by fuzzing
-	fuzz := time.Duration(rand.Intn(int(u.maxRefresh.Seconds()))) * time.Second
-	cutoff := u.maxRefresh + fuzz
-
-	sinceSave := time.Since(u.lastPersist)
-	if sinceSave > cutoff {
-		klog.Infof("Should persist: we have new data, and it's been %s since the last run", sinceSave)
-		return true
-	}
-
-	return false
 }
 
 // Run once, optionally forcing an update
