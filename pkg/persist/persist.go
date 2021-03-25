@@ -46,11 +46,11 @@ type Blob struct {
 	Reviews             []*provider.PullRequestReview
 
 	// Provider specific fields, used by other tramps
-	GHPullRequest         github.PullRequest
-	GHCommitFiles         []github.CommitFile
-	GHPullRequestComments []github.PullRequestComment
-	GHIssueComments       []github.IssueComment
-	GHIssue               github.Issue
+	GHPullRequest         *github.PullRequest
+	GHCommitFiles         []*github.CommitFile
+	GHPullRequestComments []*github.PullRequestComment
+	GHIssueComments       []*github.IssueComment
+	GHIssue               *github.Issue
 }
 
 // Cacher is the cache interface we support
