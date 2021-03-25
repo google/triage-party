@@ -69,7 +69,7 @@ func main() {
 		klog.Exitf("open %s: %v", *configPath, err)
 	}
 
-	c, err := persist.FromEnv(*persistBackend, *persistPath, *configPath, *reposOverride)
+	c, err := persist.FromEnv("triage-party", *persistBackend, *persistPath)
 	if err != nil {
 		klog.Exitf("unable to create persistence layer: %v", err)
 	}

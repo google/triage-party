@@ -21,6 +21,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/go-github/v33/github"
 	"github.com/google/triage-party/pkg/provider"
 )
 
@@ -28,19 +29,28 @@ var inMemoryAge = 7 * 24 * time.Hour
 
 // Config is cache configuration
 type Config struct {
-	Type string
-	Path string
+	Program string
+	Type    string
+	Path    string
 }
 
 type Blob struct {
 	Created time.Time
 
+	// Provider neutral fields, used by triage-party
 	PullRequests        []*provider.PullRequest
 	Issues              []*provider.Issue
 	PullRequestComments []*provider.PullRequestComment
 	IssueComments       []*provider.IssueComment
 	Timeline            []*provider.Timeline
 	Reviews             []*provider.PullRequestReview
+
+	// Provider specific fields, used by other tramps
+	GHPullRequest         github.PullRequest
+	GHCommitFiles         []github.CommitFile
+	GHPullRequestComments []github.PullRequestComment
+	GHIssueComments       []github.IssueComment
+	GHIssue               github.Issue
 }
 
 // Cacher is the cache interface we support
@@ -72,7 +82,7 @@ func New(cfg Config) (Cacher, error) {
 }
 
 // FromEnv is shared magic between binaries
-func FromEnv(backend string, path string, configPath string, reposOverride string) (Cacher, error) {
+func FromEnv(program string, backend string, path string) (Cacher, error) {
 	if backend == "" {
 		backend = os.Getenv("PERSIST_BACKEND")
 	}
@@ -84,10 +94,16 @@ func FromEnv(backend string, path string, configPath string, reposOverride strin
 		path = os.Getenv("PERSIST_PATH")
 	}
 
+	if program == "" {
+		program = "triage-party"
+	}
+
 	c, err := New(Config{
-		Type: backend,
-		Path: path,
+		Program: program,
+		Type:    backend,
+		Path:    path,
 	})
+
 	if err != nil {
 		return nil, fmt.Errorf("new from %s: %s: %w", backend, path, err)
 	}

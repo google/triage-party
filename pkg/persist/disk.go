@@ -30,13 +30,14 @@ import (
 
 type Disk struct {
 	path     string
+	subdir   string
 	memcache *cache.Cache
 	dv       *diskv.Diskv
 }
 
 // NewDisk returns a new disk cache
 func NewDisk(cfg Config) (*Disk, error) {
-	return &Disk{path: cfg.Path}, nil
+	return &Disk{path: cfg.Path, subdir: cfg.Program}, nil
 }
 
 func (d *Disk) String() string {
@@ -49,7 +50,7 @@ func (d *Disk) Initialize() error {
 		if err != nil {
 			return fmt.Errorf("cache dir: %w", err)
 		}
-		d.path = filepath.Join(root, "triage-party")
+		d.path = filepath.Join(root, d.subdir)
 	}
 
 	if err := os.MkdirAll(d.path, 0o755); err != nil {
