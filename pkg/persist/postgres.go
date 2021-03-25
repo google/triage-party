@@ -17,6 +17,7 @@ package persist
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/gob"
 	"fmt"
 	"time"
@@ -95,42 +96,41 @@ func (m *Postgres) Set(key string, th *Blob) error {
 
 // Get returns a Item older than a timestamp
 func (m *Postgres) Get(key string, t time.Time) *Blob {
+	start := time.Now()
+	go func() {
+		klog.Infof("get(%q) took %s", key, time.Since(start))
+	}()
+
 	if b := getMem(m.memcache, key, t); b != nil {
 		return b
 	}
 
 	klog.Warningf("%s was not in memory, resorting to SQL cache", key)
 
-	rows, err := m.db.Queryx(`SELECT * FROM persist2 WHERE k = $1 LIMIT 1`, key)
+	var mi sqlItem
+	err := m.db.Get(&mi, `SELECT * FROM persist2 WHERE k = $1 LIMIT 1`, key)
+	if err == sql.ErrNoRows {
+		klog.Warningf("%s was not found in SQL table", key)
+		return nil
+	}
+
 	if err != nil {
 		klog.Errorf("query: %w", err)
 		return nil
 	}
 
-	for rows.Next() {
-		var mi sqlItem
-		err = rows.StructScan(&mi)
-		if err != nil {
-			klog.Errorf("structscan: %w", err)
-			return nil
-		}
-
-		var bl Blob
-		gd := gob.NewDecoder(bytes.NewBuffer(mi.Value))
-		if err := gd.Decode(&bl); err != nil {
-			klog.Errorf("decode failed for %s (saved %s, bytes: %d): %v", mi.Key, mi.Saved, len(mi.Value), err)
-			continue
-		}
-
-		if bl.Created.Before(t) {
-			klog.Warningf("found %s in db, but it was older than %s", key, t)
-			return nil
-		}
-
-		setMem(m.memcache, key, &bl)
-		return &bl
+	var bl Blob
+	gd := gob.NewDecoder(bytes.NewBuffer(mi.Value))
+	if err := gd.Decode(&bl); err != nil {
+		klog.Errorf("decode failed for %s (saved %s, bytes: %d): %v", mi.Key, mi.Saved, len(mi.Value), err)
+		return nil
 	}
 
-	klog.Warningf("%s is a complete cache miss", key)
-	return nil
+	if bl.Created.Before(t) {
+		klog.Warningf("found %s in db, but it was older than %s", key, t)
+		return nil
+	}
+
+	setMem(m.memcache, key, &bl)
+	return &bl
 }
