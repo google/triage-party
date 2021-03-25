@@ -31,11 +31,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/google/triage-party/pkg/constants"
@@ -165,15 +163,6 @@ func main() {
 	}
 
 	klog.Infof("Starting update loop: %+v", u)
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		sig := <-sigc
-		klog.Infof("signal caught: %v (saving!)", sig)
-		u.Persist()
-		klog.Infof("Exiting by signal as requested.")
-		os.Exit(1)
-	}()
 
 	go func() {
 		if err := u.Loop(ctx); err == nil {

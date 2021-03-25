@@ -99,6 +99,8 @@ func (m *Postgres) Get(key string, t time.Time) *Blob {
 		return b
 	}
 
+	klog.Warningf("%s was not in memory, resorting to SQL cache", key)
+
 	rows, err := m.db.Queryx(`SELECT * FROM persist2 WHERE k = $1 LIMIT 1`, key)
 	if err != nil {
 		klog.Errorf("query: %w", err)
@@ -129,5 +131,6 @@ func (m *Postgres) Get(key string, t time.Time) *Blob {
 		return &bl
 	}
 
+	klog.Warningf("%s is a complete cache miss", key)
 	return nil
 }
