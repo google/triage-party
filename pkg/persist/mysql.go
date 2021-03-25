@@ -116,7 +116,8 @@ func (m *MySQL) Get(key string, t time.Time) *Blob {
 		return b
 	}
 
-	klog.Warningf("%s was not in memory, resorting to SQL cache", key)
+	klog.Infof("%s was not in memory, resorting to SQL cache", key)
+
 	go func() {
 		klog.Infof("get(%q) took %s", key, time.Since(start))
 	}()
@@ -124,7 +125,7 @@ func (m *MySQL) Get(key string, t time.Time) *Blob {
 	var mi sqlItem
 	err := m.db.Get(&mi, `SELECT * FROM persist2 WHERE k = ? LIMIT 1`, key)
 	if err == sql.ErrNoRows {
-		klog.Warningf("%s was not found in SQL table", key)
+		klog.Warningf("%s was not found in SQL cache", key)
 		return nil
 	}
 
