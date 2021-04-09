@@ -55,7 +55,7 @@ type Filter struct {
 	State              string `yaml:"state,omitempty"`
 }
 
-// LoadLabelRegex loads a new label reegx
+// LoadLabelRegex loads a new label regex
 func (f *Filter) LoadLabelRegex() error {
 	label, negateLabel := negativeMatch(f.RawLabel)
 
