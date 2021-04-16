@@ -159,7 +159,7 @@ func (p *GitHubProvider) IssuesListIssueTimeline(ctx context.Context, sp SearchP
 
 func (p *GitHubProvider) getPullRequestsListOptions(sp SearchParams) *github.PullRequestListOptions {
 	return &github.PullRequestListOptions{
-		ListOptions: p.getListOptions(sp.IssueListCommentsOptions.ListOptions),
+		ListOptions: p.getListOptions(sp.PullRequestListOptions.ListOptions),
 		State:       sp.PullRequestListOptions.State,
 		Sort:        sp.PullRequestListOptions.Sort,
 		Direction:   sp.PullRequestListOptions.Direction,
