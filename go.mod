@@ -10,6 +10,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/go-github/v33 v33.0.0
+	github.com/google/slowjam v1.0.0
 	github.com/hashicorp/go-retryablehttp v0.6.6 // indirect
 	github.com/hokaccha/go-prettyjson v0.0.0-20190818114111-108c894c2c0e
 	github.com/imjasonmiller/godice v0.1.2

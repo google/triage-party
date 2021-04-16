@@ -36,6 +36,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/slowjam/pkg/stacklog"
 	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/provider"
 
@@ -76,6 +77,9 @@ var (
 func main() {
 	klog.InitFlags(nil)
 	flag.Parse()
+
+	st := stacklog.MustStartFromEnv("STACKLOG_PATH")
+	defer st.Stop()
 
 	cp := *configPath
 	if cp == "" {
