@@ -16,8 +16,11 @@ package hubbub
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/google/triage-party/pkg/provider"
+	"github.com/hokaccha/go-prettyjson"
 
 	"k8s.io/klog/v2"
 )
@@ -38,4 +41,15 @@ func (h *Engine) logRate(r provider.Rate) {
 	if r.Remaining%100 == 1 {
 		klog.Info(msg)
 	}
+}
+
+func formatStruct(x interface{}) string {
+	s, err := prettyjson.Marshal(x)
+	if err == nil {
+		return string(s)
+	}
+	y := strings.Replace(spew.Sdump(x), "\n", "\n|", -1)
+	y = strings.Replace(y, ", ", ",\n - ", -1)
+	y = strings.Replace(y, "}, ", "},\n", -1)
+	return strings.Replace(y, "},\n - ", "},\n", -1)
 }

@@ -17,6 +17,7 @@ package hubbub
 import (
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/triage-party/pkg/provider"
 
@@ -87,18 +88,22 @@ func normalizeTitle(t string) string {
 
 // updateSimilarIssues updates similarity tables, meant for background use
 func (h *Engine) updateSimilarIssues(key string, is []*provider.Issue) {
+	start := time.Now()
 	klog.V(1).Infof("Updating similarity table from issue cache %q (%d items)", key, len(is))
 	for _, i := range is {
 		h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())
 	}
+	klog.V(1).Infof("%q took %s to update", key, time.Since(start))
 }
 
 // updateSimilarPullRequests updates similarity tables, meant for background use
 func (h *Engine) updateSimilarPullRequests(key string, prs []*provider.PullRequest) {
+	start := time.Now()
 	klog.V(1).Infof("Updating similarity table from PR cache %q (%d items)", key, len(prs))
 	for _, i := range prs {
 		h.updateSimilarityTables(i.GetTitle(), i.GetHTMLURL())
 	}
+	klog.V(1).Infof("%q took %s to update", key, time.Since(start))
 }
 
 func (h *Engine) updateSimilarityTables(rawTitle, url string) {
@@ -200,7 +205,7 @@ func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 			continue
 		}
 
-		oco := h.seen[url]
+		oco := h.cachedConversation(url)
 		if oco == nil {
 			continue
 		}
@@ -209,7 +214,7 @@ func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 			continue
 		}
 
-		simco = append(simco, makeRelated(h.seen[url]))
+		simco = append(simco, makeRelated(oco))
 		added[url] = true
 	}
 	return simco

@@ -225,14 +225,27 @@ func (h *Engine) createIssueSummary(i *provider.Issue, cs []*provider.IssueComme
 	return co
 }
 
+func (h *Engine) cachedConversation(url string) *Conversation {
+	result, ok := h.seen.Load(url)
+	if !ok {
+		return nil
+	}
+
+	return result.(*Conversation)
+}
+
+func (h *Engine) updateConversationCache(url string, co *Conversation) {
+	h.seen.Store(url, co)
+}
+
 // IssueSummary returns a cached conversation for an issue
 func (h *Engine) IssueSummary(i *provider.Issue, cs []*provider.IssueComment, age time.Time) *Conversation {
 	key := i.GetHTMLURL()
-	cached, ok := h.seen[key]
-	if ok {
+	cached := h.cachedConversation(key)
+	if cached != nil {
 		minAge := h.mtime(i)
 		if !cached.Seen.Before(minAge) && cached.CommentsSeen >= len(cs) {
-			return h.seen[key]
+			return cached
 		}
 		if cached.CommentsSeen < len(cs) {
 			klog.V(2).Infof("%s in issue cache, but is missing comments. Live @ %s (%d comments), cached @ %s (%d comments)  ", i.GetHTMLURL(), minAge, len(cs), cached.Seen, cached.CommentsSeen)
@@ -241,8 +254,9 @@ func (h *Engine) IssueSummary(i *provider.Issue, cs []*provider.IssueComment, ag
 		}
 	}
 
-	h.seen[key] = h.createIssueSummary(i, cs, age)
-	return h.seen[key]
+	co := h.createIssueSummary(i, cs, age)
+	h.updateConversationCache(key, co)
+	return co
 }
 
 func isBot(u *provider.User) bool {

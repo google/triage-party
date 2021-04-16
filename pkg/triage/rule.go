@@ -70,7 +70,12 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 	if seen == nil {
 		r.Items = cs
 	} else {
-		for _, c := range cs {
+		for i, c := range cs {
+			if c == nil {
+				klog.Errorf("SummarizeRuleResult conversation #%d is nil: %+v", i, c)
+				continue
+			}
+
 			dupeRule := seen[c.URL]
 			if dupeRule != nil {
 				// Find a nefarious bug
@@ -91,7 +96,12 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 		return r
 	}
 
-	for _, c := range cs {
+	for i, c := range cs {
+		if c == nil {
+			klog.Errorf("SummarizeRuleResult conversation #%d is nil: %+v", i, c)
+			continue
+		}
+
 		if c.Created.After(time.Now()) {
 			klog.Errorf("#%d claims to have be newer than now: %s", c.ID, c.Created)
 			continue

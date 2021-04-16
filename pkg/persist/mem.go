@@ -65,7 +65,7 @@ func setMem(c *cache.Cache, key string, th *Blob) {
 		th.Created = time.Now()
 	}
 
-	klog.Infof("Storing %s within in-memory cache (created: %s)", key, th.Created)
+	klog.V(1).Infof("Storing %s within in-memory cache (created: %s)", key, th.Created)
 	c.Set(key, th, 0)
 }
 

@@ -16,31 +16,47 @@ package hubbub
 
 import (
 	"context"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/provider"
 
-	"github.com/davecgh/go-spew/spew"
-	"github.com/hokaccha/go-prettyjson"
-
 	"github.com/google/triage-party/pkg/logu"
-	"github.com/google/triage-party/pkg/tag"
 	"k8s.io/klog/v2"
 )
 
 // Search for GitHub issues or PR's
 func (h *Engine) SearchAny(ctx context.Context, sp provider.SearchParams) ([]*Conversation, time.Time, error) {
-	cs, ts, err := h.SearchIssues(ctx, sp)
+	var wg sync.WaitGroup
+	var cs []*Conversation
+	var ts time.Time
+	var err error
+
+	wg.Add(1)
+	go func() {
+		cs, ts, err = h.SearchIssues(ctx, sp)
+		wg.Done()
+	}()
+
+	var pcs []*Conversation
+	var pts time.Time
+	var perr error
+
+	wg.Add(1)
+	go func() {
+		pcs, pts, perr = h.SearchPullRequests(ctx, sp)
+		wg.Done()
+	}()
+
+	wg.Wait()
+
 	if err != nil {
 		return cs, ts, err
 	}
 
-	pcs, pts, err := h.SearchPullRequests(ctx, sp)
-	if err != nil {
-		return cs, ts, err
+	if perr != nil {
+		return pcs, pts, perr
 	}
 
 	if pts.After(ts) {
@@ -64,8 +80,8 @@ func (h *Engine) SearchIssues(ctx context.Context, sp provider.SearchParams) ([]
 
 	var open []*provider.Issue
 	var closed []*provider.Issue
-	var err error
 
+	start := time.Now()
 	age := time.Now()
 
 	wg.Add(1)
@@ -134,99 +150,18 @@ func (h *Engine) SearchIssues(ctx context.Context, sp provider.SearchParams) ([]
 		is = append(is, i)
 	}
 
-	var filtered []*Conversation
 	klog.V(1).Infof("%s/%s aggregate issue count: %d, filtering for:\n%s", sp.Repo.Organization, sp.Repo.Project, len(is), sp.Filters)
 
 	// Avoids updating PR references on a quiet repository
-	mostRecentUpdate := time.Time{}
+	latestIssueUpdate := time.Time{}
 	for _, i := range is {
-		if i.GetUpdatedAt().After(mostRecentUpdate) {
-			mostRecentUpdate = i.GetUpdatedAt()
+		if i.GetUpdatedAt().After(latestIssueUpdate) {
+			latestIssueUpdate = i.GetUpdatedAt()
 		}
 	}
 
-	for _, i := range is {
-		// Inconsistency warning: issues use a list of labels, prs a list of label pointers
-		labels := []*provider.Label{}
-		for _, l := range i.Labels {
-			l := l
-			labels = append(labels, l)
-		}
-
-		if !preFetchMatch(i, labels, sp.Filters) {
-			klog.V(1).Infof("#%d - %q did not match item filter: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
-			continue
-		}
-
-		klog.V(1).Infof("#%d - %q made it past pre-fetch: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
-
-		comments := []*provider.IssueComment{}
-
-		fetchComments := false
-		if needComments(i, sp.Filters) && i.GetComments() > 0 {
-			klog.V(1).Infof("#%d - %q: need comments for final filtering", i.GetNumber(), i.GetTitle())
-			fetchComments = !sp.NewerThan.IsZero()
-		}
-
-		sp.IssueNumber = i.GetNumber()
-		sp.NewerThan = h.mtime(i)
-		sp.Fetch = fetchComments
-
-		comments, _, err = h.cachedIssueComments(ctx, sp)
-		if err != nil {
-			klog.Errorf("comments: %v", err)
-		}
-
-		co := h.IssueSummary(i, comments, age)
-		co.Labels = labels
-
-		co.Similar = h.FindSimilar(co)
-		if len(co.Similar) > 0 {
-			co.Tags[tag.Similar] = true
-		}
-
-		if !postFetchMatch(co, sp.Filters) {
-			klog.V(1).Infof("#%d - %q did not match post-fetch filter: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
-			continue
-		}
-		klog.V(1).Infof("#%d - %q made it past post-fetch: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
-
-		updatedAt := h.mtime(i)
-		var timeline []*provider.Timeline
-		fetchTimeline := false
-		if needTimeline(i, sp.Filters, false, sp.Hidden) {
-			fetchTimeline = !sp.NewerThan.IsZero()
-		}
-
-		sp.IssueNumber = i.GetNumber()
-		sp.Fetch = fetchTimeline
-		sp.UpdateAt = updatedAt
-
-		timeline, err = h.cachedTimeline(ctx, sp)
-		if err != nil {
-			klog.Errorf("timeline: %v", err)
-		}
-
-		h.addEvents(ctx, sp, co, timeline)
-
-		// Some labels are judged by linked PR state. Ensure that they are updated to the same timestamp.
-		fetchReviews := false
-		if needReviews(i, sp.Filters, sp.Hidden) && len(co.PullRequestRefs) > 0 {
-			fetchReviews = !sp.NewerThan.IsZero()
-		}
-		sp.NewerThan = mostRecentUpdate
-		sp.Fetch = fetchReviews
-		co.PullRequestRefs = h.updateLinkedPRs(ctx, sp, co)
-
-		if !postEventsMatch(co, sp.Filters) {
-			klog.V(1).Infof("#%d - %q did not match post-events filter: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
-			continue
-		}
-		klog.V(1).Infof("#%d - %q made it past post-events: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
-
-		filtered = append(filtered, co)
-	}
-
+	filtered := h.analyzeIssueMatches(ctx, is, sp, age, latestIssueUpdate)
+	klog.Infof("issue search took %s, returning %d items: %+v", time.Since(start), len(filtered), sp)
 	return filtered, age, nil
 }
 
@@ -255,14 +190,13 @@ func (h *Engine) SearchPullRequests(ctx context.Context, sp provider.SearchParam
 
 	klog.V(1).Infof("Gathering raw data for %s/%s PR's matching: %s - newer than %s",
 		sp.Repo.Organization, sp.Repo.Project, sp.Filters, logu.STime(sp.NewerThan))
-	filtered := []*Conversation{}
 
 	var wg sync.WaitGroup
 
 	var open []*provider.PullRequest
 	var closed []*provider.PullRequest
-	var err error
 	age := time.Now()
+	start := time.Now()
 
 	wg.Add(1)
 	go func() {
@@ -328,180 +262,8 @@ func (h *Engine) SearchPullRequests(ctx context.Context, sp provider.SearchParam
 		prs = append(prs, pr)
 	}
 
-	for _, pr := range prs {
-		if !preFetchMatch(pr, pr.Labels, sp.Filters) {
-			continue
-		}
+	filtered := h.analyzePRMatches(ctx, prs, sp, age)
 
-		var timeline []*provider.Timeline
-		var reviews []*provider.PullRequestReview
-		var comments []*provider.Comment
-
-		fetchComments := false
-		if needComments(pr, sp.Filters) {
-			fetchComments = !sp.NewerThan.IsZero()
-		}
-
-		sp.IssueNumber = pr.GetNumber()
-		sp.NewerThan = h.mtime(pr)
-		sp.Fetch = fetchComments
-
-		comments, _, err = h.prComments(ctx, sp)
-		if err != nil {
-			klog.Errorf("comments: %v", err)
-		}
-
-		fetchTimeline := false
-		if needTimeline(pr, sp.Filters, true, sp.Hidden) {
-			fetchTimeline = !sp.NewerThan.IsZero()
-		}
-
-		sp.IssueNumber = pr.GetNumber()
-		sp.NewerThan = h.mtime(pr)
-		sp.Fetch = fetchTimeline
-
-		timeline, err = h.cachedTimeline(ctx, sp)
-		if err != nil {
-			klog.Errorf("timeline: %v", err)
-		}
-
-		fetchReviews := false
-		if needReviews(pr, sp.Filters, sp.Hidden) {
-			fetchReviews = !sp.NewerThan.IsZero()
-		}
-
-		sp.IssueNumber = pr.GetNumber()
-		sp.NewerThan = h.mtime(pr)
-		sp.Fetch = fetchReviews
-
-		reviews, _, err = h.cachedReviews(ctx, sp)
-		if err != nil {
-			klog.Errorf("reviews: %v", err)
-			continue
-		}
-
-		if h.debug[pr.GetNumber()] {
-			klog.Errorf("*** Debug PR timeline #%d:\n%s", pr.GetNumber(), formatStruct(timeline))
-		}
-
-		sp.Fetch = !sp.NewerThan.IsZero()
-		sp.Age = age
-
-		co := h.PRSummary(ctx, sp, pr, comments, timeline, reviews)
-		co.Labels = pr.Labels
-		co.Similar = h.FindSimilar(co)
-		if len(co.Similar) > 0 {
-			co.Tags[tag.Similar] = true
-		}
-
-		if !postFetchMatch(co, sp.Filters) {
-			klog.V(4).Infof("PR #%d did not pass postFetchMatch with filter: %v", pr.GetNumber(), sp.Filters)
-			continue
-		}
-
-		if !postEventsMatch(co, sp.Filters) {
-			klog.V(1).Infof("#%d - %q did not match post-events filter: %s", pr.GetNumber(), pr.GetTitle(), sp.Filters)
-			continue
-		}
-
-		filtered = append(filtered, co)
-	}
-
+	klog.Infof("PR search took %s, returning %d items: %+v", time.Since(start), len(filtered), sp)
 	return filtered, age, nil
-}
-
-func needComments(i provider.IItem, fs []provider.Filter) bool {
-	for _, f := range fs {
-		if f.TagRegex() != nil {
-			if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
-				if t.NeedsComments {
-					klog.Infof("#%d - need comments due to tag %s (negate=%v)", i.GetNumber(), f.TagRegex(), f.TagNegate())
-					return true
-				}
-			}
-		}
-
-		if f.ClosedCommenters != "" || f.ClosedComments != "" {
-			klog.Infof("#%d - need comments due to closed comments", i.GetNumber())
-			return true
-		}
-
-		if f.Responded != "" || f.Commenters != "" {
-			klog.Infof("#%d - need comments due to responded/commenters filter", i.GetNumber())
-			return true
-		}
-	}
-
-	return (i.GetState() == constants.OpenState) || (i.GetState() == constants.OpenedState)
-}
-
-func needTimeline(i provider.IItem, fs []provider.Filter, pr bool, hidden bool) bool {
-	if i.GetMilestone() != nil {
-		return true
-	}
-
-	if (i.GetState() != constants.OpenState) && (i.GetState() != constants.OpenedState) {
-		return false
-	}
-
-	if i.GetUpdatedAt() == i.GetCreatedAt() {
-		return false
-	}
-
-	if pr {
-		return true
-	}
-
-	for _, f := range fs {
-		if f.TagRegex() != nil {
-			if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
-				if t.NeedsTimeline {
-					return true
-				}
-			}
-		}
-		if f.Prioritized != "" {
-			return true
-		}
-	}
-
-	return !hidden
-}
-
-func needReviews(i provider.IItem, fs []provider.Filter, hidden bool) bool {
-	if (i.GetState() != constants.OpenState) && (i.GetState() != constants.OpenedState) {
-		return false
-	}
-
-	if i.GetUpdatedAt() == i.GetCreatedAt() {
-		return false
-	}
-
-	if hidden {
-		return false
-	}
-
-	for _, f := range fs {
-		if f.TagRegex() != nil {
-			if ok, t := matchTag(tag.Tags, f.TagRegex(), f.TagNegate()); ok {
-				if t.NeedsReviews {
-					klog.V(1).Infof("#%d - need reviews due to tag %s (negate=%v)", i.GetNumber(), f.TagRegex(), f.TagNegate())
-					return true
-				}
-			}
-		}
-	}
-
-	return true
-}
-
-func formatStruct(x interface{}) string {
-	s, err := prettyjson.Marshal(x)
-	if err == nil {
-		return string(s)
-	}
-	y := strings.Replace(spew.Sdump(x), "\n", "\n|", -1)
-	y = strings.Replace(y, ", ", ",\n - ", -1)
-	y = strings.Replace(y, "}, ", "},\n", -1)
-	return strings.Replace(y, "},\n - ", "},\n", -1)
 }
