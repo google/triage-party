@@ -293,10 +293,10 @@ func (h *Engine) createPRSummary(ctx context.Context, sp provider.SearchParams, 
 func (h *Engine) PRSummary(ctx context.Context, sp provider.SearchParams, pr *provider.PullRequest, cs []*provider.Comment, timeline []*provider.Timeline,
 	reviews []*provider.PullRequestReview) *Conversation {
 	key := pr.GetHTMLURL()
-	cached, ok := h.seen[key]
-	if ok {
+	cached := h.cachedConversation(key)
+	if cached != nil {
 		if !cached.Seen.Before(h.mtime(pr)) && cached.CommentsSeen >= len(cs) && cached.TimelineTotal >= len(timeline) && cached.ReviewsTotal >= len(reviews) {
-			return h.seen[key]
+			return cached
 		}
 		if cached.CommentsSeen < len(cs) {
 			klog.V(2).Infof("%s in issue cache, but is missing comments. Live @ %s (%d comments), cached @ %s (%d comments)  ", pr.GetHTMLURL(), h.mtime(pr), len(cs), cached.Seen, cached.CommentsSeen)
@@ -309,6 +309,7 @@ func (h *Engine) PRSummary(ctx context.Context, sp provider.SearchParams, pr *pr
 		}
 	}
 
-	h.seen[key] = h.createPRSummary(ctx, sp, pr, cs, timeline, reviews)
-	return h.seen[key]
+	co := h.createPRSummary(ctx, sp, pr, cs, timeline, reviews)
+	h.updateConversationCache(key, co)
+	return co
 }

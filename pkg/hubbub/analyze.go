@@ -10,6 +10,54 @@ import (
 	"k8s.io/klog/v2"
 )
 
+const analyzerWorkerCount = 6
+
+func (h *Engine) analyzeIssueMatches(ctx context.Context, is []*provider.Issue, sp provider.SearchParams, age time.Time, latestIssueUpdate time.Time) []*Conversation {
+	if len(is) == 0 {
+		klog.Warningf("asked to analyze 0 issues")
+		return nil
+	}
+
+	start := time.Now()
+
+	numWorkers := analyzerWorkerCount
+	if len(is) < numWorkers {
+		numWorkers = len(is)
+	}
+
+	jobs := make(chan *provider.Issue, len(is))
+	results := make(chan *Conversation, len(is))
+
+	for w := 1; w <= numWorkers; w++ {
+		go h.analyzeIssueWorker(ctx, jobs, results, sp, age, latestIssueUpdate)
+	}
+
+	for _, i := range is {
+		jobs <- i
+	}
+	close(jobs)
+
+	cs := []*Conversation{}
+	for range is {
+		c := <-results
+		if c == nil {
+			continue
+		}
+		cs = append(cs, c)
+	}
+
+	close(results)
+	klog.Infof("found %d matches for %d issues in %s (%d workers)", len(cs), len(is), time.Since(start), numWorkers)
+	return cs
+}
+
+func (h *Engine) analyzeIssueWorker(ctx context.Context, jobs chan *provider.Issue, results chan *Conversation, sp provider.SearchParams, age time.Time, latestIssueUpdate time.Time) {
+	for j := range jobs {
+		co := h.analyzeIssue(ctx, j, sp, age, latestIssueUpdate)
+		results <- co
+	}
+}
+
 func (h *Engine) analyzeIssue(ctx context.Context, i *provider.Issue, sp provider.SearchParams, age time.Time, latestIssueUpdate time.Time) *Conversation {
 	// Workaround API inconsistency: issues use a list of labels, prs a list of label pointers
 	labels := []*provider.Label{}
@@ -88,6 +136,52 @@ func (h *Engine) analyzeIssue(ctx context.Context, i *provider.Issue, sp provide
 
 	klog.V(1).Infof("#%d - %q made it past post-events: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
 	return co
+}
+
+func (h *Engine) analyzePRMatches(ctx context.Context, prs []*provider.PullRequest, sp provider.SearchParams, age time.Time) []*Conversation {
+	if len(prs) == 0 {
+		klog.Warningf("asked to analyze 0 PRs")
+		return nil
+	}
+
+	start := time.Now()
+
+	numWorkers := analyzerWorkerCount
+	if len(prs) < numWorkers {
+		numWorkers = len(prs)
+	}
+
+	jobs := make(chan *provider.PullRequest, len(prs))
+	results := make(chan *Conversation, len(prs))
+
+	for w := 1; w <= numWorkers; w++ {
+		go h.analyzePRWorker(ctx, jobs, results, sp, age)
+	}
+
+	for _, pr := range prs {
+		jobs <- pr
+	}
+	close(jobs)
+
+	cs := []*Conversation{}
+	for range prs {
+		c := <-results
+		if c == nil {
+			continue
+		}
+		cs = append(cs, c)
+	}
+
+	close(results)
+	klog.Infof("found %d matches for %d PRs in %s (%d workers)", len(cs), len(prs), time.Since(start), numWorkers)
+	return cs
+}
+
+func (h *Engine) analyzePRWorker(ctx context.Context, jobs chan *provider.PullRequest, results chan *Conversation, sp provider.SearchParams, age time.Time) {
+	for j := range jobs {
+		co := h.analyzePR(ctx, j, sp, age)
+		results <- co
+	}
 }
 
 func (h *Engine) analyzePR(ctx context.Context, pr *provider.PullRequest, sp provider.SearchParams, age time.Time) *Conversation {

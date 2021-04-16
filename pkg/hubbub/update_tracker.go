@@ -40,9 +40,18 @@ func (h *Engine) mtimeRef(rc *RelatedConversation) time.Time {
 	return h.mtimeKey(rc.Updated, fmt.Sprintf("%s/%s#%d", rc.Organization, rc.Project, rc.ID))
 }
 
+func (h *Engine) updatedAt(url string) time.Time {
+	result, ok := h.updated.Load(url)
+	if !ok {
+		return time.Time{}
+	}
+
+	return result.(time.Time)
+}
+
 func (h *Engine) mtimeKey(idea time.Time, key string) time.Time {
 	updatedAt := idea
-	updateSeen := h.updatedAt[key]
+	updateSeen := h.updatedAt(key)
 	klog.V(2).Infof("%s was definitely updated by %s - possibly by %s", key, updatedAt, updateSeen)
 
 	if updateSeen == updatedAt {
@@ -86,15 +95,15 @@ func (h *Engine) updateMtimeLong(org string, project string, num int, t time.Tim
 }
 
 func (h *Engine) updateMtimeByKey(key string, ts time.Time) {
-	if ts.After(h.updatedAt[key]) {
-		if !h.updatedAt[key].IsZero() {
+	if ts.After(h.updatedAt(key)) {
+		if !h.updatedAt(key).IsZero() {
 			_, file, no, ok := runtime.Caller(2)
 			if ok {
-				klog.V(2).Infof("Updating %s last update time for %s to %s - caller: %s:%d", key, h.updatedAt[key], ts, file, no)
+				klog.V(2).Infof("Updating %s last update time for %s to %s - caller: %s:%d", key, h.updatedAt(key), ts, file, no)
 			} else {
-				klog.V(2).Infof("Updating %s last update time for %s to %s", key, h.updatedAt[key], ts)
+				klog.V(2).Infof("Updating %s last update time for %s to %s", key, h.updatedAt(key), ts)
 			}
 		}
-		h.updatedAt[key] = ts
+		h.updated.Store(key, ts)
 	}
 }

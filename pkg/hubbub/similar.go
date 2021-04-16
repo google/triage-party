@@ -205,7 +205,7 @@ func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 			continue
 		}
 
-		oco := h.seen[url]
+		oco := h.cachedConversation(url)
 		if oco == nil {
 			continue
 		}
@@ -214,7 +214,7 @@ func (h *Engine) FindSimilar(co *Conversation) []*RelatedConversation {
 			continue
 		}
 
-		simco = append(simco, makeRelated(h.seen[url]))
+		simco = append(simco, makeRelated(oco))
 		added[url] = true
 	}
 	return simco

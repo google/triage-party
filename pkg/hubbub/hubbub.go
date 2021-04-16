@@ -74,15 +74,21 @@ type Engine struct {
 	gitlab provider.Provider
 
 	// Workaround because GitHub doesn't update issues if cross-references occur
-	updatedAt map[string]time.Time
+	updated sync.Map
 
 	// indexes used for similarity matching & conversation caching
-	seen map[string]*Conversation
+	seen sync.Map
 }
 
 // ConversationsTotal returns the number of conversations we've seen so far
 func (e *Engine) ConversationsTotal() int {
-	return len(e.seen)
+	t := 0
+	e.seen.Range(func(key, value interface{}) bool {
+		t++
+		return true
+	})
+
+	return t
 }
 
 func (e *Engine) provider(hostname string) provider.Provider {
@@ -97,11 +103,9 @@ func New(cfg Config) *Engine {
 		cache: cfg.Cache,
 
 		MaxClosedUpdateAge: cfg.MaxClosedUpdateAge,
-		seen:               map[string]*Conversation{},
 		MinSimilarity:      cfg.MinSimilarity,
 		debug:              cfg.DebugNumbers,
 
-		updatedAt:   map[string]time.Time{},
 		memberRoles: map[string]bool{},
 		members:     map[string]bool{},
 

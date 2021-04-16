@@ -150,7 +150,6 @@ func (h *Engine) SearchIssues(ctx context.Context, sp provider.SearchParams) ([]
 		is = append(is, i)
 	}
 
-	var filtered []*Conversation
 	klog.V(1).Infof("%s/%s aggregate issue count: %d, filtering for:\n%s", sp.Repo.Organization, sp.Repo.Project, len(is), sp.Filters)
 
 	// Avoids updating PR references on a quiet repository
@@ -161,12 +160,7 @@ func (h *Engine) SearchIssues(ctx context.Context, sp provider.SearchParams) ([]
 		}
 	}
 
-	for _, i := range is {
-		if co := h.analyzeIssue(ctx, i, sp, age, latestIssueUpdate); co != nil {
-			filtered = append(filtered, co)
-		}
-	}
-
+	filtered := h.analyzeIssueMatches(ctx, is, sp, age, latestIssueUpdate)
 	klog.Infof("issue search took %s, returning %d items: %+v", time.Since(start), len(filtered), sp)
 	return filtered, age, nil
 }
@@ -196,7 +190,6 @@ func (h *Engine) SearchPullRequests(ctx context.Context, sp provider.SearchParam
 
 	klog.V(1).Infof("Gathering raw data for %s/%s PR's matching: %s - newer than %s",
 		sp.Repo.Organization, sp.Repo.Project, sp.Filters, logu.STime(sp.NewerThan))
-	filtered := []*Conversation{}
 
 	var wg sync.WaitGroup
 
@@ -269,11 +262,7 @@ func (h *Engine) SearchPullRequests(ctx context.Context, sp provider.SearchParam
 		prs = append(prs, pr)
 	}
 
-	for _, pr := range prs {
-		if co := h.analyzePR(ctx, pr, sp, age); co != nil {
-			filtered = append(filtered, co)
-		}
-	}
+	filtered := h.analyzePRMatches(ctx, prs, sp, age)
 
 	klog.Infof("PR search took %s, returning %d items: %+v", time.Since(start), len(filtered), sp)
 	return filtered, age, nil
