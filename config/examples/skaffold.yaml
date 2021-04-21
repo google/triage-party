@@ -139,6 +139,20 @@ collections:
       - milestone-pr-needs-merge
       - milestone-recently-closed
 
+  - id: planning
+    name: Planning
+    description: >
+      Skafold Team Planning Board.
+
+      This board is used by Skaffold team to plan upcoming releases.
+      The timeline and priority of issues listed here are subject to change.
+
+    display: planning
+    overflow: 3
+    rules:
+      - Q2-21
+      - H2-21
+
   - id: similar
     name: Similar
     description: Items which appear similar to one other. Review for duplicates or vague titles.
@@ -728,6 +742,18 @@ rules:
     resolution: Close as duplicate or give a better title
     filters:
       - tag: similar
+
+  ## Planing
+  Q2-21:
+    name: "Issues planned for Q2-2021"
+    type: issue
+    filters:
+      - label: "Q2-21"
+  H2-21:
+    name: "Issues planned for H2-2021"
+    type: issue
+    filters:
+      - label: "H2-21"
 
   # for statistics generation
   open-issues:

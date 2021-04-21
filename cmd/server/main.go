@@ -186,6 +186,7 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(findPath(*siteDir), "static")))))
 	http.HandleFunc("/s/", s.Collection())
 	http.HandleFunc("/k/", s.Kanban())
+	http.HandleFunc("/p/", s.Planning())
 	http.HandleFunc("/healthz", s.Healthz())
 	http.HandleFunc("/threadz", s.Threadz())
 
