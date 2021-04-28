@@ -47,7 +47,7 @@
               {{ end }}
               <select onchange="this.form.submit();" name="players">
                 {{ range $i, $val := .PlayerNums }}
-                  <option value="{{ $val }}" {{ if eq $.Players $val}}selected{{ end }}>{{ if eq $val 1}}Solo{{ else }}{{ $val }} Players{{ end }}</option>
+                  <option value="{{ $val }}" {{ if eq $.Players $val}}selected{{ end }}>{{ if eq $val 1}}Solo mode{{ else }}{{ $val }} Players{{ end }}</option>
                 {{ end }}
               </select>
             </form>
