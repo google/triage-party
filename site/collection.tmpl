@@ -47,7 +47,7 @@
               {{ end }}
               <select onchange="this.form.submit();" name="players">
                 {{ range $i, $val := .PlayerNums }}
-                  <option value="{{ $val }}" {{ if eq $.Players $val}}selected{{ end }}>{{ if eq $val 1}}Solo{{ else }}{{ $val }} Players{{ end }}</option>
+                  <option value="{{ $val }}" {{ if eq $.Players $val}}selected{{ end }}>{{ if eq $val 1}}Solo mode{{ else }}{{ $val }} Players{{ end }}</option>
                 {{ end }}
               </select>
             </form>
@@ -81,8 +81,8 @@
         <div class="box-header collapsible">
           <div class="box-head-left">
             <h3 title="{{ .Rule | toYAML }}">{{ .Rule.Name }} ({{ len .Items }})<div class="tab-link"><a href="#" title="open in new tabs" onclick="{{ .Rule.ID | toJSfunc }}tabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div></h3>
-            <h4 class="subtitle">Resolution: {{ .Rule.Resolution }}</h4>
-            <h5 class="stats">Average age: {{ .AvgAge | toDays }}, Avg wait: {{ .AvgCurrentHold | toDays }}</h5>
+            <h4 class="subtitle"><span class="section-title">Resolution:</span> {{ .Rule.Resolution }}</h4>
+            <h5 class="stats"><span class="stat-title">Average age:</span> {{ .AvgAge | toDays }}, <span class="stat-title">Avg wait:</span> {{ .AvgCurrentHold | toDays }}</h5>
           </div>
           <div class="box-head-right">
           <!--  just save the space -->
