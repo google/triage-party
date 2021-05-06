@@ -31,6 +31,7 @@ type Collection struct {
 	Name         string   `yaml:"name"`
 	Description  string   `yaml:"description,omitempty"`
 	RuleIDs      []string `yaml:"rules"`
+	Repos        []string `yaml:"repos,omitempty"`
 	Dedup        bool     `yaml:"dedup,omitempty"`
 	Hidden       bool     `yaml:"hidden,omitempty"`
 	UsedForStats bool     `yaml:"used_for_statistics,omitempty"`
@@ -94,7 +95,7 @@ func (p *Party) ExecuteCollection(ctx context.Context, s Collection, newerThan t
 			NewerThan: newerThan,
 			Hidden:    hidden,
 		}
-		ro, err := p.ExecuteRule(ctx, sp, t, seen)
+		ro, err := p.ExecuteRule(ctx, sp, t, seen, &s)
 		if err != nil {
 			return nil, fmt.Errorf("rule %q: %w", t.Name, err)
 		}
