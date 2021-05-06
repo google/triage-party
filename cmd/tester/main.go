@@ -156,7 +156,8 @@ func executeRule(ctx context.Context, tp *triage.Party) {
 		Hidden:    false,
 	}
 
-	rr, err := tp.ExecuteRule(ctx, sp, r, nil)
+	// TODO: Test collection repos
+	rr, err := tp.ExecuteRule(ctx, sp, r, nil, nil)
 	if err != nil {
 		klog.Exitf("execute: %v", err)
 	}
