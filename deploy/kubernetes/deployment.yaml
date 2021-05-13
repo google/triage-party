@@ -16,7 +16,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: triage-party
-  namespace: triage-party
+#  namespace: triage-party
 spec:
   selector:
     matchLabels:
@@ -28,9 +28,11 @@ spec:
     spec:
       containers:
         - name: triage-party
-          image: triageparty/triage-party
+          image: tparty
           imagePullPolicy: Always
           env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /secret/application_default_credentials.json
             - name: GITHUB_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -39,7 +41,12 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /app/config
+            - name: gac-secret
+              mountPath: /secret
       volumes:
         - name: config
           configMap:
             name: triage-party-config
+        - name: gac-secret
+          secret:
+            secretName: gac

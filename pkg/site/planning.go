@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/triage-party/pkg/triage"
 	"k8s.io/klog/v2"
 )
 
@@ -46,7 +47,8 @@ func (h *Handlers) Planning() http.HandlerFunc {
 		"getPriority":   getPriority,
 		"isPriorityLabel": isPriorityLabel,
 		"TextColor":     textColor,
-		"notPriorityLabel": notPriorityLabel,
+		"shdDisplayLabel": shdDisplayLabel,
+		"labelMatchesRule" : labelMatchesRule,
 	}
 
 	t := template.Must(template.New("planning").Funcs(fmap).ParseFiles(
@@ -85,6 +87,18 @@ func isPriorityLabel(l string) bool {
 	return strings.HasPrefix(l, priority)
 }
 
-func notPriorityLabel(l string) bool {
-	return !isPriorityLabel(l)
+func shdDisplayLabel(l string, rule triage.Rule) bool {
+	if isPriorityLabel(l) {
+		return false
+	}
+	return !labelMatchesRule(l, rule)
+}
+
+func labelMatchesRule(l string, rule triage.Rule) bool {
+	for _, r := range rule.Filters {
+		if r.RawLabel == l {
+			return true
+		}
+	}
+	return false
 }

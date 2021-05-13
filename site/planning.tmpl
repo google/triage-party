@@ -60,8 +60,6 @@
         <div class="box-header collapsible">
           <div class="box-head-left">
             <h3 title="{{ .Rule | toYAML }}">{{ .Rule.Name }} ({{ len .Items }})<div class="tab-link"><a href="#" title="open in new tabs" onclick="{{ .Rule.ID | toJSfunc }}tabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div></h3>
-            <h4 class="subtitle">Resolution: {{ .Rule.Resolution }}</h4>
-            <h5 class="stats">Average age: {{ .AvgAge | toDays }}, Avg wait: {{ .AvgCurrentHold | toDays }}</h5>
           </div>
           <div class="box-head-right">
           <!--  just save the space -->
@@ -110,7 +108,7 @@
               <td class="cell-response" data-order="{{ .LatestMemberResponse | UnixNano }}">{{ .LatestMemberResponse | RoughTime }}</td>
               <td class="cell-labels">
                 {{ range .Labels }}
-                  {{if .Name | notPriorityLabel }}
+                  {{if .Rule | shdDisplayLabel .Name }}
                      <div class="gh-label" style="background-color: #{{ .Color }}; color: #{{ .Color | TextColor }};">{{ .Name }}</div>
                   {{ end }}
                 {{ end }}

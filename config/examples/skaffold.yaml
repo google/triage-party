@@ -748,12 +748,12 @@ rules:
     name: "Issues planned for Q2-2021"
     type: issue
     filters:
-      - label: "Q2-21"
+      - label: "planning/Q2-21"
   H2-21:
     name: "Issues planned for H2-2021"
     type: issue
     filters:
-      - label: "H2-21"
+      - label: "planning/H2-21"
 
   # for statistics generation
   open-issues:

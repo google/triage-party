@@ -16,15 +16,15 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: triage-party-config
-  namespace: triage-party
+#  namespace: triage-party
 data:
   # The contents of config/config.yaml
   config.yaml: |
     settings:
-      name: generic-project
+      name: skaffold
       min_similarity: 0.75
       repos:
-        -  https://github.com/photoprism/photoprism
+        -  https://github.com/GoogleContainerTools/skaffold
     collections:
       - id: daily
         name: Daily Triage
@@ -99,6 +99,20 @@ data:
           - p1-features
           - p1-bugs
           - p1-other
+
+      - id: planning
+        name: Planning
+        description: >
+           Skafold Team Planning Board.
+
+           This board is used by Skaffold team to plan upcoming releases.
+           The timeline and priority of issues listed here are subject to change.
+
+        display: planning
+        overflow: 3
+        rules:
+          - Q2-21
+          - H2-21
 
       - id: similar
         name: Similar
@@ -423,6 +437,18 @@ data:
         resolution: Merge em
         filters:
           - label: "priority/p1"
+
+      ## Planing
+      Q2-21:
+        name: "Issues planned for Q2-2021"
+        type: issue
+        filters:
+          - label: "planning/Q2-21"
+      H2-21:
+        name: "Issues planned for H2-2021"
+        type: issue
+        filters:
+          - label: "planning/H2-21"
 
       ## Similar
       similar-prs:
