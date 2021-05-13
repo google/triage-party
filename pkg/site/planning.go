@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/triage-party/pkg/constants"
+	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/triage"
 	"k8s.io/klog/v2"
 )
@@ -69,6 +71,11 @@ func (h *Handlers) Planning() http.HandlerFunc {
 			return
 		}
 
+		if p.CollectionResult.RuleResults != nil {
+			p.Description = p.Collection.Description
+			p.Swimlanes = groupByStatus(p.CollectionResult.RuleResults)
+		}
+
 		err = t.ExecuteTemplate(w, "base", p)
 
 		if err != nil {
@@ -101,4 +108,46 @@ func labelMatchesRule(l string, rule triage.Rule) bool {
 		}
 	}
 	return false
+}
+
+func groupByStatus(results []*triage.RuleResult) []*Swimlane {
+	lanes := map[string]*Swimlane{
+		constants.OpenState: {
+			Status:    constants.OpenState,
+			Columns: make([]*triage.RuleResult, len(results)),
+		},
+		constants.ClosedState: {
+			Status:    constants.ClosedState,
+			Columns: make([]*triage.RuleResult, len(results)),
+		},
+		"In Progress": {
+			Status:    "In Progress",
+			Columns: make([]*triage.RuleResult, len(results)),
+		},
+	}
+
+	for i, r := range results {
+		for _, co := range r.Items {
+			var state string
+			if len(co.PullRequestRefs) > 0  {
+				state = "In Progress"
+			} else if co.State == constants.ClosedState {
+				state = constants.ClosedState
+			} else {
+				state = constants.OpenState
+			}
+			if lanes[state].Columns[i] == nil {
+				lanes[state].Columns[i] = &triage.RuleResult{
+					Rule:  r.Rule,
+					Items: []*hubbub.Conversation{},
+				}
+			}
+			lanes[state].Columns[i].Items = append(lanes[state].Columns[i].Items, co)
+			lanes[state].Issues++
+		}
+	}
+
+	return []*Swimlane{lanes[constants.OpenState],
+		lanes["In Progress"],
+		lanes[constants.ClosedState]}
 }

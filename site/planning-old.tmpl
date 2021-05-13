@@ -1,0 +1,166 @@
+{{ define "title" }}
+  {{ .SiteName }} {{ .Title }}
+{{ end }}
+
+{{ define "style" }}
+  <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
+  <link rel="stylesheet" href="/third_party/datatables-bulma/dataTables.bulma.css" />
+{{ end }}
+
+{{define "subnav"}}
+<nav class="navbar secondary" role="navigation" aria-label="secondary navigation">
+  <div class="navbar-secondary-brand">
+  </div>
+
+  <div id="navbarBasicExample" class="navbar-menu">
+    <div class="navbar-center">
+          <div class="right-item">
+          <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
+          <span title="Data as of {{ .ResultAge | HumanDuration}} ago">{{ if eq (len .UniqueItems) .Total }}{{ .Total }} unique items{{ else }}Showing {{ len .UniqueItems }} of {{ .Total}} unique items{{ end }},
+          Avg age: {{ .CollectionResult.AvgAge | toDays }},
+          Avg wait: {{ .CollectionResult.AvgCurrentHold | toDays }}
+          </span>
+
+          <span class="alt-view"><a href="/k/{{ .ID }}{{ $.GetVars }}">Kanban</a></span>
+
+          </div>
+          <script>
+          function openAllTabs() {
+              {{ range .UniqueItems}}window.open("{{ .URL | toJS }}", "_tab{{ .ID }}");
+              {{ end }}
+          }
+          </script>
+
+    </div>
+  </div>
+</nav>
+{{ end }}
+
+{{define "content"}}
+  {{ $coll := .Collection }}
+
+  {{ if .CollectionResult.RuleResults }}
+    {{ if ne .Description "" }}
+      <div class="box description">
+      <pre>{{ .Description }}</pre>
+      </div>
+    {{ end }}
+
+    {{ range .CollectionResult.RuleResults }}
+      {{ if eq (len .Items) 0 }}
+        <div class="no-matches" title="{{ .Rule | toYAML }}"><strong>{{ .Rule.Name }}</strong>: No matching items</div>
+      {{ else }}
+        <script>
+        function {{ .Rule.ID | toJSfunc }}tabs() {
+            {{ range .Items}}window.open("{{ .URL | toJS }}", "_tab{{ .ID }}");
+            {{ end }}
+        }
+        </script>
+        <div class="box outcome">
+        <div class="box-header collapsible">
+          <div class="box-head-left">
+            <h3 title="{{ .Rule | toYAML }}">{{ .Rule.Name }} ({{ len .Items }})<div class="tab-link"><a href="#" title="open in new tabs" onclick="{{ .Rule.ID | toJSfunc }}tabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div></h3>
+          </div>
+          <div class="box-head-right">
+          <!--  just save the space -->
+          </div>
+        </div>
+        <table id="{{ .Rule.ID | toJSfunc  }}" class="compact is-size-6">
+        <thead>
+          <tr>
+            <td class="hd col-id">ID</td>
+            <td class="hd col-desc" title="Description">Desc</td>
+            <td class="hd col-assignee" title="Assignee">As</td>
+            <td class="hd col-priority">Priority</td>
+            <td class="hd col-reactions" title="Reactions">Rea</td>
+            <td class="hd col-create" title="When issue was created">Cr</td>
+            <td class="hd col-update" title="When issue was last updated">Up</td>
+            <td class="hd col-response" title="When issue was last responded to">Re</td>
+            <td class="hd col-labels">Labels</td>
+          </tr>
+        </thead>
+        <tbody>
+          {{ $dupes := .Duplicates }}
+          {{ $dupeCount := len .Duplicates }}
+          {{ range .Items }}
+          {{ $previouslySeen := index $dupes .URL }}
+          {{ if or (not $coll.Dedup) (lt $dupeCount 3) (not $previouslySeen) }}
+            <tr>
+              <td class="cell-id"><a href="{{ .URL }}">{{ .ID }}</a></td>
+              <td class="cell-desc">
+                <a href="{{ .URL }}" title="@{{ .LastCommentAuthor.GetLogin}}: {{ .LastCommentBody }}"><strong>{{ .Title }}</strong></a>
+              </td>
+              <td class="cell-assignee" data-order="{{ range .Assignees }}{{ .GetLogin }}{{ end }}">{{ range .Assignees }}{{ . |  Avatar}}{{ end }}
+              <td class="cell-priority">
+                {{ range .Labels }}
+                  {{if .Name | isPriorityLabel }}
+                    <div class="gh-label" style="background-color: #{{ .Color }}; color: #{{ .Color | TextColor }};">{{ .Name  | getPriority }}</div>
+                  {{ end }}
+                {{end}}
+              </td>
+              <td class="cell-reactions" data-order="{{ .ReactionsTotal }}">
+              {{- range $value, $count := .Reactions }}
+                {{- if gt $count 0 }}<div class="reaction reaction-{{ $value }} reaction-total-{{ $count }}">{{ if gt $count 1 }}<span class="reaction-count">{{ $count }}</span></div>{{ end }}{{ end }}
+              {{ end }}
+              </td>
+              <td class="cell-create" data-order="{{ .Created | UnixNano }}">{{ .Created | RoughTime }}</td>
+              <td class="cell-update" data-order="{{ .Updated | UnixNano }}">{{ .Updated | RoughTime }}</td>
+              <td class="cell-response" data-order="{{ .LatestMemberResponse | UnixNano }}">{{ .LatestMemberResponse | RoughTime }}</td>
+              <td class="cell-labels">
+                {{ range .Labels }}
+                  {{if .Rule | shdDisplayLabel .Name }}
+                     <div class="gh-label" style="background-color: #{{ .Color }}; color: #{{ .Color | TextColor }};">{{ .Name }}</div>
+                  {{ end }}
+                {{ end }}
+              </td>
+            </tr>
+            {{ end }}
+          {{ end }}
+        </tbody>
+        </table>
+        </div>
+      {{ end }}
+    {{ end }}
+
+  {{ end }}
+
+{{ end }}
+
+{{ define "js" }}
+<script src="/third_party/jquery/jquery-3.3.1.min.js"></script>
+<script src="/third_party/datatables/jquery.dataTables.min.js"></script>
+<script src="/third_party/datatables-bulma/dataTables.bulma.js"></script>
+
+{{ if .CollectionResult.RuleResults }}
+  <script>
+    {{ range .CollectionResult.RuleResults }}
+      {{ if .Items }}
+    $('#{{ .Rule.ID | toJSfunc }}').DataTable( {
+          "order": [[ 3, "desc" ]],
+          "paging": false,
+          "info": false,
+      });
+      {{ end }}
+    {{ end }}
+  </script>
+
+  <script>
+    var cols = document.getElementsByClassName("collapsible");
+    var i;
+    for (i = 0; i < cols.length; i++) {
+        cols[i].addEventListener("click", function () {
+            this.classList.toggle("active");
+            var content = this.nextElementSibling;
+            if (content.style.display === "block") {
+                content.style.display = "none";
+            } else {
+                content.style.display = "block";
+            }
+        });
+    }
+  </script>
+{{ else }}
+  <script>setTimeout(location.reload.bind(location), 5000);</script>
+{{ end }}
+
+{{ end }}
