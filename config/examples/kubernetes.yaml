@@ -335,7 +335,7 @@ rules:
 
   issue-stale-support:
     name: "Support request over 30 days old"
-    resolution: "Close, or add to triage/long-term-support"
+    resolution: "Close, or add to long-term-support"
     type: issue
     filters:
       - label: kind/support
@@ -347,6 +347,7 @@ rules:
     resolution: "Close or label as frozen"
     filters:
       - label: lifecycle/rotten
+      - label: "!lifecycle/frozen"
 
   # PR's needing closure
   pr-approved-stale:
@@ -506,6 +507,7 @@ rules:
     resolution: "Close or label as frozen"
     filters:
       - label: lifecycle/stale
+      - label: "!lifecycle/frozen"
 
   # Receive queue
   question-recv:
