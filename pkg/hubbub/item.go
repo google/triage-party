@@ -116,6 +116,11 @@ func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, ag
 		co.LastCommentBody = c.Body
 		co.LastCommentAuthor = c.User
 
+		authorIsMember = false
+		if h.isMember(c.User.GetLogin(), c.GetAuthorAssociation()) {
+			authorIsMember = true
+		}
+
 		r := c.Reactions
 		if r.GetTotalCount() > 0 {
 			co.ReactionsTotal += r.GetTotalCount()
@@ -189,6 +194,10 @@ func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, ag
 		if lastQuestion.After(co.LatestMemberResponse) {
 			co.Tags[tag.RecvQ] = true
 		}
+	}
+
+	if (!authorIsMember) {
+		co.Tags[tag.Inbox] = true
 	}
 
 	if len(cs) > 0 {
