@@ -38,7 +38,7 @@ var (
 	// Comment-based tags
 	Commented       = Tag{ID: "commented", Desc: "A project member has commented on this", NeedsComments: true}
 	Send            = Tag{ID: "send", Desc: "A project member commented more recently than the author", NeedsComments: true}
-	Inbox			= Tag{ID: "inbox", Desc: "The last comment is not by project member", NeedsComments: true}
+	Inbox           = Tag{ID: "inbox", Desc: "The last comment is not by project member", NeedsComments: true}
 	Recv            = Tag{ID: "recv", Desc: "The author commented more recently than a project member", NeedsComments: true}
 	RecvQ           = Tag{ID: "recv-q", Desc: "The author has asked a question since the last project member commented", NeedsComments: true}
 	AuthorLast      = Tag{ID: "author-last", Desc: "The last commenter was the original author", NeedsComments: true}
