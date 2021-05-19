@@ -76,7 +76,7 @@
 
       {{ range .Swimlanes }}
       <tr class="swimlane">
-        <td class="kanban-assignee"><a href={{.Url}}>{{ .Status }}</td>
+        <td class="kanban-assignee"><a href={{.Url}}>{{ .Name }}</a>{{ .Description }}</td>
         {{ range .Columns }}
         <td class="kanban-column">
           {{ if . }}

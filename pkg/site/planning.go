@@ -103,11 +103,11 @@ func getAssignees(co *hubbub.Conversation) []*provider.User {
 func groupByState(results []*triage.RuleResult) []*Swimlane {
 	lanes := map[string]*Swimlane{
 		unplanned: {
-			Status:  unplanned,
+			Name:    unplanned,
 			Columns: make([]*triage.RuleResult, len(results)),
 		},
 		inProgress: {
-			Status:  inProgress,
+			Name:    inProgress,
 			Columns: make([]*triage.RuleResult, len(results)),
 		},
 	}
@@ -130,7 +130,10 @@ func groupByState(results []*triage.RuleResult) []*Swimlane {
 			}
 			if lanes[state] == nil {
 				lanes[state] = &Swimlane{
-					Status:  state,
+					Name:    state,
+					Description: fmt.Sprintf("<br>Due on %s <br>(%d/%d) open",
+						co.Milestone.GetDueOn(), co.Milestone.GetOpenIssues(),
+						co.Milestone.GetOpenIssues() + co.Milestone.GetClosedIssues()),
 					Url:     *co.Milestone.HTMLURL,
 					Columns: make([]*triage.RuleResult, len(results)),
 				}
