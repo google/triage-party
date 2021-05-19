@@ -16,15 +16,15 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: triage-party-config
-#  namespace: triage-party
+  namespace: triage-party
 data:
   # The contents of config/config.yaml
   config.yaml: |
     settings:
-      name: skaffold
+      name: generic-project
       min_similarity: 0.75
       repos:
-        -  https://github.com/GoogleContainerTools/skaffold
+        -  https://github.com/photoprism/photoprism
     collections:
       - id: daily
         name: Daily Triage
@@ -70,6 +70,18 @@ data:
           - enhancement-old
           - other-old
 
+      - id: recv
+        name: "Receive queue"
+        description: >
+          Issues that may be waiting for our response
+
+          NOTE: for this to work properly, GitHub token must have read access to read organization members
+        rules:
+          - question-recv
+          - bugs-recv
+          - enhancement-recv
+          - other-recv
+
       - id: p0
         name: P0
         description: All hands on deck!
@@ -87,38 +99,6 @@ data:
           - p1-features
           - p1-bugs
           - p1-other
-
-      - id: milestone
-        name: In Milestone
-        description: >
-          A Kanban visualization of milestones, showing the flow of issues through each stage.
-
-          * Unassigned issues represent available work
-          * >3 issues assigned to the same person within a stage signifies a bottleneck 🌊
-        display: kanban
-        overflow: 3
-        dedup: true
-        rules:
-          - milestone-not-started
-          - milestone-assignee-updated
-          - milestone-pr-needs-review
-          - milestone-pr-needs-work
-          - milestone-pr-needs-merge
-          - milestone-recently-closed
-
-      - id: planning
-        name: Planning
-        description: >
-           Skafold Team Planning Board.
-
-           This board is used by Skaffold team to plan upcoming releases.
-           The timeline and priority of issues listed here are subject to change.
-
-        display: planning
-        overflow: 3
-        rules:
-          - Q2-21
-          - H2-21
 
       - id: similar
         name: Similar
@@ -443,68 +423,6 @@ data:
         resolution: Merge em
         filters:
           - label: "priority/p1"
-
-    ### Milestone Kanban ###
-      milestone-not-started:
-        name: "Not started"
-        type: issue
-        filters:
-          - tag: open-milestone
-          - tag: "!assignee-updated"
-          - tag: "!(assignee-open-pr|assignee-closed-pr)"
-      milestone-assignee-updated:
-        name: "In Progress"
-        type: issue
-        filters:
-          - tag: open-milestone
-          - tag: "assignee-updated"
-          - tag: "!(pr-changes-requested|pr-reviewer-comment|pr-unreviewed|pr-new-commits|pr-approved|pr-changes-requested)"
-      milestone-pr-needs-work:
-        name: "PR needs work"
-        type: issue
-        filters:
-          - tag: open-milestone
-          - tag: "(pr-changes-requested|pr-reviewer-comment)"
-      milestone-pr-needs-review:
-        name: "PR needs Review"
-        type: issue
-        filters:
-          - tag: open-milestone
-          - tag: "(pr-unreviewed|pr-new-commits)"
-      milestone-pr-needs-merge:
-        name: "PR needs Merge"
-        type: issue
-        filters:
-          - tag: open-milestone
-          - tag: "(pr-approved|pr-approved-but-pushed)"
-      milestone-recently-closed:
-        name: "Finish Line"
-        type: issue
-        filters:
-          - tag: open-milestone
-          - state: closed
-          - updated: -21d
-      ## Planing
-      Performance:
-        name: "Perfomance issues"
-        type: issue
-        filters:
-          - label: "planning/Q2-21"
-          - label: "area/performance"
-
-      Event API V2:
-        name: "Output/ Event API v2"
-        type: issue
-        filters:
-          - label: "planning/Q2-21"
-          - label: "area/api_v2"
-
-      Partner Requests:
-        name: "Ohter partner requests"
-        type: issue
-        filters:
-          - label: "planning/Q2-21"
-          - label: "source/partnerships"
 
       ## Similar
       similar-prs:

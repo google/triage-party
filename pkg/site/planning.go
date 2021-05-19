@@ -21,16 +21,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/google/triage-party/pkg/constants"
 	"github.com/google/triage-party/pkg/hubbub"
+	"github.com/google/triage-party/pkg/provider"
 	"github.com/google/triage-party/pkg/triage"
 	"k8s.io/klog/v2"
 )
 
-
-
-const(
-	priority = "priority/"
+const (
+	unplanned  = "Not Planned"
+	inProgress = "In Progress"
 )
 
 // Planning shows a view of a collection.
@@ -41,16 +40,11 @@ func (h *Handlers) Planning() http.HandlerFunc {
 		"toJSfunc":      toJSfunc,
 		"toDays":        toDays,
 		"HumanDuration": humanDuration,
-		"RoughTime":     roughTime,
-		"LateTime":      lateTime,
 		"UnixNano":      unixNano,
-		"Avatar":        avatarWide,
+		"getAssignees":  getAssignees,
+		"getMilestone":  getMilestone,
+		"Avatar":        avatarSticky,
 		"Class":         className,
-		"getPriority":   getPriority,
-		"isPriorityLabel": isPriorityLabel,
-		"TextColor":     textColor,
-		"shdDisplayLabel": shdDisplayLabel,
-		"labelMatchesRule" : labelMatchesRule,
 	}
 
 	t := template.Must(template.New("planning").Funcs(fmap).ParseFiles(
@@ -73,7 +67,7 @@ func (h *Handlers) Planning() http.HandlerFunc {
 
 		if p.CollectionResult.RuleResults != nil {
 			p.Description = p.Collection.Description
-			p.Swimlanes = groupByStatus(p.CollectionResult.RuleResults)
+			p.Swimlanes = groupByState(p.CollectionResult.RuleResults)
 		}
 
 		err = t.ExecuteTemplate(w, "base", p)
@@ -85,56 +79,61 @@ func (h *Handlers) Planning() http.HandlerFunc {
 	}
 }
 
-func getPriority(l string) string {
-	return strings.TrimPrefix(l, priority)
-}
-
-
-func isPriorityLabel(l string) bool {
-	return strings.HasPrefix(l, priority)
-}
-
-func shdDisplayLabel(l string, rule triage.Rule) bool {
-	if isPriorityLabel(l) {
-		return false
+func getMilestone(c *hubbub.Conversation) string {
+	if c.Milestone == nil || len(c.PullRequestRefs) == 0 {
+		return ""
 	}
-	return !labelMatchesRule(l, rule)
+	return fmt.Sprintf("Milestone: %s", *c.Milestone.Title)
 }
 
-func labelMatchesRule(l string, rule triage.Rule) bool {
-	for _, r := range rule.Filters {
-		if r.RawLabel == l {
-			return true
-		}
+func avatarSticky(u *provider.User) template.HTML {
+	if u.GetLogin() == unassigned {
+		return `<div class="sticky-reaction">🤷</div>`
 	}
-	return false
+	return avatar(u)
 }
 
-func groupByStatus(results []*triage.RuleResult) []*Swimlane {
+func getAssignees(co *hubbub.Conversation) []*provider.User {
+	if co.Assignees == nil || len(co.Assignees) == 0 {
+		return []*provider.User{{Login: &unassigned}}
+	}
+	return co.Assignees
+}
+
+func groupByState(results []*triage.RuleResult) []*Swimlane {
 	lanes := map[string]*Swimlane{
-		constants.OpenState: {
-			Status:    constants.OpenState,
+		unplanned: {
+			Status:  unplanned,
 			Columns: make([]*triage.RuleResult, len(results)),
 		},
-		constants.ClosedState: {
-			Status:    constants.ClosedState,
-			Columns: make([]*triage.RuleResult, len(results)),
-		},
-		"In Progress": {
-			Status:    "In Progress",
+		inProgress: {
+			Status:  inProgress,
 			Columns: make([]*triage.RuleResult, len(results)),
 		},
 	}
-
+	seen := map[int]struct{}{}
 	for i, r := range results {
 		for _, co := range r.Items {
+			if _, ok := seen[co.ID]; ok {
+				continue
+			}
+			seen[co.ID] = struct{}{}
 			var state string
-			if len(co.PullRequestRefs) > 0  {
-				state = "In Progress"
-			} else if co.State == constants.ClosedState {
-				state = constants.ClosedState
+			if co.Milestone == nil {
+				state = unplanned
 			} else {
-				state = constants.OpenState
+				if len(co.PullRequestRefs) > 0 {
+					state = inProgress
+				} else {
+					state = *co.Milestone.Title
+				}
+			}
+			if lanes[state] == nil {
+				lanes[state] = &Swimlane{
+					Status:  state,
+					Url:     *co.Milestone.HTMLURL,
+					Columns: make([]*triage.RuleResult, len(results)),
+				}
 			}
 			if lanes[state].Columns[i] == nil {
 				lanes[state].Columns[i] = &triage.RuleResult{
@@ -147,7 +146,13 @@ func groupByStatus(results []*triage.RuleResult) []*Swimlane {
 		}
 	}
 
-	return []*Swimlane{lanes[constants.OpenState],
-		lanes["In Progress"],
-		lanes[constants.ClosedState]}
+	sl := []*Swimlane{lanes[unplanned]}
+
+	for k, v := range lanes {
+		if k == unplanned || k == inProgress {
+			continue
+		}
+		sl = append(sl, v)
+	}
+	return append(sl, lanes[inProgress])
 }

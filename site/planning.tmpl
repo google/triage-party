@@ -76,7 +76,7 @@
 
       {{ range .Swimlanes }}
       <tr class="swimlane">
-        <td class="kanban-column">{{ .Status }}</td>
+        <td class="kanban-assignee"><a href={{.Url}}>{{ .Status }}</td>
         {{ range .Columns }}
         <td class="kanban-column">
           {{ if . }}
@@ -87,16 +87,9 @@
                 <a href="{{ $i.URL }}" title="@{{ $i.LastCommentAuthor.GetLogin }}: {{ $i.LastCommentBody }}">
                   <span class="sticky-id">{{ if gt $repoCount 1 }}{{ $i.Project }}{{ end }}#{{ $i.ID }}</span>
                   <span class="sticky-title">{{ $i.Title }}</span>
+                  <span class="sticky-text"><br/>{{ range $i | getAssignees }}{{ . |  Avatar}}{{ end }}</span>
+                  <span class="sticky-text"><br/>{{ $i | getMilestone }} </span>
                 </a>
-
-                <div class="reactions">
-                  {{ range $value, $count := $i.Reactions }}
-                    {{ if gt $count 1 }}
-                      <div class="reaction-{{ $value }} sticky-reaction"></div>
-                    {{ end }}
-                  {{ end }}
-                </div>
-
 
                 <ul class="refs">
                     {{ range .PullRequestRefs }}

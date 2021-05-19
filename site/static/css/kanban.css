@@ -39,6 +39,11 @@
   padding-right: 0.25em;
 }
 
+.sticky-text {
+  font-family: "Comic Sans MS", cursive, sans-serif;
+  font-weight: bold;
+}
+
 .sticky-id {
   color: #866;
 }

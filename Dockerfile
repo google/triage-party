@@ -54,4 +54,4 @@ COPY $CFG /app/config/config.yaml
 #
 # For other environment variables, see:
 # https://github.com/google/triage-party/blob/master/docs/deploy.md
-CMD ["/app/main", "--min-refresh=30s", "--max-refresh=8m", "--site=/app/site", "--3p=/app/third_party", "--persist-backend=cloudsql", "--persist-path=tejaldesai:qwerty@tcp(tejal-gke1/us-central1/triage-party)/tp"]
+CMD ["/app/main", "--min-refresh=30s", "--max-refresh=8m", "--site=/app/site", "--3p=/app/third_party"]

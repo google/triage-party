@@ -39,6 +39,7 @@ var unassigned = "zz_unassigned"
 type Swimlane struct {
 	User    *provider.User
 	Status  string
+	Url     string
 	Columns []*triage.RuleResult
 	Issues  int
 }

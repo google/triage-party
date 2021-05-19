@@ -150,8 +150,10 @@ collections:
     display: planning
     overflow: 3
     rules:
-      - Q2-21
-      - H2-21
+      - performance
+      - event-api-v2
+      - partner-requests
+      - all-other-requests
 
   - id: similar
     name: Similar
@@ -197,6 +199,7 @@ rules:
     filters:
       - tag: "!commented"
       - tag: "recv"
+      - label: "!source/partnerships"
       - created: +7d
 
   issue-p0-followup-slo:
@@ -694,6 +697,33 @@ rules:
       - tag: open-milestone
       - state: closed
       - updated: -21d
+  ## Planing
+  performance:
+    name: "Perfomance issues"
+    type: issue
+    filters:
+      - label: "planning/Q2-21"
+      - label: "area/performance"
+
+  event-api-v2:
+    name: "Output/ Event API v2"
+    type: issue
+    filters:
+      - label: "planning/Q2-21"
+      - label: "area/api_v2"
+
+  partner-requests:
+    name: "Other partner requests"
+    type: issue
+    filters:
+      - label: "planning/Q2-21"
+      - label: "source/partnerships"
+
+  all-other-requests:
+    name: "Others"
+    type: issue
+    filters:
+      - label: "planning/Q2-21"
 
   # Fix-It
   fixit-prs:
@@ -742,18 +772,6 @@ rules:
     resolution: Close as duplicate or give a better title
     filters:
       - tag: similar
-
-  ## Planing
-  Q2-21:
-    name: "Issues planned for Q2-2021"
-    type: issue
-    filters:
-      - label: "planning/Q2-21"
-  H2-21:
-    name: "Issues planned for H2-2021"
-    type: issue
-    filters:
-      - label: "planning/H2-21"
 
   # for statistics generation
   open-issues:
