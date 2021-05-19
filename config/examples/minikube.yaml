@@ -526,6 +526,7 @@ rules:
       - tag: "!member-last"
       - tag: "!contributor-last"
       - responded: +6d
+      - label: kind/support
 
   ## Bug Scrub ##
   bugs-recv:

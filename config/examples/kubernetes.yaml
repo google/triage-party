@@ -389,6 +389,7 @@ rules:
       - tag: "!member-last"
       - tag: "!contributor-last"
       - responded: +6d
+      - label: kind/support
 
   ### Milestone Kanban ###
   milestone-not-started:
