@@ -1,5 +1,23 @@
 # Release Notes
 
+## Version 1.4.0 - 2021-05-25
+
+* Parallelize Pull Request & Issue ingestion (2X faster load time) [#260](https://github.com/google/triage-party/pull/260)
+* Minor stylesheet improvements [#261](https://github.com/google/triage-party/pull/261)
+* Fix a bug listing pull requests [#259](https://github.com/google/triage-party/pull/259)
+* Fix "fonud" typo in readme [#254](https://github.com/google/triage-party/pull/254)
+* GH vars: Store pointers [#258](https://github.com/google/triage-party/pull/258)
+* Make persist easier to use by other programs [#257](https://github.com/google/triage-party/pull/257)
+* Rip out vestigial remains of old persistence layer [#256](https://github.com/google/triage-party/pull/256)
+* Refactor persist for a bi-level readthrough cache: memory & persistent [#255](https://github.com/google/triage-party/pull/255)
+
+Thank you to our contributors!
+
+- Josh Hunt
+- Stephen Wayne
+- Steven Powell
+- Thomas Strömberg
+
 ## Version 1.4.0-beta.2 - 2021-03-02
 
 * Bump github library from v31 to v33 [#250](https://github.com/google/triage-party/pull/250)
