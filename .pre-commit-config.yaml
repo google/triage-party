@@ -28,7 +28,6 @@ repos:
           - --license-filepath
           - license-templates/LICENSE.txt
           - --fuzzy-match-generates-todo
-          - --fuzzy-match-generates-extra-lines-to-check=0
       - id: insert-license
         name: Add license for all yaml files
         exclude: ^third_party
