@@ -130,10 +130,10 @@ func groupByState(results []*triage.RuleResult) []*Swimlane {
 			}
 			if lanes[state] == nil {
 				lanes[state] = &Swimlane{
-					Name:    state,
+					Name: state,
 					Description: fmt.Sprintf("Due on %s (%d/%d) open",
 						co.Milestone.GetDueOn().Format("2020-01-02"), co.Milestone.GetOpenIssues(),
-						co.Milestone.GetOpenIssues() + co.Milestone.GetClosedIssues()),
+						co.Milestone.GetOpenIssues()+co.Milestone.GetClosedIssues()),
 					Url:     *co.Milestone.HTMLURL,
 					Columns: make([]*triage.RuleResult, len(results)),
 				}
