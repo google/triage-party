@@ -1,4 +1,4 @@
-// Copyright 2020 Google Inc.
+// Copyright 2021 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -131,8 +131,8 @@ func groupByState(results []*triage.RuleResult) []*Swimlane {
 			if lanes[state] == nil {
 				lanes[state] = &Swimlane{
 					Name:    state,
-					Description: fmt.Sprintf("<br>Due on %s <br>(%d/%d) open",
-						co.Milestone.GetDueOn(), co.Milestone.GetOpenIssues(),
+					Description: fmt.Sprintf("Due on %s (%d/%d) open",
+						co.Milestone.GetDueOn().Format("2020-01-02"), co.Milestone.GetOpenIssues(),
 						co.Milestone.GetOpenIssues() + co.Milestone.GetClosedIssues()),
 					Url:     *co.Milestone.HTMLURL,
 					Columns: make([]*triage.RuleResult, len(results)),

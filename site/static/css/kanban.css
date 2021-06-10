@@ -153,3 +153,7 @@
   font-size: smaller;
   background-color: #FFF;
 }
+
+.row {
+  border:1px solid black;
+}

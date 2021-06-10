@@ -293,6 +293,7 @@ rules:
     filters:
       - tag: "!commented"
       - tag: "recv"
+      - label: "!source/partnerships"
       - created: -5d
 
   # Issues that may need reprioritized
