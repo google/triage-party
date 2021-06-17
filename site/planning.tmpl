@@ -75,7 +75,7 @@
       {{ $col := .Collection }}
 
       {{ range .Swimlanes }}
-      <tr class="swimlane {{ if eq .Name "Not Planned" }}unassigned-lane{{ end }}">
+      <tr class="swimlane {{ if .Name | isUnplanned }}unassigned-lane{{ end }}">
         <td class="kanban-assignee"><a href={{.Url}}>{{ .Name }}</a><div>{{ .Description }}</div></td>
         {{ range .Columns }}
         <td class="kanban-column row">
@@ -87,7 +87,7 @@
                 <a href="{{ $i.URL }}" title="@{{ $i.LastCommentAuthor.GetLogin }}: {{ $i.LastCommentBody }}">
                   <span class="sticky-id">{{ if gt $repoCount 1 }}{{ $i.Project }}{{ end }}#{{ $i.ID }}</span>
                   <span class="sticky-title">{{ $i.Title }}</span>
-                  <span class="sticky-text"><br/>{{ range $i | getAssignees }}{{ . |  Avatar}}{{ end }}</span>
+                  <span class="sticky-text"><br/>{{ range $i | getAssignees }}{{ . | unAssignedOrAvatar }}{{ end }}</span>
                   <span class="sticky-text"><br/>{{ $i | getMilestone }} </span>
                 </a>
 

@@ -147,12 +147,15 @@ collections:
       This board is used by Skaffold team to plan upcoming releases.
       The timeline and priority of issues listed here are subject to change.
 
+      Please add label planning/Q3-21 for an issue to appear on this board.
+
     display: planning
-    overflow: 3
     rules:
-      - performance
-      - event-api-v2
+      - onboarding
+      - extensibility
       - partner-requests
+      - skaffold-v2
+      - docs
       - all-other-requests
 
   - id: similar
@@ -699,32 +702,56 @@ rules:
       - state: closed
       - updated: -21d
   ## Planing
-  performance:
-    name: "Perfomance issues"
+  onboarding:
+    name: >
+      Simple Onboarding, Faster dev.
+      Use Label - area/onboarding
     type: issue
     filters:
-      - label: "planning/Q2-21"
-      - label: "area/performance"
+      - label: "planning/Q3-21"
+      - label: "area/onboarding"
 
-  event-api-v2:
-    name: "Output/ Event API v2"
+  extensibility:
+    name: >
+      Extensibility - Deploy and Lifecyle.
+      Use Label area/extensibility
     type: issue
     filters:
-      - label: "planning/Q2-21"
-      - label: "area/api_v2"
+      - label: "planning/Q3-21"
+      - label: "area/extensibility"
+
+  skaffold-v2:
+    name: >
+      Skaffold V2 pipeline.
+      Use Label area/V2
+    type: issue
+    filters:
+    - label: "planning/Q3-21"
+    - label: "area/extensibility"
 
   partner-requests:
-    name: "Other partner requests"
+    name: >
+      Other partner requests.
+      Use Label source/partnerships
     type: issue
     filters:
-      - label: "planning/Q2-21"
+      - label: "planning/Q3-21"
       - label: "source/partnerships"
+
+  docs:
+    name: >
+      Skaffold Docs.
+      Use label area/docs
+    type: issue
+    filters:
+    - label: "planning/Q3-21"
+    - label: "area/docs"
 
   all-other-requests:
     name: "Others"
     type: issue
     filters:
-      - label: "planning/Q2-21"
+      - label: "planning/Q3-21"
 
   # Fix-It
   fixit-prs:

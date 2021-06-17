@@ -40,7 +40,7 @@ type Swimlane struct {
 	User        *provider.User
 	Name        string
 	Description string
-	Url         string
+	URL         string
 	Columns     []*triage.RuleResult
 	Issues      int
 }

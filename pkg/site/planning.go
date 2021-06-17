@@ -28,23 +28,30 @@ import (
 )
 
 const (
-	unplanned  = "Not Planned"
+	unplanned  = "Unplanned"
 	inProgress = "In Progress"
 )
 
 // Planning shows a view of a collection.
+// Planning board can be used planning Sprints and futures releases
+// categorized in swimlanes defining a feature or Objective.
+// The planning board gives a view of all planned milestones with issues
+// versus the current or selected milestone in the Kanban Board.
+// It also highlights all new incoming issues not assigned to a milestone.
+
 func (h *Handlers) Planning() http.HandlerFunc {
 	fmap := template.FuncMap{
-		"toJS":          toJS,
-		"toYAML":        toYAML,
-		"toJSfunc":      toJSfunc,
-		"toDays":        toDays,
-		"HumanDuration": humanDuration,
-		"UnixNano":      unixNano,
-		"getAssignees":  getAssignees,
-		"getMilestone":  getMilestone,
-		"Avatar":        avatarSticky,
-		"Class":         className,
+		"toJS":               toJS,
+		"toYAML":             toYAML,
+		"toJSfunc":           toJSfunc,
+		"toDays":             toDays,
+		"HumanDuration":      humanDuration,
+		"UnixNano":           unixNano,
+		"getAssignees":       getAssignees,
+		"getMilestone":       getMilestone,
+		"unAssignedOrAvatar": unAssignedOrAvatar,
+		"Class":              className,
+		"isUnplanned":        isUnplanned,
 	}
 
 	t := template.Must(template.New("planning").Funcs(fmap).ParseFiles(
@@ -86,9 +93,9 @@ func getMilestone(c *hubbub.Conversation) string {
 	return fmt.Sprintf("Milestone: %s", *c.Milestone.Title)
 }
 
-func avatarSticky(u *provider.User) template.HTML {
+func unAssignedOrAvatar(u *provider.User) template.HTML {
 	if u.GetLogin() == unassigned {
-		return `<div class="sticky-reaction">🤷</div>`
+		return `🤷`
 	}
 	return avatar(u)
 }
@@ -134,7 +141,7 @@ func groupByState(results []*triage.RuleResult) []*Swimlane {
 					Description: fmt.Sprintf("Due on %s (%d/%d) open",
 						co.Milestone.GetDueOn().Format("2020-01-02"), co.Milestone.GetOpenIssues(),
 						co.Milestone.GetOpenIssues()+co.Milestone.GetClosedIssues()),
-					Url:     *co.Milestone.HTMLURL,
+					URL:     *co.Milestone.HTMLURL,
 					Columns: make([]*triage.RuleResult, len(results)),
 				}
 			}
@@ -158,4 +165,8 @@ func groupByState(results []*triage.RuleResult) []*Swimlane {
 		sl = append(sl, v)
 	}
 	return append(sl, lanes[inProgress])
+}
+
+func isUnplanned(name string) bool {
+	return name == unplanned
 }
