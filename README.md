@@ -125,7 +125,7 @@ Use the drop-down labelled `Solo` on the top-right of any page to enable multi-p
 
 NOTE: Multi-player works best if the "Resolution" field of each rule has a clear action to resolve the item and remove it from the list.
 
-## Kanban mode (NEW)
+## Kanban mode
 
 ![kanban mode](docs/images/kanban.png)
 
@@ -140,6 +140,28 @@ Best practices for designing a useful Kanban dashboard:
 * Rules work best when they are mutually excusive (no issue matches multiple rules)
 * If a collection should be displayed in Kanban form by default, specify `display: kanban` in its configuration.
 * For velocity measurements and time estimate support, create a rule named `__velocity__` containing recently closed issues to include. See the example configuration.
+
+## Planning Board mode (NEW)
+![planning mode](docs/images/planning.png)
+
+In v1.5.0, pages can now be displayed as a SCRUM dashboard. 
+The columns are based on the feature or Objective(O) the issue belongs to. Use rules to define features.
+The rows are swim-lanes based on the target milestones. 
+To see a real-world example:
+
+* [skaffold planning dashboard](http://tinyurl.com/skaffold-planning)
+* [skaffold planning config](https://github.com/google/triage-party/blob/master/config/examples/skaffold.yaml#L142)
+
+In the above example, skaffold has 2 Objectives and 2 features defined
+The two objectives are 
+1) Simply onbaording and make inner devloop faster
+2) Extensibility
+
+Best practices for designing a useful Planning dashboard:
+
+* Rules should be designed and ordered in a way that represents progress: `Not started` -> `Started` -> `Under Review` -> `Completed`
+* Rules work best when they are mutually excusive (no issue matches multiple rules)
+* If a collection should be displayed in Planning form by default, specify `display: planning` in its configuration.
 
 ## Data freshness
 
