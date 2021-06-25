@@ -76,7 +76,7 @@
 
       {{ range .Swimlanes }}
       <tr class="swimlane {{ if .Name | isUnplanned }}unassigned-lane{{ end }}">
-        <td class="kanban-assignee"><a href={{.Url}}>{{ .Name }}</a><div>{{ .Description }}</div></td>
+        <td class="kanban-assignee"><a href={{.URL}}>{{ .Name }}</a><div>{{ .Description }}</div></td>
         {{ range .Columns }}
         <td class="kanban-column row">
           {{ if . }}

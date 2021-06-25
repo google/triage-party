@@ -93,6 +93,8 @@ func getMilestone(c *hubbub.Conversation) string {
 	return fmt.Sprintf("Milestone: %s", *c.Milestone.Title)
 }
 
+// unAssignedOrAvatar is used in a sticky note and hence
+// wrapping "unAssigned
 func unAssignedOrAvatar(u *provider.User) template.HTML {
 	if u.GetLogin() == unassigned {
 		return `🤷`
