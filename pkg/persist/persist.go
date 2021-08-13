@@ -52,6 +52,7 @@ type Blob struct {
 	GHIssueComments       []*github.IssueComment
 	GHIssue               *github.Issue
 	GHTimeline            []*github.Timeline
+	GHReviews             []*github.PullRequestReview
 }
 
 // Cacher is the cache interface we support
