@@ -18,7 +18,7 @@ metadata:
   name: teaparty
 build:
   artifacts:
-    - image: gcr.io/tstromberg-test/tparty
+  - image: tparty
   tagPolicy:
     sha256: {}
   local:
@@ -27,6 +27,9 @@ build:
 deploy:
   kubectl:
     manifests:
-      - kubernetes-manifests/deployment.yaml
-      - kubernetes-manifests/service.yaml
-      - ''
+    - deploy/kubernetes/*.yaml
+portForward:
+- resourceName: triage-party
+  resourceType: Service
+  namespace: triage-party
+  port: 8080
