@@ -29,7 +29,6 @@ import (
 
 const (
 	unplanned  = "Unplanned"
-	inProgress = "In Progress"
 )
 
 // Planning shows a view of a collection.
@@ -48,7 +47,6 @@ func (h *Handlers) Planning() http.HandlerFunc {
 		"HumanDuration":      humanDuration,
 		"UnixNano":           unixNano,
 		"getAssignees":       getAssignees,
-		"getMilestone":       getMilestone,
 		"unAssignedOrAvatar": unAssignedOrAvatar,
 		"Class":              className,
 		"isUnplanned":        isUnplanned,
@@ -86,13 +84,6 @@ func (h *Handlers) Planning() http.HandlerFunc {
 	}
 }
 
-func getMilestone(c *hubbub.Conversation) string {
-	if c.Milestone == nil || len(c.PullRequestRefs) == 0 {
-		return ""
-	}
-	return fmt.Sprintf("Milestone: %s", *c.Milestone.Title)
-}
-
 // unAssignedOrAvatar is used in a sticky note and hence
 // wrapping "unAssigned
 func unAssignedOrAvatar(u *provider.User) template.HTML {
@@ -115,10 +106,6 @@ func groupByState(results []*triage.RuleResult) []*Swimlane {
 			Name:    unplanned,
 			Columns: make([]*triage.RuleResult, len(results)),
 		},
-		inProgress: {
-			Name:    inProgress,
-			Columns: make([]*triage.RuleResult, len(results)),
-		},
 	}
 	seen := map[int]struct{}{}
 	for i, r := range results {
@@ -131,17 +118,14 @@ func groupByState(results []*triage.RuleResult) []*Swimlane {
 			if co.Milestone == nil {
 				state = unplanned
 			} else {
-				if len(co.PullRequestRefs) > 0 {
-					state = inProgress
-				} else {
 					state = *co.Milestone.Title
-				}
 			}
 			if lanes[state] == nil {
+				ts := co.Milestone.GetDueOn()
 				lanes[state] = &Swimlane{
 					Name: state,
-					Description: fmt.Sprintf("Due on %s (%d/%d) open",
-						co.Milestone.GetDueOn().Format("2020-01-02"), co.Milestone.GetOpenIssues(),
+					Description: fmt.Sprintf("Due on %s-%d (%d/%d) open",
+						ts.Month().String(), ts.Day(), co.Milestone.GetOpenIssues(),
 						co.Milestone.GetOpenIssues()+co.Milestone.GetClosedIssues()),
 					URL:     *co.Milestone.HTMLURL,
 					Columns: make([]*triage.RuleResult, len(results)),
@@ -161,12 +145,12 @@ func groupByState(results []*triage.RuleResult) []*Swimlane {
 	sl := []*Swimlane{lanes[unplanned]}
 
 	for k, v := range lanes {
-		if k == unplanned || k == inProgress {
+		if k == unplanned {
 			continue
 		}
 		sl = append(sl, v)
 	}
-	return append(sl, lanes[inProgress])
+	return sl
 }
 
 func isUnplanned(name string) bool {
