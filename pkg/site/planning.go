@@ -19,7 +19,9 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/triage-party/pkg/hubbub"
 	"github.com/google/triage-party/pkg/provider"
@@ -101,6 +103,8 @@ func getAssignees(co *hubbub.Conversation) []*provider.User {
 }
 
 func groupByState(results []*triage.RuleResult) []*Swimlane {
+	milestones := []time.Time{}
+	milestoneDueOnMap := map[time.Time]string{}
 	lanes := map[string]*Swimlane{
 		unplanned: {
 			Name:    unplanned,
@@ -118,10 +122,12 @@ func groupByState(results []*triage.RuleResult) []*Swimlane {
 			if co.Milestone == nil {
 				state = unplanned
 			} else {
-					state = *co.Milestone.Title
+				state = *co.Milestone.Title
 			}
 			if lanes[state] == nil {
 				ts := co.Milestone.GetDueOn()
+				milestones = append(milestones, ts)
+				milestoneDueOnMap[ts] = state
 				lanes[state] = &Swimlane{
 					Name: state,
 					Description: fmt.Sprintf("Due on %s-%d (%d/%d) open",
@@ -144,11 +150,13 @@ func groupByState(results []*triage.RuleResult) []*Swimlane {
 
 	sl := []*Swimlane{lanes[unplanned]}
 
-	for k, v := range lanes {
-		if k == unplanned {
-			continue
-		}
-		sl = append(sl, v)
+	// sort lanes as per due date.
+	sort.Slice(milestones, func(i, j int) bool {
+		return milestones[i].Before(milestones[j])
+	})
+
+	for _, k := range milestones {
+		sl = append(sl, lanes[milestoneDueOnMap[k]])
 	}
 	return sl
 }
