@@ -28,15 +28,14 @@ settings:
     - tstromberg
     - afbjorklund
     - sharifelgamal
-    - RA489
     - medyagh
     - josedonizetti
     - blueelvis
     - priyawadhwa
     - prasadkatti
     - spowelljr
-    - ilya-zuyev
     - prezha
+    - klaases
 
 collections:
   - id: daily-triage
