@@ -127,7 +127,7 @@ func (p *Party) ExecuteRule(ctx context.Context, sp provider.SearchParams, t Rul
 	oldest := time.Now()
 
 	if s != nil {
-		if len(t.Repos) == 0 && len(s.Repos) > 0 {
+		if len(s.Repos) > 0 {
 			t.Repos = s.Repos
 		}
 	}
