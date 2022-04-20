@@ -85,7 +85,7 @@ docker run \
 
 You can also use Personal Access Token from [the GitHub CLI](https://github.com/cli/cli) to run the application:
 ```shell
-export GITHUB_TOKEN=$(grep oauth_token ~/.config/gh/config.yml| cut -d ":" -f 2 | sed "s/ //g")
+export GITHUB_TOKEN=$(grep oauth_token ~/.config/gh/hosts.yml| cut -d ":" -f 2 | sed "s/ //g")
 docker build --tag=tp .
 docker run \
   --rm \
