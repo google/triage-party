@@ -89,6 +89,7 @@ func (h *Handlers) Collection() http.HandlerFunc {
 		p.Description = p.Collection.Description
 		p.Index = index
 		p.GetVars = getVars
+		p.ClosedPerDay = calcClosedPerDay(p.VelocityStats)
 
 		err = t.ExecuteTemplate(w, "base", p)
 

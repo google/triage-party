@@ -213,9 +213,9 @@ func calcClosedPerDay(r *triage.CollectionResult) float64 {
 		}
 	}
 
-	days := time.Since(oldestClosure).Hours() / 24
+	days := math.Ceil(time.Since(oldestClosure).Hours() / 24)
 	closeRate := float64(len(seen)) / days
-	klog.Infof("close rate is %.2f (%.1f days of data, %d issues)", closeRate, days, r.TotalIssues)
+	klog.Infof("close rate is %.2f (%.1f days of data, %d issues)", closeRate, days, len(seen))
 	return closeRate
 }
 
