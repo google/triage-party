@@ -54,6 +54,39 @@ For collections, there are a few useful settings to mention:
 * `dedup` (bool): whether to filter out duplicate issues/PR's that show up among multiple rules
 * `display`: whether to show this page as `kanban` or `default`
 * `overflow`: flag issues if there are issues within a Kanban cell above or equal to this number
+* `repos`: an optional list of repos to pull from for this collection
+
+### Scoped Collections
+
+If you maintain a lot of projects, you may want to have a common set of rules applied to different collections, with each collection scoped to a different set of repos.  For example:
+
+```yaml
+# YAML anchor to define a reusable set of rules
+triage-rules: &triage-rules
+  - issue-needs-type
+  - issue-needs-priority
+  - question-needs-answer
+
+# YAML anchor to define a reusable set of repos
+player-repos: &player-repos
+  - https://github.com/shaka-project/shaka-player
+  - https://github.com/shaka-project/eme-encryption-scheme-polyfill
+
+# YAML anchor to define a reusable set of repos
+packager-repos: &packager-repos
+  - https://github.com/shaka-project/shaka-packager
+
+collections:
+  - id: shaka-player
+    name: Player Triage
+    rules: *triage-rules
+    repos: *player-repos
+
+  - id: shaka-packager
+    name: Packager Triage
+    rules: *triage-rules
+    repos: *packager-repos
+```
 
 ## Rules
 
