@@ -21,10 +21,19 @@
   <div class="navbar-brand">
     <a class="navbar-item" href="/"><strong>{{ .SiteName }}</strong><img src="/static/img/favicon-32x32.png" alt="logo"></a>
   </div>
-  <div id="navbarBasicExample" class="navbar-menu">
+  {{- if ne (len .Categories) 0 }}
+  <div id="categoryNavbar" class="navbar-menu">
+    <div class="navbar-start">
+      {{- range .Categories }}
+        <a class="navbar-item {{ if eq $.Category . }}is-active{{ else }}is-inactive{{ end }}" href="/s/{{ . }}{{ $.GetVars }}">{{ . }}</a>
+      {{ end }}
+    </div>
+  </div>
+  {{ end }}
+  <div id="mainNavbar" class="navbar-menu">
     <div class="navbar-start">
       {{- range .Collections }}
-        {{- if not .Hidden }}
+        {{- if and (not .Hidden) (eq .Category $.Category) }}
           {{ if eq .Display "kanban" }}<a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/k/{{ .ID }}">{{ .Name }}</a>
           {{ else }}<a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/s/{{ .ID }}{{ $.GetVars }}">{{ .Name }}</a>{{ end }}
         {{ end }}

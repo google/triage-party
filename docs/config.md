@@ -55,10 +55,11 @@ For collections, there are a few useful settings to mention:
 * `display`: whether to show this page as `kanban` or `default`
 * `overflow`: flag issues if there are issues within a Kanban cell above or equal to this number
 * `repos`: an optional list of repos to pull from for this collection
+* `category`: an optional category for a hierarchical set of collections
 
 ### Scoped Collections
 
-If you maintain a lot of projects, you may want to have a common set of rules applied to different collections, with each collection scoped to a different set of repos.  For example:
+If you maintain a lot of projects, you may want to have a common set of rules applied to different collections, with each collection scoped to a different set of repos.  You may also want to use the category field to create two-level navigation.  For example:
 
 ```yaml
 # YAML anchor to define a reusable set of rules
@@ -66,6 +67,14 @@ triage-rules: &triage-rules
   - issue-needs-type
   - issue-needs-priority
   - question-needs-answer
+
+fix-rules: &fix-rules
+  - assigned-issues
+  - unassigned-p0-issues
+  - unassigned-p1-issues
+  - unassigned-p2-issues
+  - unassigned-p3-issues
+  - unassigned-p4-issues
 
 # YAML anchor to define a reusable set of repos
 player-repos: &player-repos
@@ -77,14 +86,28 @@ packager-repos: &packager-repos
   - https://github.com/shaka-project/shaka-packager
 
 collections:
-  - id: shaka-player
-    name: Player Triage
+  - id: shaka-player-triage
+    category: Player
+    name: Triage
     rules: *triage-rules
     repos: *player-repos
 
-  - id: shaka-packager
-    name: Packager Triage
+  - id: shaka-player-fix
+    category: Player
+    name: Fix
+    rules: *fix-rules
+    repos: *player-repos
+
+  - id: shaka-packager-triage
+    category: Packager
+    name: Triage
     rules: *triage-rules
+    repos: *packager-repos
+
+  - id: shaka-packager-fix
+    category: Packager
+    name: Fix
+    rules: *fix-rules
     repos: *packager-repos
 ```
 

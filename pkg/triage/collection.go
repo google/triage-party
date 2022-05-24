@@ -28,6 +28,7 @@ import (
 // Collection represents a fully loaded YAML configuration
 type Collection struct {
 	ID           string   `yaml:"id"`
+	Category     string   `yaml:"category,omitempty"`
 	Name         string   `yaml:"name"`
 	Description  string   `yaml:"description,omitempty"`
 	RuleIDs      []string `yaml:"rules"`
@@ -159,10 +160,24 @@ func (p *Party) ListCollections() ([]Collection, error) {
 	return p.collections, nil
 }
 
+// ListCategories returns a list of unique categories
+func (p *Party) ListCategories() ([]string, error) {
+	categories := []string{}
+	categorySeen := map[string]bool{}
+	for _, s := range p.collections {
+		if categorySeen[s.Category] || s.Category == "" {
+			continue
+		}
+		categorySeen[s.Category] = true
+		categories = append(categories, s.Category)
+	}
+	return categories, nil
+}
+
 // Return a fully resolved collection
 func (p *Party) LookupCollection(id string) (Collection, error) {
 	for _, s := range p.collections {
-		if s.ID == id {
+		if s.ID == id || s.Category == id {
 			return s, nil
 		}
 	}

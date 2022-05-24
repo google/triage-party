@@ -116,6 +116,7 @@ type Page struct {
 	Version      string
 	SiteName     string
 	ID           string
+	Category     string
 	Title        string
 	Description  string
 	Warning      template.HTML
@@ -141,6 +142,7 @@ type Page struct {
 
 	Collection  triage.Collection
 	Collections []triage.Collection
+	Categories  []string
 
 	Swimlanes            []*Swimlane
 	CollectionResult     *triage.CollectionResult
