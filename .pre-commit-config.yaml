@@ -48,7 +48,7 @@ repos:
           - --license-filepath
           - license-templates/LICENSE.txt
           - --fuzzy-match-generates-todo
-  - repo: git://github.com/dnephin/pre-commit-golang
+  - repo: https://github.com/dnephin/pre-commit-golang
     rev: master
     hooks:
       - id: go-fmt
