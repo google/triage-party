@@ -44,9 +44,19 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 		return nil, fmt.Errorf("lookup collection: %w", err)
 	}
 
+	// The input ID may have been a collection ID or category.  LookupCollection
+	// will return the first collection for a category ID.  Normalize this now to
+	// the chosen collection ID.
+	id = s.ID
+
 	sts, err := h.party.ListCollections()
 	if err != nil {
 		return nil, fmt.Errorf("list collections: %w", err)
+	}
+
+	categories, err := h.party.ListCategories()
+	if err != nil {
+		return nil, fmt.Errorf("list categories: %w", err)
 	}
 
 	var result *triage.CollectionResult
@@ -72,11 +82,13 @@ func (h *Handlers) collectionPage(ctx context.Context, id string, refresh bool) 
 
 	p := &Page{
 		ID:               s.ID,
+		Category:         s.Category,
 		Version:          VERSION,
 		SiteName:         h.siteName,
 		Title:            s.Name,
 		Collection:       s,
 		Collections:      sts,
+		Categories:       categories,
 		Description:      s.Description,
 		CollectionResult: result,
 		Total:            len(unique),
