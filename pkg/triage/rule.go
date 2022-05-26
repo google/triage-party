@@ -121,10 +121,16 @@ func SummarizeRuleResult(t Rule, cs []*hubbub.Conversation, seen map[string]*Rul
 }
 
 // ExecuteRule executes a rule. seen is optional.
-func (p *Party) ExecuteRule(ctx context.Context, sp provider.SearchParams, t Rule, seen map[string]*Rule) (*RuleResult, error) {
+func (p *Party) ExecuteRule(ctx context.Context, sp provider.SearchParams, t Rule, seen map[string]*Rule, s *Collection) (*RuleResult, error) {
 	klog.V(1).Infof("executing rule %q for results newer than %s", t.ID, logu.STime(sp.NewerThan))
 	rcs := []*hubbub.Conversation{}
 	oldest := time.Now()
+
+	if s != nil {
+		if len(s.Repos) > 0 {
+			t.Repos = s.Repos
+		}
+	}
 
 	for _, repoUrl := range t.Repos {
 		r, err := parseRepo(repoUrl)
