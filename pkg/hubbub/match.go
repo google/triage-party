@@ -95,11 +95,11 @@ func preFetchMatch(i provider.IItem, labels []*provider.Label, fs []provider.Fil
 		// This state can be performed without downloading comments
 		if f.TagRegex() != nil && f.TagRegex().String() == "^assigned$" {
 			// If assigned and no assignee, fail
-			if !f.TagNegate() && i.GetAssignee() == nil {
+			if !f.TagNegate() && len(i.GetAssignees()) == 0 {
 				return false
 			}
 			// if !assigned and has assignee, fail
-			if f.TagNegate() && i.GetAssignee() != nil {
+			if f.TagNegate() && len(i.GetAssignees()) > 0 {
 				return false
 			}
 		}
