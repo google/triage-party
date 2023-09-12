@@ -322,6 +322,13 @@ func processRules(raw map[string]Rule) (map[string]Rule, error) {
 				}
 			}
 
+			if f.RawAuthor != "" {
+				err := f.LoadAuthorRegex()
+				if err != nil {
+					return rules, fmt.Errorf("%q author: %w", id, err)
+				}
+			}
+
 			newfs = append(newfs, f)
 		}
 
