@@ -37,9 +37,12 @@ var unassigned = "zz_unassigned"
 
 // Swimlane is a row in a Kanban display.
 type Swimlane struct {
-	User    *provider.User
-	Columns []*triage.RuleResult
-	Issues  int
+	User        *provider.User
+	Name        string
+	Description string
+	URL         string
+	Columns     []*triage.RuleResult
+	Issues      int
 }
 
 func avatarWide(u *provider.User) template.HTML {

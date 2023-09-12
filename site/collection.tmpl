@@ -20,9 +20,11 @@
           Avg age: {{ .CollectionResult.AvgAge | toDays }},
           Avg wait: {{ .CollectionResult.AvgCurrentHold | toDays }}
           </span>
-
-          <span class="alt-view"><a href="/k/{{ .ID }}{{ $.GetVars }}">Kanban</a></span>
-
+          {{ if eq .ID "planning" }}
+            <span class="alt-view"><a href="/p/{{ .ID }}{{ $.GetVars }}">Planning</a></span>
+          {{ else }}
+            <span class="alt-view"><a href="/k/{{ .ID }}{{ $.GetVars }}">Planning</a></span>
+          {{ end }}
           </div>
           <script>
           function openAllTabs() {
@@ -63,6 +65,8 @@
   {{ if .CollectionResult.RuleResults }}
     {{ if ne .Description "" }}
       <div class="box description">
+      <pre>{{ .Description }}</pre>
+      </div><div class="box description">
       <pre>{{ .Description }}</pre>
       </div>
     {{ end }}
