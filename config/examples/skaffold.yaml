@@ -139,6 +139,25 @@ collections:
       - milestone-pr-needs-merge
       - milestone-recently-closed
 
+  - id: planning
+    name: Planning
+    description: >
+      Skafold Team Planning Board.
+
+      This board is used by Skaffold team to plan upcoming releases.
+      The timeline and priority of issues listed here are subject to change.
+
+      Please add label planning/Q4-21 for an issue to appear on this board.
+
+    display: planning
+    rules:
+      - onboarding
+      - extensibility
+      - partner-requests
+      - skaffold-v2
+      - docs
+      - all-other-requests
+
   - id: similar
     name: Similar
     description: Items which appear similar to one other. Review for duplicates or vague titles.
@@ -183,6 +202,7 @@ rules:
     filters:
       - tag: "!commented"
       - tag: "recv"
+      - label: "!source/partnerships"
       - created: +7d
 
   issue-p0-followup-slo:
@@ -276,6 +296,7 @@ rules:
     filters:
       - tag: "!commented"
       - tag: "recv"
+      - label: "!source/partnerships"
       - created: -5d
 
   # Issues that may need reprioritized
@@ -680,6 +701,57 @@ rules:
       - tag: open-milestone
       - state: closed
       - updated: -21d
+  ## Planing
+  onboarding:
+    name: >
+      Simple Onboarding, Faster dev.
+      Use Label - area/onboarding
+    type: issue
+    filters:
+      - label: "planning/Q4-21"
+      - label: "area/onboarding"
+
+  extensibility:
+    name: >
+      Extensibility - Deploy and Lifecyle.
+      Use Label area/extensibility
+    type: issue
+    filters:
+      - label: "planning/Q4-21"
+      - label: "area/extensibility"
+
+  skaffold-v2:
+    name: >
+      Skaffold V2 pipeline.
+      Use Label area/V2
+    type: issue
+    filters:
+    - label: "planning/Q4-21"
+    - label: "area/extensibility"
+
+  partner-requests:
+    name: >
+      Other partner requests.
+      Use Label source/partnerships
+    type: issue
+    filters:
+      - label: "planning/Q4-21"
+      - label: "source/partnerships"
+
+  docs:
+    name: >
+      Skaffold Docs.
+      Use label area/docs
+    type: issue
+    filters:
+    - label: "planning/Q4-21"
+    - label: "area/docs"
+
+  all-other-requests:
+    name: "Others"
+    type: issue
+    filters:
+      - label: "planning/Q4-21"
 
   # Fix-It
   fixit-prs:
