@@ -49,7 +49,7 @@ See these fine examples in the wild:
 
 * [kubernetes/minikube](http://tinyurl.com/mk-tparty)
 * [GoogleContainerTools/skaffold](http://tinyurl.com/skaffold-tparty)
-* [jetstack/cert-manager](https://triage.build-infra.jetstack.net/)
+* [cert-manager](https://triage.infra.cert-manager.io/)
 * [Thoth Station](https://triage-party.thoth-station.ninja/)
 
 ## Requirements
