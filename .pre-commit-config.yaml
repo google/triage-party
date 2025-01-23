@@ -57,7 +57,6 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
-        args: ['--exclude', 'third_party/jquery/jquery-3.7.1.min.js']
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: check-merge-conflict
