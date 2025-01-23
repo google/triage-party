@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-default_stages: [commit, push]
+default_stages: [pre-commit, pre-push]
 minimum_pre_commit_version: "1.20.0"
 repos:
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.1.9
+    rev: v1.5.5
     hooks:
       - id: insert-license
         name: Add license for all shell files
@@ -49,27 +49,26 @@ repos:
           - license-templates/LICENSE.txt
           - --fuzzy-match-generates-todo
   - repo: https://github.com/dnephin/pre-commit-golang
-    rev: master
+    rev: v0.5.1
     hooks:
       - id: go-fmt
         name: Run go fmt
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
+        args: ['--exclude', 'third_party/jquery/jquery-3.7.1.min.js']
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: check-merge-conflict
       - id: mixed-line-ending
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.23.0
+    rev: v1.35.1
     hooks:
       - id: yamllint
         name: Check yaml files with yamllint
         entry: yamllint -c yamllint-config.yml
         types: [yaml]
-      - id: trailing-whitespace
-        args: ['--exclude', 'third_party/jquery/jquery-3.7.1.min.js']
   - repo: local
     hooks:
       - id: language-matters
