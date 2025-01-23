@@ -68,6 +68,8 @@ repos:
         name: Check yaml files with yamllint
         entry: yamllint -c yamllint-config.yml
         types: [yaml]
+      - id: trailing-whitespace
+        args: ['--exclude', 'third_party/jquery/jquery-3.7.1.min.js']
   - repo: local
     hooks:
       - id: language-matters
