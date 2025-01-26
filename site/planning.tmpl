@@ -1,0 +1,113 @@
+{{ define "title" }}
+  {{ .SiteName }} {{ .Title }}
+{{ end }}
+
+{{ define "style" }}
+  <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
+  <link rel="stylesheet" href="/third_party/datatables-bulma/dataTables.bulma.css" />
+  <link rel="stylesheet" href="/static/css/kanban.css?{{.Version}}">
+{{ end }}
+
+{{define "subnav"}}
+
+<nav class="navbar secondary" role="navigation" aria-label="secondary navigation">
+  <div class="navbar-secondary-brand">
+  </div>
+  <div id="navbarBasicExample" class="navbar-menu">
+    <div class="navbar-center">
+          <div class="right-item">
+          <div class="tab-link"><a href="#" title="open in new tabs" onclick="openAllTabs(); return false;"><i class="fas fa-external-link-alt"></i></a></div>
+          <span title="Data as of {{ .ResultAge | HumanDuration}} ago">{{ if eq .TotalShown .Total }}{{ .Total }} unique items{{ else }}Showing {{ .TotalShown }} of {{ .Total}} unique items{{ end }},
+          Avg age: {{ .CollectionResult.AvgAge | toDays }}
+          {{ if .VelocityStats }}, Historical closure rate: <a href="/s/{{.VelocityStats.Collection.ID }}">{{ printf "%.1f" $.ClosedPerDay }} issue(s) per day</a>{{ end }}
+          </span>
+          <span class="alt-view"><a href="/s/{{ .ID }}{{ $.GetVars }}">Items</a></span>
+          </div>
+          <script>
+          function openAllTabs() {
+              {{ range .UniqueItems}}window.open("{{ .URL | toJS }}", "_tab{{ .ID }}");
+              {{ end }}
+          }
+          </script>
+
+    </div>
+  </div>
+    <div class="navbar-right">
+      <div class="navbar-form">
+          {{ if .SelectorOptions }}
+            <div class="buttons">
+                Milestone:
+                <form style="display: inline-block;" action="/k/{{ .ID }}" method="get">
+                    <select onchange="this.form.submit();" name="{{ .SelectorVar }}">
+                      {{ range .SelectorOptions }}
+                        <option value="{{ .Value }}" {{ if .Selected }}selected{{ end }}>{{ .Text }}</option>
+                      {{ end }}
+                    </select>
+                </form>
+            </div>
+          {{ end }}
+      </div>
+    </div>
+</nav>
+{{ end }}
+
+{{define "content"}}
+  {{ if .CollectionResult.RuleResults }}
+
+    {{ if ne .Description "" }}
+      <div class="box description">
+      <pre>{{ .Description }}</pre>
+      </div>
+    {{ end }}
+
+    <div class="box outcome kanban">
+      <table id="kanban-table" class="compact is-size-6">
+      <thead>
+        <tr>
+          <th class="hd" id="status-col">Status</th>
+          {{- range .CollectionResult.RuleResults }}
+          <th class="hd" id="{{ .Rule.ID | Class  }}" title="{{ .Rule | toYAML }}">{{ .Rule.Name}}</th>
+          {{ end }}
+        </tr>
+      </thead>
+      <tbody>
+
+      {{ $col := .Collection }}
+
+      {{ range .Swimlanes }}
+      <tr class="swimlane {{ if .Name | isUnplanned }}unassigned-lane{{ end }}">
+        <td class="kanban-assignee"><a href={{.URL}}>{{ .Name }}</a><div>{{ .Description }}</div></td>
+        {{ range .Columns }}
+        <td class="kanban-column row">
+          {{ if . }}
+            {{ $repoCount := len .Rule.Repos }}
+            {{ range $x, $i := .Items }}
+
+              <div class="sticky sticky-{{ $x }} {{ range $i.Labels }} {{ .Name | Class }}{{ end }}">
+                <a href="{{ $i.URL }}" title="@{{ $i.LastCommentAuthor.GetLogin }}: {{ $i.LastCommentBody }}">
+                  <span class="sticky-id">{{ if gt $repoCount 1 }}{{ $i.Project }}{{ end }}#{{ $i.ID }}</span>
+                  <span class="sticky-title">{{ $i.Title }}</span>
+                  <span class="sticky-text"><br/>{{ range $i | getAssignees }}{{ . | unAssignedOrAvatar }}{{ end }}</span>
+                </a>
+
+                <ul class="refs">
+                    {{ range .PullRequestRefs }}
+                      <li class="tag-default tag-pr-{{.ReviewState | Class }}"><a href="{{ .URL }}" title='"{{ .Title }}" by @{{.Author.GetLogin}} ({{.ReviewState}})'>{{ .ID }}</li>
+                    {{ end }}
+                </ul>
+              </div>
+            {{ end }}
+          {{ end }}
+        </td>
+        {{ end}}
+      </tr>
+      {{ end }}
+      </table>
+  {{ end }}
+{{ end }}
+
+{{ define "js" }}
+<script src="/third_party/jquery/jquery-3.3.1.min.js"></script>
+<script src="/third_party/datatables/jquery.dataTables.min.js"></script>
+<script src="/third_party/datatables-bulma/dataTables.bulma.js"></script>
+{{ end }}

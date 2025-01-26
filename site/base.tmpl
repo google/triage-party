@@ -35,6 +35,7 @@
       {{- range .Collections }}
         {{- if and (not .Hidden) (eq .Category $.Category) }}
           {{ if eq .Display "kanban" }}<a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/k/{{ .ID }}">{{ .Name }}</a>
+          {{ else if eq .Display "planning" }}<a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/p/{{ .ID }}{{ $.GetVars }}">{{ .Name }}</a>
           {{ else }}<a class="navbar-item {{ if eq $.ID .ID }}is-active{{ else }}is-inactive{{ end }}" href="/s/{{ .ID }}{{ $.GetVars }}">{{ .Name }}</a>{{ end }}
         {{ end }}
       {{ end }}
