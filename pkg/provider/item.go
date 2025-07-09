@@ -19,6 +19,7 @@ import "time"
 // Item is an interface that matches both Issues and PullRequests
 type IItem interface {
 	GetAssignee() *User
+	GetAssignees() []*User
 	GetAuthorAssociation() string
 	GetBody() string
 	GetComments() int

@@ -84,6 +84,14 @@ func (p *PullRequest) GetAssignee() *User {
 	return p.Assignee
 }
 
+// GetAssignee returns the Assignee field.
+func (p *PullRequest) GetAssignees() []*User {
+	if p == nil {
+		return nil
+	}
+	return p.Assignees
+}
+
 // GetAuthorAssociation returns the AuthorAssociation field if it's non-nil, zero value otherwise.
 func (p *PullRequest) GetAuthorAssociation() string {
 	if p == nil || p.AuthorAssociation == nil {
