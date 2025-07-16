@@ -17,7 +17,6 @@
 set -eux
 
 # Export this environment variable before running this script
-echo "token path: ${GITHUB_TOKEN_PATH}"
 
 export PROJECT=k8s-skaffold
 IMAGE="gcr.io/k8s-skaffold/teaparty:$(date +%F-%s)"
@@ -25,15 +24,15 @@ export
 export SERVICE_NAME=skaffold-triage-party
 export CONFIG_FILE=config/examples/skaffold.yaml
 
-docker build -t "${IMAGE}" --build-arg "CFG=${CONFIG_FILE}" .
+docker build -t "${IMAGE}" --build-arg "CFG=${CONFIG_FILE}" --platform="linux/amd64" .
 
 docker push "${IMAGE}" || exit 2
 
-readonly token="$(cat "${GITHUB_TOKEN_PATH}")"
 gcloud beta run deploy "${SERVICE_NAME}" \
     --project "${PROJECT}" \
     --image "${IMAGE}" \
-    --set-env-vars="GITHUB_TOKEN=${token},PERSIST_BACKEND=cloudsql,PERSIST_PATH=host=k8s-skaffold:us-central1:triage-party2 user=postgres password=${DB_PASS}" \
+    --set-env-vars="PERSIST_BACKEND=cloudsql"\
+    --update-secrets=GITHUB_TOKEN=triage-party-github-token:latest,PERSIST_PATH=triage-party-persist-path:latest\
     --allow-unauthenticated \
     --region us-central1 \
     --memory 384Mi \
