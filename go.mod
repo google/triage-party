@@ -1,6 +1,6 @@
 module github.com/google/triage-party
 
-go 1.20
+go 1.23.0
 
 require (
 	github.com/GoogleCloudPlatform/cloudsql-proxy v0.0.0-20200501161113-5e9e23d7cb91
@@ -17,14 +17,13 @@ require (
 	github.com/peterbourgon/diskv v2.0.1+incompatible
 	github.com/stretchr/testify v1.8.1
 	github.com/xanzy/go-gitlab v0.36.0
-	golang.org/x/oauth2 v0.7.0
+	golang.org/x/oauth2 v0.27.0
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/klog/v2 v2.0.0
 )
 
 require (
-	cloud.google.com/go/compute v1.19.1 // indirect
-	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/go-logr/logr v0.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
