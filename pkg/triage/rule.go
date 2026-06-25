@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -220,11 +221,28 @@ func parseRepo(rawURL string) (r provider.Repo, err error) {
 		err = fmt.Errorf("expected 2/3 repository parts, got %d: %v", len(parts), parts)
 		return
 	}
+
+	var labelList []string
+	seen := make(map[string]bool)
+	for _, labels := range u.Query()["labels"] {
+		for _, l := range strings.Split(labels, ",") {
+			l = strings.TrimSpace(l)
+			if l != "" && !seen[l] {
+				seen[l] = true
+				labelList = append(labelList, l)
+			}
+		}
+	}
+	if len(labelList) > 0 {
+		sort.Strings(labelList)
+	}
+
 	if len(parts) == 3 {
 		r = provider.Repo{
 			Host:         u.Host,
 			Organization: parts[1],
 			Project:      parts[2],
+			Labels:       labelList,
 		}
 	} else {
 		r = provider.Repo{
@@ -232,6 +250,7 @@ func parseRepo(rawURL string) (r provider.Repo, err error) {
 			Organization: parts[1],
 			Group:        parts[2],
 			Project:      parts[3],
+			Labels:       labelList,
 		}
 	}
 

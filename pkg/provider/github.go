@@ -80,11 +80,15 @@ func (p *GitHubProvider) getResponse(i *github.Response) *Response {
 }
 
 func (p *GitHubProvider) getIssueListByRepoOptions(sp SearchParams) *github.IssueListByRepoOptions {
-	return &github.IssueListByRepoOptions{
+	opt := &github.IssueListByRepoOptions{
 		ListOptions: p.getListOptions(sp.IssueListByRepoOptions.ListOptions),
 		State:       sp.IssueListByRepoOptions.State,
 		Since:       sp.IssueListByRepoOptions.Since,
 	}
+	if len(sp.Repo.Labels) > 0 {
+		opt.Labels = sp.Repo.Labels
+	}
+	return opt
 }
 
 func (p *GitHubProvider) IssuesListByRepo(ctx context.Context, sp SearchParams) (i []*Issue, r *Response, err error) {
