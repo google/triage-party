@@ -81,11 +81,11 @@ func (h *Engine) analyzeIssue(ctx context.Context, i *provider.Issue, sp provide
 	}
 
 	if !preFetchMatch(i, labels, sp.Filters) {
-		klog.V(1).Infof("#%d - %q did not match item filter: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
+		klog.V(1).Infof("#%d - %q did not match item filter: %v", i.GetNumber(), i.GetTitle(), sp.Filters)
 		return nil
 	}
 
-	klog.V(1).Infof("#%d - %q made it past pre-fetch: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
+	klog.V(1).Infof("#%d - %q made it past pre-fetch: %v", i.GetNumber(), i.GetTitle(), sp.Filters)
 
 	fetchComments := false
 	if needComments(i, sp.Filters) && i.GetComments() > 0 {
@@ -111,10 +111,10 @@ func (h *Engine) analyzeIssue(ctx context.Context, i *provider.Issue, sp provide
 	}
 
 	if !postFetchMatch(co, sp.Filters) {
-		klog.V(1).Infof("#%d - %q did not match post-fetch filter: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
+		klog.V(1).Infof("#%d - %q did not match post-fetch filter: %v", i.GetNumber(), i.GetTitle(), sp.Filters)
 		return nil
 	}
-	klog.V(1).Infof("#%d - %q made it past post-fetch: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
+	klog.V(1).Infof("#%d - %q made it past post-fetch: %v", i.GetNumber(), i.GetTitle(), sp.Filters)
 
 	updatedAt := h.mtime(i)
 	var timeline []*provider.Timeline
@@ -144,11 +144,11 @@ func (h *Engine) analyzeIssue(ctx context.Context, i *provider.Issue, sp provide
 	co.PullRequestRefs = h.updateLinkedPRs(ctx, sp, co)
 
 	if !postEventsMatch(co, sp.Filters) {
-		klog.V(1).Infof("#%d - %q did not match post-events filter: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
+		klog.V(1).Infof("#%d - %q did not match post-events filter: %v", i.GetNumber(), i.GetTitle(), sp.Filters)
 		return nil
 	}
 
-	klog.V(1).Infof("#%d - %q made it past post-events: %s", i.GetNumber(), i.GetTitle(), sp.Filters)
+	klog.V(1).Infof("#%d - %q made it past post-events: %v", i.GetNumber(), i.GetTitle(), sp.Filters)
 	return co
 }
 
@@ -269,7 +269,7 @@ func (h *Engine) analyzePR(ctx context.Context, pr *provider.PullRequest, sp pro
 	}
 
 	if !postEventsMatch(co, sp.Filters) {
-		klog.V(1).Infof("#%d - %q did not match post-events filter: %s", pr.GetNumber(), pr.GetTitle(), sp.Filters)
+		klog.V(1).Infof("#%d - %q did not match post-events filter: %v", pr.GetNumber(), pr.GetTitle(), sp.Filters)
 		return nil
 	}
 

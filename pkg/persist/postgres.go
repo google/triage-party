@@ -116,7 +116,7 @@ func (m *Postgres) Get(key string, t time.Time) *Blob {
 	}
 
 	if err != nil {
-		klog.Errorf("query: %w", err)
+		klog.Errorf("query: %v", err)
 		return nil
 	}
 

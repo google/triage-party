@@ -94,7 +94,7 @@ func (m *MySQL) Set(key string, th *Blob) error {
 		ge := gob.NewEncoder(b)
 
 		if err := ge.Encode(th); err != nil {
-			klog.Errorf("encode: %w", err)
+			klog.Errorf("encode: %v", err)
 		}
 
 		_, err := m.db.Exec(`
@@ -130,7 +130,7 @@ func (m *MySQL) Get(key string, t time.Time) *Blob {
 	}
 
 	if err != nil {
-		klog.Errorf("query: %w", err)
+		klog.Errorf("query: %v", err)
 		return nil
 	}
 

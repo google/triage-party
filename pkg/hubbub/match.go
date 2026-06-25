@@ -106,7 +106,7 @@ func preFetchMatch(i provider.IItem, labels []*provider.Label, fs []provider.Fil
 
 		if f.Reactions != "" || f.ReactionsPerMonth != "" || f.Commenters != "" || f.Comments != "" {
 			if !i.GetUpdatedAt().After(i.GetCreatedAt()) {
-				klog.V(1).Infof("#%d has no updates, but need one for: %s", i.GetNumber(), f)
+				klog.V(1).Infof("#%d has no updates, but need one for: %v", i.GetNumber(), f)
 				return false
 			}
 		}
@@ -182,7 +182,7 @@ func postEventsMatch(co *Conversation, fs []provider.Filter) bool {
 	for _, f := range fs {
 		if f.TagRegex() != nil {
 			if ok, _ := matchTag(co.Tags, f.TagRegex(), f.TagNegate()); !ok {
-				klog.V(4).Infof("#%d did not pass matchTag: %s vs %s %v", co.ID, co.Tags, f.TagRegex(), f.TagNegate())
+				klog.V(4).Infof("#%d did not pass matchTag: %v vs %s %v", co.ID, co.Tags, f.TagRegex(), f.TagNegate())
 				return false
 			}
 		}

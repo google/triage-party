@@ -244,7 +244,7 @@ func (h *Engine) isMember(user string, role string) bool {
 		return true
 	}
 
-	klog.V(1).Infof("%s (%s) is not considered a member: members=%s memberRoles=%s", user, role, h.members, h.memberRoles)
+	klog.V(1).Infof("%s (%s) is not considered a member: members=%v memberRoles=%v", user, role, h.members, h.memberRoles)
 	return false
 }
 
@@ -324,7 +324,7 @@ func (h *Engine) parseRefs(text string, co *Conversation, t time.Time) {
 		project := m[2]
 		i, err := strconv.Atoi(m[3])
 		if err != nil {
-			klog.Errorf("unable to parse int from %s: %v", err)
+			klog.Errorf("unable to parse int from %s: %v", m[3], err)
 			continue
 		}
 
