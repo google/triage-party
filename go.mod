@@ -1,8 +1,6 @@
 module github.com/google/triage-party
 
-go 1.23.0
-
-toolchain go1.24.6
+go 1.25.0
 
 require (
 	github.com/GoogleCloudPlatform/cloudsql-proxy v0.0.0-20200501161113-5e9e23d7cb91

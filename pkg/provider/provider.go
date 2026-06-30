@@ -47,7 +47,7 @@ func ReadToken(path string, envVar string) string {
 			klog.Exitf("unable to read token file: %v", err)
 		}
 		token := strings.TrimSpace(string(t))
-		klog.Infof("loaded %d byte %s token from %s", len(token), path)
+		klog.Infof("loaded %d byte token from %s", len(token), path)
 		return token
 	}
 
@@ -55,7 +55,7 @@ func ReadToken(path string, envVar string) string {
 	if token == "" {
 		klog.Warningf("No token found in environment variable %s (empty)", envVar)
 	} else {
-		klog.Infof("loaded %d byte %s token from %s", len(token), envVar)
+		klog.Infof("loaded %d byte token from %s", len(token), envVar)
 	}
 	return token
 }

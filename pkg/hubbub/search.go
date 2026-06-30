@@ -70,7 +70,7 @@ func (h *Engine) SearchAny(ctx context.Context, sp provider.SearchParams) ([]*Co
 func (h *Engine) SearchIssues(ctx context.Context, sp provider.SearchParams) ([]*Conversation, time.Time, error) {
 	sp.Filters = openByDefault(sp)
 	klog.V(1).Infof(
-		"Gathering raw data for %s/%s issues %s - newer than %s",
+		"Gathering raw data for %s/%s issues %v - newer than %s",
 		sp.Repo.Organization,
 		sp.Repo.Project,
 		sp.Filters,
@@ -143,14 +143,14 @@ func (h *Engine) SearchIssues(ctx context.Context, sp provider.SearchParams) ([]
 		}
 
 		if seen[i.GetURL()] {
-			klog.Errorf("unusual: I already saw #%d", i.GetURL())
+			klog.Errorf("unusual: I already saw #%d", i.GetNumber())
 			continue
 		}
 		seen[i.GetURL()] = true
 		is = append(is, i)
 	}
 
-	klog.V(1).Infof("%s/%s aggregate issue count: %d, filtering for:\n%s", sp.Repo.Organization, sp.Repo.Project, len(is), sp.Filters)
+	klog.V(1).Infof("%s/%s aggregate issue count: %d, filtering for:\n%v", sp.Repo.Organization, sp.Repo.Project, len(is), sp.Filters)
 
 	// Avoids updating PR references on a quiet repository
 	latestIssueUpdate := time.Time{}
@@ -188,7 +188,7 @@ func NeedsClosed(fs []provider.Filter) bool {
 func (h *Engine) SearchPullRequests(ctx context.Context, sp provider.SearchParams) ([]*Conversation, time.Time, error) {
 	sp.Filters = openByDefault(sp)
 
-	klog.V(1).Infof("Gathering raw data for %s/%s PR's matching: %s - newer than %s",
+	klog.V(1).Infof("Gathering raw data for %s/%s PR's matching: %v - newer than %s",
 		sp.Repo.Organization, sp.Repo.Project, sp.Filters, logu.STime(sp.NewerThan))
 
 	var wg sync.WaitGroup
