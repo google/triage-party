@@ -28,7 +28,7 @@ There are only a handful of site-wide settings worth mentioning:
 
 * `name`: Name of the your Triage Party site
 * `min_similarity`: On a scale from 0-1, how similar do two titles need to be before they are labelled as similar. The default is 0 (disabled), but a useful setting is 0.75
-* `repos`: A list of repositories to query by default
+* `repos`: A list of repositories to query by default. You can append query parameters to the repository URL to filter issues at the API level (e.g., `https://github.com/org/repo?labels=foo,bar`). This is useful for large repositories to reduce the number of synced issues and avoid hitting GitHub API limits.
 * `member-roles`: Which GitHub roles to consider as project members
 * `members`: A list of people to hard-code as members of the project
 

@@ -55,6 +55,7 @@ type Repo struct {
 	Project      string
 	Host         string
 	Group        string
+	Labels       []string
 }
 
 type SearchParams struct {

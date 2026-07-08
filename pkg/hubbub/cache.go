@@ -16,22 +16,31 @@ package hubbub
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/google/triage-party/pkg/provider"
 )
 
 // issueSearchKey is the cache key used for issues
 func issueSearchKey(sp provider.SearchParams) string {
-	if sp.UpdateAge > 0 {
-		return fmt.Sprintf("%s-%s-%s-issues-within-%.1fh", sp.Repo.Organization, sp.Repo.Project, sp.State, sp.UpdateAge.Hours())
+	labelSuffix := ""
+	if len(sp.Repo.Labels) > 0 {
+		labelSuffix = "-" + strings.Join(sp.Repo.Labels, "-")
 	}
-	return fmt.Sprintf("%s-%s-%s-issues", sp.Repo.Organization, sp.Repo.Project, sp.State)
+	if sp.UpdateAge > 0 {
+		return fmt.Sprintf("%s-%s%s-%s-issues-within-%.1fh", sp.Repo.Organization, sp.Repo.Project, labelSuffix, sp.State, sp.UpdateAge.Hours())
+	}
+	return fmt.Sprintf("%s-%s%s-%s-issues", sp.Repo.Organization, sp.Repo.Project, labelSuffix, sp.State)
 }
 
 // prSearchKey is the cache key used for prs
 func prSearchKey(sp provider.SearchParams) string {
-	if sp.UpdateAge > 0 {
-		return fmt.Sprintf("%s-%s-%s-prs-within-%.1fh", sp.Repo.Organization, sp.Repo.Project, sp.State, sp.UpdateAge.Hours())
+	labelSuffix := ""
+	if len(sp.Repo.Labels) > 0 {
+		labelSuffix = "-" + strings.Join(sp.Repo.Labels, "-")
 	}
-	return fmt.Sprintf("%s-%s-%s-prs", sp.Repo.Organization, sp.Repo.Project, sp.State)
+	if sp.UpdateAge > 0 {
+		return fmt.Sprintf("%s-%s%s-%s-prs-within-%.1fh", sp.Repo.Organization, sp.Repo.Project, labelSuffix, sp.State, sp.UpdateAge.Hours())
+	}
+	return fmt.Sprintf("%s-%s%s-%s-prs", sp.Repo.Organization, sp.Repo.Project, labelSuffix, sp.State)
 }
