@@ -127,7 +127,7 @@ func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, ag
 		if !i.GetClosedAt().IsZero() && c.Created.After(i.GetClosedAt().Add(30*time.Second)) {
 			klog.V(1).Infof("#%d: comment after closed on %s: %+v", co.ID, i.GetClosedAt(), c)
 			co.ClosedCommentsTotal++
-			seenClosedCommenters[*c.User.Login] = true
+			seenClosedCommenters[c.User.GetLogin()] = true
 		}
 
 		if c.User.GetLogin() == i.GetUser().GetLogin() {
@@ -161,9 +161,9 @@ func (h *Engine) createConversation(i provider.IItem, cs []*provider.Comment, ag
 			}
 		}
 
-		if !seenCommenters[*c.User.Login] {
+		if !seenCommenters[c.User.GetLogin()] {
 			co.Commenters = append(co.Commenters, c.User)
-			seenCommenters[*c.User.Login] = true
+			seenCommenters[c.User.GetLogin()] = true
 		}
 	}
 
