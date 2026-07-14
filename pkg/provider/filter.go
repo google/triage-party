@@ -40,6 +40,10 @@ type Filter struct {
 	milestoneRegex  *regexp.Regexp
 	milestoneNegate bool
 
+	RawAuthor    string `yaml:"author,omitempty"`
+	authorRegex  *regexp.Regexp
+	authorNegate bool
+
 	Created            string `yaml:"created,omitempty"`
 	Updated            string `yaml:"updated,omitempty"`
 	Closed             string `yaml:"closed,omitempty"`
@@ -119,6 +123,28 @@ func (f *Filter) TitleRegex() *regexp.Regexp {
 
 func (f *Filter) TitleNegate() bool {
 	return f.titleNegate
+}
+
+// LoadAuthorRegex loads a new author regex
+func (f *Filter) LoadAuthorRegex() error {
+	r, negateState := negativeMatch(f.RawAuthor)
+
+	re, err := regex(r)
+	if err != nil {
+		return err
+	}
+
+	f.authorRegex = re
+	f.authorNegate = negateState
+	return nil
+}
+
+func (f *Filter) AuthorRegex() *regexp.Regexp {
+	return f.authorRegex
+}
+
+func (f *Filter) AuthorNegate() bool {
+	return f.authorNegate
 }
 
 // LoadMilestoneRegex loads a new milestone regex
