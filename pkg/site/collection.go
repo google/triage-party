@@ -19,11 +19,47 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 
 	"k8s.io/klog/v2"
 )
+
+// parsePlayerParams extracts and clamps the multi-player query parameters.
+func parsePlayerParams(u *url.URL) (players, player int) {
+	players = getInt(u, "players", 1)
+	if players < 1 {
+		players = 1
+	} else if players > MaxPlayers {
+		players = MaxPlayers
+	}
+
+	player = getInt(u, "player", 0)
+	if player < 0 || player > players {
+		player = 0
+	}
+	return players, player
+}
+
+// buildPlayerChoices builds the selector labels for 1..players.
+func buildPlayerChoices(players int) []string {
+	choices := make([]string, 1, players+1)
+	choices[0] = "Select a player"
+	for i := 0; i < players; i++ {
+		choices = append(choices, fmt.Sprintf("Player %d", i+1))
+	}
+	return choices
+}
+
+// buildPlayerNums returns 1..maxPlayers for the player-count selector.
+func buildPlayerNums(maxPlayers int) []int {
+	nums := make([]int, 0, maxPlayers)
+	for i := 0; i < maxPlayers; i++ {
+		nums = append(nums, i+1)
+	}
+	return nums
+}
 
 // Collection shows a grouping of rules.
 func (h *Handlers) Collection() http.HandlerFunc {
@@ -48,19 +84,10 @@ func (h *Handlers) Collection() http.HandlerFunc {
 		klog.Infof("GET %s: %v", r.URL.Path, r.Header)
 
 		id := strings.TrimPrefix(r.URL.Path, "/s/")
-		playerChoices := []string{"Select a player"}
-		players := getInt(r.URL, "players", 1)
-		player := getInt(r.URL, "player", 0)
+		players, player := parsePlayerParams(r.URL)
 		index := getInt(r.URL, "index", 1)
-
-		for i := 0; i < players; i++ {
-			playerChoices = append(playerChoices, fmt.Sprintf("Player %d", i+1))
-		}
-
-		playerNums := []int{}
-		for i := 0; i < MaxPlayers; i++ {
-			playerNums = append(playerNums, i+1)
-		}
+		playerChoices := buildPlayerChoices(players)
+		playerNums := buildPlayerNums(MaxPlayers)
 
 		p, err := h.collectionPage(r.Context(), id, isRefresh(r))
 		if err != nil {
