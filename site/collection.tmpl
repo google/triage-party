@@ -205,7 +205,11 @@
     {{ range .CollectionResult.RuleResults }}
       {{ if .Items }}
     $('#{{ .Rule.ID | toJSfunc }}').DataTable( {
-          "order": [[ 3, "desc" ]],
+          // Persist sort configuration via URL parameters
+          var urlParams = new URLSearchParams(window.location.search);
+          var sortCol = urlParams.get('sort_col') || 3;
+          var sortDir = urlParams.get('sort_dir') || 'desc';
+          "order": [[ parseInt(sortCol), sortDir ]],
           "paging": false,
           "info": false,
       });
