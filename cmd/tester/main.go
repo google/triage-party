@@ -101,7 +101,7 @@ func main() {
 		cfg.Repos = strings.Split(*reposOverride, ",")
 	}
 
-	klog.Infof("tester runtime config: %+v", cfg)
+	klog.Infof("tester runtime config: %+v", cfg.Redacted())
 	tp, err := triage.New(cfg)
 	if err != nil {
 		klog.Exitf("new: %v", err)

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/google/triage-party/pkg/provider"
@@ -38,6 +39,29 @@ type Config struct {
 	GitHubAPIURL string
 	GitHubToken  string
 	GitLabToken  string
+}
+
+// Redacted returns a copy of Config with non-empty API tokens masked.
+func (c Config) Redacted() Config {
+	if c.GitHubToken != "" {
+		c.GitHubToken = "<redacted>"
+	}
+	if c.GitLabToken != "" {
+		c.GitLabToken = "<redacted>"
+	}
+	return c
+}
+
+// String formats Config with API tokens redacted.
+func (c Config) String() string {
+	type rawConfig Config
+	return fmt.Sprintf("%+v", rawConfig(c.Redacted()))
+}
+
+// GoString formats Config in Go syntax with API tokens redacted.
+func (c Config) GoString() string {
+	type rawConfig Config
+	return strings.Replace(fmt.Sprintf("%#v", rawConfig(c.Redacted())), "triage.rawConfig{", "triage.Config{", 1)
 }
 
 type Party struct {
