@@ -199,12 +199,13 @@
 <script src="/third_party/jquery/jquery-3.7.1.min.js"></script>
 <script src="/third_party/datatables/jquery.dataTables.min.js"></script>
 <script src="/third_party/datatables-bulma/dataTables.bulma.js"></script>
+<script src="/static/js/tparty.js?{{.Version}}"></script>
 
 {{ if .CollectionResult.RuleResults }}
   <script>
     {{ range .CollectionResult.RuleResults }}
       {{ if .Items }}
-    $('#{{ .Rule.ID | toJSfunc }}').DataTable( {
+    persistentDataTable("{{ .Rule.ID | toJSfunc }}", {
           "order": [[ 3, "desc" ]],
           "paging": false,
           "info": false,
